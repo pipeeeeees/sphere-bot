@@ -164,7 +164,10 @@ import io
 
 @bot.event
 async def on_message(message):
-    print(f"Received message in channel {message.channel.id}: {message.content}")  # Debugging
+    channel_name = message.channel.name if message.channel else "DM"
+    username = message.author.name
+
+    print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
 
     if message.author.bot:
         return  # Ignore bot messages
