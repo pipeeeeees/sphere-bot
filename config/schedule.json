@@ -11,6 +11,12 @@
             "message": "Drink water! 💧",
             "time": "14:30",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        },
+        {
+            "user_id": 326676188057567232,
+            "message": "THIS IS A TEST",
+            "time": "23:29",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
         }
     ]
 }

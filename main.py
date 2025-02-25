@@ -1,4 +1,5 @@
 import os
+import io
 import json
 import logging
 import discord
@@ -9,6 +10,38 @@ import pytz
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class DiscordHandler(logging.Handler):
+    """Custom logging handler to send logs to a Discord channel."""
+    
+    def __init__(self, bot, channel_id):
+        super().__init__()
+        self.bot = bot
+        self.channel_id = channel_id
+
+    async def send_log(self, message):
+        """Send log messages to the specified Discord channel."""
+        if not self.bot.is_ready():
+            return
+        channel = self.bot.get_channel(self.channel_id)
+        if channel:
+            await channel.send(f"📝 {message}")
+
+    def emit(self, record):
+        """Emit logs asynchronously."""
+        log_message = self.format(record)
+        if self.bot.loop.is_running():
+            self.bot.loop.create_task(self.send_log(log_message))
+
+def setup_logging(bot):
+    """Attach the custom Discord log handler to the logger."""
+    if LOG_CHANNEL_ID:
+        discord_handler = DiscordHandler(bot, LOG_CHANNEL_ID)
+        discord_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        discord_handler.setFormatter(formatter)
+        logger.addHandler(discord_handler)
+
 
 SCHEDULE_FILE = "config/schedule.json"
 
@@ -34,12 +67,15 @@ TOKEN = read_json("config/token.json").get("token")
 if not TOKEN:
     raise ValueError("TOKEN is missing. Check config/token.json.")
 OWNERS = read_json("config/user_ids.json")
+CHANNELS = read_json("config/channel_ids.json")
 
 # Get primary admin ID from lookup table
 OWNER_ID = OWNERS.get("pipeeeeees")
+LOG_CHANNEL_ID = CHANNELS.get("bot-testing")  # Get the bot-testing channel ID
 
 # Set bot command prefix and enable intents
 intents = discord.Intents.default()
+intents.message_content = True  # ✅ Ensure bot can read messages
 intents.dm_messages = True
 intents.guilds = True
 
@@ -49,13 +85,15 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     logger.info(f"✅ Logged in as {bot.user}")
 
+    setup_logging(bot)  # Attach logging to Discord
+
     # Send DM to primary admin if available
     if OWNER_ID:
         try:
             user = await bot.fetch_user(OWNER_ID)
             if user:
                 await user.send(f"✅ Bot {bot.user} has logged in!")
-                logger.info(f"✅ DM sent to {user.name}")
+                logger.info(f"✅ Login DM sent to {user.name}")
             else:
                 logger.warning("Could not fetch user")
         except discord.Forbidden:
@@ -121,6 +159,28 @@ async def add_reminder(ctx, time: str, days: str, user_id: int, *, message: str)
     write_json(SCHEDULE_FILE, schedule_data)
 
     await ctx.send(f"✅ Reminder added for {time} on {', '.join(days_list)}.")
+
+import io
+
+@bot.event
+async def on_message(message):
+    print(f"Received message in channel {message.channel.id}: {message.content}")  # Debugging
+
+    if message.author.bot:
+        return  # Ignore bot messages
+
+    if int(message.channel.id) == int(LOG_CHANNEL_ID) and message.content.strip() == "$schedule":
+        schedule_data = read_json(SCHEDULE_FILE)
+        schedule_text = json.dumps(schedule_data, indent=4)  # Pretty-print JSON
+
+        # Create an in-memory text file and send it
+        file = discord.File(io.BytesIO(schedule_text.encode()), filename="schedule.json")
+        await message.channel.send("📂 **Schedule file:**", file=file)
+        print("✅ Sent schedule file.")
+
+    await bot.process_commands(message)  # Ensure commands still work
+
+
 
 # Run the bot
 bot.run(TOKEN)
