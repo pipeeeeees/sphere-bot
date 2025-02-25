@@ -3,6 +3,8 @@ import io
 import json
 import logging
 import discord
+import subprocess
+import sys
 from discord.ext import commands, tasks
 from datetime import datetime
 import pytz
@@ -171,6 +173,25 @@ async def on_message(message):
 
     if message.author.bot:
         return  # Ignore bot messages
+    
+    # Check if message is from the specific user ID
+    if message.author.id == 1343807638227648533:
+        await message.channel.send("🔄 Pulling latest updates and restarting...")
+
+        try:
+            # Perform Git pull
+            process = subprocess.run(["git", "pull"], check=True, capture_output=True, text=True)
+            output = process.stdout + process.stderr
+            await message.channel.send(f"📝 Git Pull Output:\n```\n{output}\n```")
+
+            # Restart the bot
+            await message.channel.send("✅ Restarting bot...")
+            subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
+            sys.exit(0)  # Exit the current script
+
+        except subprocess.CalledProcessError as e:
+            await message.channel.send(f"❌ Git pull failed:\n```\n{e.output}\n```")
+            print(f"Git pull failed: {e}")
 
     if int(message.channel.id) == int(LOG_CHANNEL_ID) and message.content.strip() == "$schedule":
         schedule_data = read_json(SCHEDULE_FILE)
