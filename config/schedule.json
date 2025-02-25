@@ -1,0 +1,16 @@
+{
+    "reminders": [
+        {
+            "user_id": 326676188057567232,
+            "message": "🌞 Good morning! Hope you have a great day!",
+            "time": "08:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        },
+        {
+            "user_id": 326676188057567232,
+            "message": "Drink water! 💧",
+            "time": "14:30",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        }
+    ]
+}
