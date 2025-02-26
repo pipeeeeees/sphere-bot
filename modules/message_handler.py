@@ -4,7 +4,7 @@ import discord
 import logging
 import datetime
 
-import pollen
+from modules import pollen
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()

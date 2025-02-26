@@ -1,4 +1,4 @@
-import webscraper as ws
+from modules import webscraper as ws
 
 def get_atl_pollen_count():
     mylist = ws.chunk_parser(ws.scrape('https://www.atlantaallergy.com/pollen_counts'),
