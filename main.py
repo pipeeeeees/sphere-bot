@@ -123,18 +123,35 @@ async def send_scheduled_messages():
 
     for reminder in schedule_data.get("reminders", []):
         if current_time == reminder["time"] and current_day in reminder["days"]:
-            user_id = reminder["user_id"]
+            target_id = reminder["user_id"]  # Can be user_id or channel_id
             message = reminder["message"]
 
             try:
-                user = await bot.fetch_user(user_id)
+                # Try fetching as a user
+                user = await bot.fetch_user(target_id)
                 if user:
                     await user.send(message)
-                    #logger.info(f"✅ Sent scheduled message to {user.name}: {message}")
+                    #logger.info(f"✅ Sent scheduled message to user {user.name}: {message}")
+                    continue  # Skip the channel check if it's a valid user ID
+
+            except discord.NotFound:
+                # User not found, assume it's a channel ID and try fetching as a channel
+                try:
+                    channel = await bot.fetch_channel(target_id)
+                    if isinstance(channel, discord.TextChannel):
+                        await channel.send(message)
+                        #logger.info(f"✅ Sent scheduled message to channel {channel.name}: {message}")
+                    else:
+                        logger.warning(f"⚠️ Target {target_id} is not a valid text channel.")
+                except discord.Forbidden:
+                    logger.warning(f"⚠️ Cannot send message to channel {target_id}. Check permissions.")
+                except discord.HTTPException as e:
+                    logger.error(f"⚠️ Failed to send message to channel {target_id}: {e}")
+
             except discord.Forbidden:
-                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+                logger.warning(f"⚠️ Cannot send DM to user {target_id}. Check permissions.")
             except discord.HTTPException as e:
-                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+                logger.error(f"⚠️ Failed to send message to {target_id}: {e}")
 
 #@bot.command()
 #async def add_reminder(ctx, time: str, days: str, user_id: int, *, message: str):
