@@ -26,26 +26,32 @@
         },
         {
             "id": 577922382761820180,
-            "message": "Good morning, Mr. rpat! I hope you have a great day!",
+            "message": "Good morning, Mr. Patel! I hope you have a great day!",
             "time": "08:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
         {
             "id": 1343790905592905850,
             "message": "This is a routine weekday reminder!",
-            "time": "23:00",
+            "time": "17:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
         },
         {
             "id": 1343790905592905850,
             "message": "This is a routine weekend reminder!",
-            "time": "23:00",
+            "time": "17:00",
             "days": ["Saturday", "Sunday"]
+        },
+        {
+            "id": 1079612189175988264,
+            "message": "Atlanta Morning Reports to come soon...",
+            "time": "09:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
         {
             "id": 1344165418885054534,
             "message": "👕 Lululemon made too much just dropped, son! Grab them deals: https://shop.lululemon.com/c/men-we-made-too-much/n18mhdznrqw",
-            "time": "7:00",
+            "time": "07:00",
             "days": ["Thursday"]
         }
     ]
