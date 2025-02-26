@@ -136,33 +136,32 @@ async def send_scheduled_messages():
             except discord.HTTPException as e:
                 logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
 
-@bot.command()
-async def add_reminder(ctx, time: str, days: str, user_id: int, *, message: str):
-    """
-    Command to add a new scheduled reminder.
-    Usage: !add_reminder HH:MM "Monday,Tuesday" USER_ID message text
-    Example: !add_reminder 08:00 "Monday,Wednesday,Friday" 123456789012345678 "Time to wake up!"
-    """
-    days_list = [day.strip() for day in days.split(",")]
+#@bot.command()
+#async def add_reminder(ctx, time: str, days: str, user_id: int, *, message: str):
+#    """
+#    Command to add a new scheduled reminder.
+#    Usage: !add_reminder HH:MM "Monday,Tuesday" USER_ID message text
+#    Example: !add_reminder 08:00 "Monday,Wednesday,Friday" 123456789012345678 "Time to wake up!"
+#    """
+#    days_list = [day.strip() for day in days.split(",")]
+#
+#    # Load current reminders
+#    schedule_data = read_json(SCHEDULE_FILE)
+#
+#    # Append new reminder
+#    new_reminder = {
+#        "user_id": user_id,
+#        "message": message,
+#        "time": time,
+#        "days": days_list
+#    }
+#    schedule_data["reminders"].append(new_reminder)
+#
+#    # Save back to file
+#    write_json(SCHEDULE_FILE, schedule_data)
+#
+#    await ctx.send(f"✅ Reminder added for {time} on {', '.join(days_list)}.")
 
-    # Load current reminders
-    schedule_data = read_json(SCHEDULE_FILE)
-
-    # Append new reminder
-    new_reminder = {
-        "user_id": user_id,
-        "message": message,
-        "time": time,
-        "days": days_list
-    }
-    schedule_data["reminders"].append(new_reminder)
-
-    # Save back to file
-    write_json(SCHEDULE_FILE, schedule_data)
-
-    await ctx.send(f"✅ Reminder added for {time} on {', '.join(days_list)}.")
-
-import io
 
 @bot.event
 async def on_message(message):
