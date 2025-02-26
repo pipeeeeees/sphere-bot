@@ -169,6 +169,7 @@ async def on_message(message):
     username = message.author.name
 
     print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
+    print(message.author.id)
 
     if message.author.bot:
         return  # Ignore bot messages
