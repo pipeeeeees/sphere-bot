@@ -36,9 +36,17 @@ async def handle_message(bot, message, log_channel_id):
     # if $uptime is sent, send the uptime
     if message.content.strip() == "$uptime":
         current_time = datetime.datetime.now()
-        uptime = current_time - start_time
-        await message.channel.send(f"⏳ **Uptime:** {uptime}")
-        logger.info("✅ Sent uptime.")
+        uptime_seconds = (current_time - start_time).total_seconds()
+
+        days = int(uptime_seconds // 86400)
+        hours = int((uptime_seconds % 86400) // 3600)
+        minutes = int((uptime_seconds % 3600) // 60)
+        seconds = int(uptime_seconds % 60)
+
+        uptime_str = f"{days}d {hours}h {minutes}m {seconds}s" if days > 0 else f"{hours}h {minutes}m {seconds}s"
+        
+        await message.channel.send(f"⏳ **Uptime:** {uptime_str}")
+        logger.info(f"✅ Sent uptime: {uptime_str}")
 
     # if $pollen is sent, send the pollen count
     if message.content.strip() == "$pollen":
