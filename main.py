@@ -64,16 +64,16 @@ def write_json(path, data):
     with open(path, "w") as file:
         json.dump(data, file, indent=4)
 
-# Load bot token
+# read all json config files
+OWNERS = read_json("config/user_ids.json")
+CHANNELS = read_json("config/channel_ids.json")
 TOKEN = read_json("config/token.json").get("token")
 if not TOKEN:
     raise ValueError("TOKEN is missing. Check config/token.json.")
-OWNERS = read_json("config/user_ids.json")
-CHANNELS = read_json("config/channel_ids.json")
 
 # ID variables
-OWNER_ID = OWNERS.get("pipeeeeees")
-LOG_CHANNEL_ID = CHANNELS.get("bot-testing")  # Get the bot-testing channel ID
+OWNER_ID = OWNERS.get("pipeeeeees")             # my discord user ID
+LOG_CHANNEL_ID = CHANNELS.get("bot-testing")    # bot-testing channel ID
 
 # Set bot command prefix and enable intents
 intents = discord.Intents.default()

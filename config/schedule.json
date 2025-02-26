@@ -35,6 +35,12 @@
             "message": "This is a routine weekend reminder!",
             "time": "23:00",
             "days": ["Saturday", "Sunday"]
+        },
+        {
+            "id": 1344165418885054534,
+            "message": "👕 Lululemon made too much just dropped, son! Grab them deals: https://shop.lululemon.com/c/men-we-made-too-much/n18mhdznrqw",
+            "time": "8:00",
+            "days": ["Thursday"]
         }
     ]
 }
