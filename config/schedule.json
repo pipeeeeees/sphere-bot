@@ -19,6 +19,12 @@
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
         {
+            "id": 479049466758823966,
+            "message": "Good morning, Mr. Littig! I hope you have a great day!",
+            "time": "08:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
             "id": 577922382761820180,
             "message": "Good morning, Mr. rpat! I hope you have a great day!",
             "time": "08:00",
