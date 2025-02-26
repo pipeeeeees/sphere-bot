@@ -9,6 +9,7 @@ from discord.ext import commands, tasks
 from datetime import datetime
 import pytz
 
+from modules.message_handler import handle_message 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -215,15 +216,7 @@ async def on_message(message):
 
     print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
     
-    # schedule command. sends the schedule file and only works in the bot-testing channel
-    if int(message.channel.id) == int(LOG_CHANNEL_ID) and message.content.strip() == "$schedule":
-        schedule_data = read_json(SCHEDULE_FILE)
-        schedule_text = json.dumps(schedule_data, indent=4)  # Pretty-print JSON
-
-        # Create an in-memory text file and send it
-        file = discord.File(io.BytesIO(schedule_text.encode()), filename="schedule.json")
-        await message.channel.send("📂 **Schedule file:**", file=file)
-        print("✅ Sent schedule file.")
+    await handle_message(bot, message, LOG_CHANNEL_ID)
 
     await bot.process_commands(message)  # Ensure commands still work
 
