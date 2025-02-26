@@ -94,8 +94,8 @@ async def on_ready():
         try:
             user = await bot.fetch_user(OWNER_ID)
             if user:
-                await user.send(f"✅ Bot {bot.user} has logged in!")
-                #logger.info(f"✅ Login DM sent to {user.name}")
+                await user.send(f"✅ Bot {bot.user} is online!")
+                logger.info(f"✅ Successfully booted!")
             else:
                 logger.warning("Could not fetch user")
         except discord.Forbidden:
@@ -123,7 +123,7 @@ async def send_scheduled_messages():
 
     for reminder in schedule_data.get("reminders", []):
         if current_time == reminder["time"] and current_day in reminder["days"]:
-            target_id = reminder["user_id"]  # Can be user_id or channel_id
+            target_id = reminder["id"]  # Can be user id or channel id
             message = reminder["message"]
 
             try:
@@ -182,7 +182,12 @@ async def send_scheduled_messages():
 
 @bot.event
 async def on_message(message):
-    channel_name = message.channel.name if message.channel else message.channel.id
+    # Check if it's a DM (DMChannel) or a guild text channel (TextChannel)
+    if isinstance(message.channel, discord.DMChannel):
+        channel_name = f"DM with {message.author.name}"  # Label for DMs
+    else:
+        channel_name = message.channel.name  # Use .name for guild channels
+
     username = message.author.name
 
     print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
