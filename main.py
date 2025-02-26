@@ -169,10 +169,6 @@ async def on_message(message):
     username = message.author.name
 
     print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
-    print(message.author.id)
-
-    if message.author.bot:
-        return  # Ignore bot messages
     
     # Check if message is from the specific user ID
     if message.author.id == 1343807638227648533:
@@ -192,6 +188,9 @@ async def on_message(message):
         except subprocess.CalledProcessError as e:
             await message.channel.send(f"❌ Git pull failed:\n```\n{e.output}\n```")
             print(f"Git pull failed: {e}")
+
+    if message.author.bot:
+        return  # Ignore bot messages
 
     if int(message.channel.id) == int(LOG_CHANNEL_ID) and message.content.strip() == "$schedule":
         schedule_data = read_json(SCHEDULE_FILE)
