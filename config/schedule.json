@@ -2,15 +2,27 @@
     "reminders": [
         {
             "id": 326676188057567232,
-            "message": "🌞 Good morning! Hope you have a great day!",
+            "message": "Good morning, Mr. Pipes! I hope you have a great day!",
             "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
         {
-            "id": 326676188057567232,
-            "message": "Drink water! 💧",
-            "time": "14:30",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+            "id": 497548855357865986,
+            "message": "Good morning, Mr. Gill! I hope you have a great day!",
+            "time": "08:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+            "id": 431121754568523796,
+            "message": "Good morning, Mr. Pipes! I hope you have a great day!",
+            "time": "08:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+            "id": 577922382761820180,
+            "message": "Good morning, Mr. rpat! I hope you have a great day!",
+            "time": "08:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
         {
             "id": 1343790905592905850,

@@ -182,17 +182,7 @@ async def send_scheduled_messages():
 
 @bot.event
 async def on_message(message):
-    # Check if it's a DM (DMChannel) or a guild text channel (TextChannel)
-    if isinstance(message.channel, discord.DMChannel):
-        channel_name = f"DM with {message.author.name}"  # Label for DMs
-    else:
-        channel_name = message.channel.name  # Use .name for guild channels
-
-    username = message.author.name
-
-    print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
-    
-    # Check if message is from the specific user ID
+    # Check if message is from the GitHub Webhook ID
     if message.author.id == 1343807638227648533:
         await message.channel.send("🔄 Pulling latest updates and restarting...")
 
@@ -211,9 +201,21 @@ async def on_message(message):
             await message.channel.send(f"❌ Git pull failed:\n```\n{e.output}\n```")
             print(f"Git pull failed: {e}")
 
+    # Ignore bot messages
     if message.author.bot:
-        return  # Ignore bot messages
+        return  
+    
+    # Create a debugging log for all messages
+    if isinstance(message.channel, discord.DMChannel):
+        channel_name = f"DM with {message.author.name}"  # Label for DMs
+    else:
+        channel_name = message.channel.name  # Use .name for guild channels
 
+    username = message.author.name
+
+    print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
+    
+    # schedule command. sends the schedule file and only works in the bot-testing channel
     if int(message.channel.id) == int(LOG_CHANNEL_ID) and message.content.strip() == "$schedule":
         schedule_data = read_json(SCHEDULE_FILE)
         schedule_text = json.dumps(schedule_data, indent=4)  # Pretty-print JSON
@@ -224,8 +226,6 @@ async def on_message(message):
         print("✅ Sent schedule file.")
 
     await bot.process_commands(message)  # Ensure commands still work
-
-
 
 # Run the bot
 bot.run(TOKEN)
