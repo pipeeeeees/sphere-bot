@@ -71,13 +71,13 @@ if not TOKEN:
 OWNERS = read_json("config/user_ids.json")
 CHANNELS = read_json("config/channel_ids.json")
 
-# Get primary admin ID from lookup table
+# ID variables
 OWNER_ID = OWNERS.get("pipeeeeees")
 LOG_CHANNEL_ID = CHANNELS.get("bot-testing")  # Get the bot-testing channel ID
 
 # Set bot command prefix and enable intents
 intents = discord.Intents.default()
-intents.message_content = True  # ✅ Ensure bot can read messages
+intents.message_content = True  
 intents.dm_messages = True
 intents.guilds = True
 
@@ -95,7 +95,7 @@ async def on_ready():
             user = await bot.fetch_user(OWNER_ID)
             if user:
                 await user.send(f"✅ Bot {bot.user} has logged in!")
-                logger.info(f"✅ Login DM sent to {user.name}")
+                #logger.info(f"✅ Login DM sent to {user.name}")
             else:
                 logger.warning("Could not fetch user")
         except discord.Forbidden:
@@ -109,7 +109,7 @@ async def on_ready():
     if not send_scheduled_messages.is_running():
         send_scheduled_messages.start()
 
-    logger.info("✅ Scheduled message system initialized")
+    #logger.info("✅ Scheduled message system initialized")
 
 @tasks.loop(minutes=1)  # Check every minute
 async def send_scheduled_messages():
@@ -130,7 +130,7 @@ async def send_scheduled_messages():
                 user = await bot.fetch_user(user_id)
                 if user:
                     await user.send(message)
-                    logger.info(f"✅ Sent scheduled message to {user.name}: {message}")
+                    #logger.info(f"✅ Sent scheduled message to {user.name}: {message}")
             except discord.Forbidden:
                 logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
             except discord.HTTPException as e:
