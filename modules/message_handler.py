@@ -3,6 +3,8 @@ import io
 import discord
 import logging
 import datetime
+import random
+import asyncio
 
 from modules import pollen
 from modules import weather
@@ -68,3 +70,16 @@ async def handle_message(bot, message, log_channel_id):
         report_str = report.get_morning_report()
         await message.channel.send(report_str)
         logger.info("✅ Sent morning report.")
+
+    # if a Trae Young tweet is detected, send a message
+    if "https://fixvx.com/TheTraeYoung/status/" in message.content:
+        # a 1 in 3 chance to send a message
+        result = random.randint(1, 100)
+        if result == 1:
+            await message.channel.send("🗣️🗣️🗣️ **Trae Young Tweeted** 🗣️🗣️🗣️")
+            logger.info("✅ Sent The Trae Young message.")
+        elif result == 2:
+            # wait for 10 seconds
+            await asyncio.sleep(10)
+            await message.channel.send("Fuck Trae Young.")
+            logger.info("✅ Sent The Trae Young message.")
