@@ -19,6 +19,6 @@ def get_morning_report():
     sunset_string = f"\n🌅 Sunset is at {sunset}**"
     sunrise = weather.get_sun_time(1, "sunrise")
     sunrise_string = f"\n🌅 Sunrise tomorrow is at **{sunrise}**"
-    message_string = message_string + sunset_string
-    message_string = message_string + sunrise_string
+    morning_report_str = morning_report_str + sunset_string
+    morning_report_str = morning_report_str + sunrise_string
     
