@@ -97,7 +97,7 @@ async def on_ready():
             user = await bot.fetch_user(OWNER_ID)
             if user:
                 await user.send(f"✅ Bot {bot.user} is online!")
-                logger.info(f"✅ Successfully booted!")
+                #logger.info(f"✅ Successfully booted!")
             else:
                 logger.warning("Could not fetch user")
         except discord.Forbidden:
@@ -198,7 +198,7 @@ async def send_scheduled_messages():
 async def on_message(message):
     # Check if message is from the GitHub Webhook ID
     if message.author.id == 1343807638227648533:
-        await message.channel.send("🔄 Pulling latest updates and restarting...")
+        #await message.channel.send("🔄 Pulling latest updates and restarting...")
 
         try:
             # Perform Git pull
