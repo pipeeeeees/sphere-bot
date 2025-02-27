@@ -51,7 +51,7 @@ async def handle_message(bot, message, log_channel_id):
 
         uptime_str = f"{days}d {hours}h {minutes}m {seconds}s" if days > 0 else f"{hours}h {minutes}m {seconds}s"
         
-        await message.channel.send(f"⏳ **Uptime:** {uptime_str}")
+        await message.channel.send(f"⏳ Uptime: **{uptime_str}**")
         logger.info(f"✅ Sent uptime: {uptime_str}")
 
     # if $pollen is sent, send the pollen count
