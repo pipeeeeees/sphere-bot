@@ -5,6 +5,8 @@ import logging
 import datetime
 import random
 import asyncio
+import subprocess
+import sys
 
 from modules import pollen
 from modules import weather
@@ -83,3 +85,18 @@ async def handle_message(bot, message, log_channel_id):
             await asyncio.sleep(10)
             await message.channel.send("Fuck Trae Young.")
             logger.info("✅ Sent The Trae Young message.")
+
+    # if $pull is sent, git pull
+    if message.content.strip() == "$pull":
+        try:
+            process = subprocess.run(["git", "pull"], check=True, capture_output=True, text=True)
+            output = process.stdout + process.stderr
+            await message.channel.send(f"📝 Git Pull Output:\n```\n{output}\n```")
+        except subprocess.CalledProcessError as e:
+            await message.channel.send(f"❌ Git pull failed:\n```\n{e.output}\n```")
+            print(f"Git pull failed: {e}")
+
+    # if $reboot is sent, reboot
+    if message.content.strip() == "$reboot":
+        subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
+        sys.exit(0)  # Exit the current script
