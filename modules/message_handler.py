@@ -5,6 +5,8 @@ import logging
 import datetime
 
 from modules import pollen
+from modules import weather
+from modules import report
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -60,3 +62,9 @@ async def handle_message(bot, message, log_channel_id):
         elif pollen_count == 'HTML Failure':
             await message.channel.send("❌ **HTML Parsing Error.**")
             logger.info("❌ HTML Parsing Error.")
+
+    # if $report is sent, send the morning report
+    if message.content.strip() == "$report":
+        report_str = report.get_morning_report()
+        await message.channel.send(report_str)
+        logger.info("✅ Sent morning report.")

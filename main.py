@@ -10,6 +10,7 @@ from datetime import datetime
 import pytz
 
 from modules.message_handler import handle_message 
+from modules import report
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -140,7 +141,19 @@ async def send_scheduled_messages():
                 try:
                     channel = await bot.fetch_channel(target_id)
                     if isinstance(channel, discord.TextChannel):
-                        await channel.send(message)
+                        
+                        # for the morning report...
+                        # if the channel id number is 1079612189175988264...
+                        if target_id == 1079612189175988264:
+                            # ... and the message is "[morningreport]"
+                            if message == "[morningreport]":
+                                # ... then modify the message to "Good morning!"
+                                message = report.get_morning_report()
+                                await channel.send(message)
+
+                        # just send the message as is from the json file
+                        else:
+                            await channel.send(message)
                         #logger.info(f"✅ Sent scheduled message to channel {channel.name}: {message}")
                     else:
                         logger.warning(f"⚠️ Target {target_id} is not a valid text channel.")
