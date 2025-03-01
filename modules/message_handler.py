@@ -77,7 +77,7 @@ async def handle_message(bot, message, log_channel_id):
     if "https://fixvx.com/TheTraeYoung/status/" in message.content:
         # a 1 in 3 chance to send a message
         result = random.randint(1, 100)
-        if result == 1:
+        if result < 20:
             await message.channel.send("🗣️🗣️🗣️ **Trae Young Tweeted** 🗣️🗣️🗣️")
             logger.info("✅ Sent The Trae Young message.")
         elif result == 2:
