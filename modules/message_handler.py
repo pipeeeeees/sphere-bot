@@ -31,9 +31,13 @@ async def handle_message(bot, message, log_channel_id):
 
     # if the message is a DM to the bot, send it to user 326676188057567232
     if message.guild == None:
-        user = bot.get_user(326676188057567232)
-        await user.send(f"📬 **{message.author}** sent a DM to Sphere:\n{message.content}")
-        #logger.info(f"📬 **{message.author}** sent a DM:\n{message.content}")
+        # if the message.author is from user 326676188057567232, ignore it
+        if message.author.id == 326676188057567232:
+            pass
+        else:
+            user = await bot.fetch_user(326676188057567232)
+            if user:  # Ensure the user was fetched successfully
+                await user.send(f"📬 **{message.author}** sent a DM to Sphere:\n\n{message.content}")
 
     # if $schedule is sent in the bot-testing channel, send the schedule file
     if message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
