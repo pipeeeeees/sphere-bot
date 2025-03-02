@@ -14,7 +14,7 @@
         },
         {
             "id": 318585198105198604,
-            "message": "Good morning, Mr. Utberg! Have a good day!",
+            "message": "Good morning, Mr. Utberg! I hope you have a great day!",
             "time": "08:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
@@ -35,18 +35,6 @@
             "message": "Good morning, Mr. Patel! I hope you have a great day!",
             "time": "08:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 1343790905592905850,
-            "message": "This is a routine weekday reminder!",
-            "time": "17:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-        },
-        {
-            "id": 1343790905592905850,
-            "message": "This is a routine weekend reminder!",
-            "time": "17:00",
-            "days": ["Saturday", "Sunday"]
         },
         {
             "id": 1079612189175988264,
