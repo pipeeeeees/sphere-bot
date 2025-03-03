@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 config/token.txt
 config/token.json
+/plots
+modules/pollen_data/pollen_counts.csv

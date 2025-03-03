@@ -2,47 +2,45 @@ import matplotlib.pyplot as plt
 import datetime
 import os
 
-def get_atl_pollen_count():
-    mylist = ws.chunk_parser(ws.scrape('https://www.atlantaallergy.com/pollen_counts'),
-                                       'class="pollen-num"').split(' ')
-    if len(mylist) > 0:
-        for i in mylist:
-            try:
-                j = int(i)
-                return j
-            except:
-                continue
-    if mylist == ['']:
-        print(mylist)
-        return None
-    else:
-        return 'HTML Failure'
+DATA_DIR = "modules/pollen_data"
+DATA_FILE = os.path.join(DATA_DIR, "pollen_counts.csv")
 
-def result_handler():
-    result = get_atl_pollen_count()
-    if type(result) == int:
-        return f"The pollen count in Atlanta for the day is {result}"
-    elif result == None:
-        return "The pollen count in Atlanta has not been reported yet. Please try again later.\n\nNote: Atlanta's pollen count is not reported on the weekends (outside of pollen season).\nhttps://www.atlantaallergy.com/pollen_counts"
-    elif result == 'HTML Failure':
-        return "HTML Parsing Error"
-    else:
-        return "something broke lol"
-    
+def ensure_data_dir():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    if not os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "w") as f:
+            f.write("date,pollen_count\n")
 
+def read_pollen_data():
+    ensure_data_dir()
+    data = {}
+    with open(DATA_FILE, "r") as f:
+        next(f)  # Skip header
+        for line in f:
+            date, count = line.strip().split(",")
+            data[date] = int(count)
+    return data
 
-
+def write_pollen_data(date, count):
+    ensure_data_dir()
+    with open(DATA_FILE, "a") as f:
+        f.write(f"{date},{count}\n")
 
 def get_atl_pollen_count_by_date(date: str):
+    data = read_pollen_data()
+    if date in data:
+        return data[date]
+    
     url = f'https://www.atlantaallergy.com/pollen_counts/index/{date}'
     mylist = ws.chunk_parser(ws.scrape(url), 'class="pollen-num"').split(' ')
     
-    if mylist:
-        for i in mylist:
-            try:
-                return int(i)
-            except ValueError:
-                continue
+    for i in mylist:
+        try:
+            count = int(i)
+            write_pollen_data(date, count)
+            return count
+        except ValueError:
+            continue
     
     return None if mylist == [''] else 'HTML Failure'
 
@@ -72,13 +70,8 @@ def plot_pollen_counts(start_date: str, end_date: str):
         plt.savefig("plots/plot.png")
         plt.close()
 
-
-    
 if __name__ == '__main__':
     import webscraper as ws
-
-    #print(get_atl_pollen_count_by_date("2025/02/27"))
     plot_pollen_counts("2024-01-01", "2024-12-31")
-
 else:
     from modules import webscraper as ws
