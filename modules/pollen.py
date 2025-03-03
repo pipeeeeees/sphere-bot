@@ -75,6 +75,6 @@ async def plot_pollen_counts(start_date: str, end_date: str):
 
 if __name__ == '__main__':
     import webscraper as ws
-    asyncio.run(plot_pollen_counts("2024-01-01", "2024-12-31"))
+    asyncio.run(plot_pollen_counts("1991-06-18", "2024-12-31"))
 else:
     from modules import webscraper as ws
