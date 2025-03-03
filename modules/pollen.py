@@ -1,6 +1,8 @@
+import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 import os
+import asyncio
 
 DATA_DIR = "modules/pollen_data"
 DATA_FILE = os.path.join(DATA_DIR, "pollen_counts.csv")
@@ -8,23 +10,22 @@ DATA_FILE = os.path.join(DATA_DIR, "pollen_counts.csv")
 def ensure_data_dir():
     os.makedirs(DATA_DIR, exist_ok=True)
     if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w") as f:
-            f.write("date,pollen_count\n")
+        pd.DataFrame(columns=["date", "pollen_count"]).to_csv(DATA_FILE, index=False)
 
 def read_pollen_data():
     ensure_data_dir()
-    data = {}
-    with open(DATA_FILE, "r") as f:
-        next(f)  # Skip header
-        for line in f:
-            date, count = line.strip().split(",")
-            data[date] = int(count)
-    return data
+    try:
+        df = pd.read_csv(DATA_FILE, dtype={"date": str, "pollen_count": "Int64"})
+        return df.set_index("date")["pollen_count"].to_dict()
+    except FileNotFoundError:
+        return {}
 
 def write_pollen_data(date, count):
     ensure_data_dir()
-    with open(DATA_FILE, "a") as f:
-        f.write(f"{date},{count}\n")
+    df = pd.read_csv(DATA_FILE, dtype={"date": str, "pollen_count": "Int64"})
+    new_entry = pd.DataFrame([[date, count]], columns=["date", "pollen_count"])
+    df = pd.concat([df, new_entry], ignore_index=True)
+    df.to_csv(DATA_FILE, index=False)
 
 def get_atl_pollen_count_by_date(date: str):
     data = read_pollen_data()
@@ -42,18 +43,20 @@ def get_atl_pollen_count_by_date(date: str):
         except ValueError:
             continue
     
-    return None if mylist == [''] else 'HTML Failure'
+    write_pollen_data(date, None)
+    return None
 
-def plot_pollen_counts(start_date: str, end_date: str):
+async def plot_pollen_counts(start_date: str, end_date: str):
     start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-    dates = []
-    counts = []
+    
+    data = read_pollen_data()
+    dates, counts = [], []
     
     for n in range((end_date - start_date).days + 1):
         date_str = (start_date + datetime.timedelta(n)).strftime("%Y/%m/%d")
-        count = get_atl_pollen_count_by_date(date_str)
-        if isinstance(count, int):
+        count = data.get(date_str, get_atl_pollen_count_by_date(date_str))
+        if pd.notna(count):
             dates.append(start_date + datetime.timedelta(n))
             counts.append(count)
     
@@ -72,6 +75,6 @@ def plot_pollen_counts(start_date: str, end_date: str):
 
 if __name__ == '__main__':
     import webscraper as ws
-    plot_pollen_counts("2024-01-01", "2024-12-31")
+    asyncio.run(plot_pollen_counts("2024-01-01", "2024-12-31"))
 else:
     from modules import webscraper as ws

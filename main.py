@@ -83,7 +83,7 @@ intents.message_content = True
 intents.dm_messages = True
 intents.guilds = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, heartbeat_timeout=6000)
 
 @bot.event
 async def on_ready():

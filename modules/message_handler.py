@@ -96,7 +96,7 @@ async def handle_message(bot, message, log_channel_id):
                     await message.channel.send("❌ **Start date must be before end date.**")
                     return
                 
-                pollen.plot_pollen_counts(start_date, end_date)
+                await pollen.plot_pollen_counts(start_date, end_date)
                 await message.channel.send(file=discord.File("plots/plot.png"))
             except ValueError:
                 await message.channel.send("❌ **Invalid date format. Use YYYY-MM-DD YYYY-MM-DD.**")
