@@ -29,7 +29,7 @@ def read_json(path):
 async def handle_message(bot, message, log_channel_id):
     """Handles messages for the bot"""
 
-    # if the message is a DM to the bot, send it to user 326676188057567232
+    # user DM handling - redirects to me
     if message.guild == None:
         # if the message.author is from user 326676188057567232, ignore it
         if message.author.id == 326676188057567232:
@@ -39,6 +39,11 @@ async def handle_message(bot, message, log_channel_id):
             if user:  # Ensure the user was fetched successfully
                 await user.send(f"📬 **{message.author}** sent a DM to Sphere:\n\n{message.content}")
 
+
+
+
+
+    # -- COMMANDS --
     # if $schedule is sent in the bot-testing channel, send the schedule file
     if message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
         schedule_data = read_json(SCHEDULE_FILE)
@@ -48,7 +53,6 @@ async def handle_message(bot, message, log_channel_id):
         await message.channel.send("📂 **Schedule file:**", file=file)
         logger.info("✅ Sent schedule file.")
 
-    
     # if $uptime is sent, send the uptime
     elif message.content.strip() == "$uptime":
         current_time = datetime.datetime.now()
@@ -65,17 +69,38 @@ async def handle_message(bot, message, log_channel_id):
         logger.info(f"✅ Sent uptime: {uptime_str}")
 
     # if $pollen is sent, send the pollen count
-    elif message.content.strip() == "$pollen":
-        pollen_count = pollen.get_atl_pollen_count()
-        if type(pollen_count) == int:
-            await message.channel.send(f"🌼 **Pollen count:** {pollen_count}")
-            logger.info("✅ Sent pollen count.")
-        elif pollen_count == None:
-            await message.channel.send("❌ **Pollen count not reported.**")
-            logger.info("❌ Pollen count not reported.")
-        elif pollen_count == 'HTML Failure':
-            await message.channel.send("❌ **HTML Parsing Error.**")
-            logger.info("❌ HTML Parsing Error.")
+    elif "$pollen" in message.content.strip():
+        parts = message.content.strip().split()
+        if len(parts) == 1:
+            pollen_count = pollen.get_atl_pollen_count_by_date(datetime.date.today().strftime("%Y/%m/%d"))
+            if isinstance(pollen_count, int):
+                await message.channel.send(f"🌼 **Pollen count:** {pollen_count}")
+            elif pollen_count is None:
+                await message.channel.send("❌ **Pollen count not reported.**")
+            else:
+                await message.channel.send("❌ **HTML Parsing Error.**")
+        elif len(parts) == 2 and parts[1] == "plot":
+            # start_date is first of the current year
+            start_date = datetime.date(datetime.date.today().year, 1, 1).strftime("%Y-%m-%d")
+            end_date = datetime.date.today().strftime("%Y-%m-%d")
+            pollen.plot_pollen_counts(start_date, end_date)
+            await message.channel.send(file=discord.File("plots/plot.png"))
+        elif len(parts) == 4 and parts[1] == "plot":
+            try:
+                start_date = parts[2]
+                end_date = parts[3]
+                start_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+
+                if start_dt > end_dt:
+                    await message.channel.send("❌ **Start date must be before end date.**")
+                    return
+                
+                pollen.plot_pollen_counts(start_date, end_date)
+                await message.channel.send(file=discord.File("plots/plot.png"))
+            except ValueError:
+                await message.channel.send("❌ **Invalid date format. Use YYYY-MM-DD YYYY-MM-DD.**")
+
 
     # if $report is sent, send the morning report
     elif message.content.strip() == "$report":
@@ -83,18 +108,10 @@ async def handle_message(bot, message, log_channel_id):
         await message.channel.send(report_str)
         logger.info("✅ Sent morning report.")
 
-    # if a Trae Young tweet is detected, send a message
-    elif "https://fixvx.com/TheTraeYoung/status/" in message.content:
-        # a 1 in 3 chance to send a message
-        result = random.randint(1, 100)
-        if result < 20:
-            await message.channel.send("🗣️🗣️🗣️ **Trae Young Tweeted** 🗣️🗣️🗣️")
-            logger.info("✅ Sent The Trae Young message.")
-        #elif result == 2:
-        #    # wait for 10 seconds
-        #    await asyncio.sleep(10)
-        #    await message.channel.send("Fuck Trae Young")
-        #    logger.info("✅ Sent The Trae Young message.")
+    # if $reboot is sent, reboot
+    elif message.content.strip() == "$reboot":
+        subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
+        sys.exit(0)  # Exit the current script
 
     # if $pull is sent, git pull
     elif message.content.strip() == "$pull":
@@ -106,7 +123,24 @@ async def handle_message(bot, message, log_channel_id):
             await message.channel.send(f"❌ Git pull failed:\n```\n{e.output}\n```")
             print(f"Git pull failed: {e}")
 
-    # if $reboot is sent, reboot
-    elif message.content.strip() == "$reboot":
-        subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
-        sys.exit(0)  # Exit the current script
+
+
+
+
+
+
+
+    # if a Trae Young tweet is detected, send a message
+    elif "https://fixvx.com/TheTraeYoung/status/" in message.content:
+        # a 1 in 3 chance to send a message
+        result = random.randint(1, 100)
+        if result < 40:
+            await message.channel.send("🗣️🗣️🗣️ **Trae Young Tweeted** 🗣️🗣️🗣️")
+            logger.info("✅ Sent The Trae Young message.")
+        #elif result == 2:
+        #    # wait for 10 seconds
+        #    await asyncio.sleep(10)
+        #    await message.channel.send("Fuck Trae Young")
+        #    logger.info("✅ Sent The Trae Young message.")
+
+    
