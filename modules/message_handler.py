@@ -124,12 +124,6 @@ async def handle_message(bot, message, log_channel_id):
             print(f"Git pull failed: {e}")
 
 
-
-
-
-
-
-
     # if a Trae Young tweet is detected, send a message
     elif "https://fixvx.com/TheTraeYoung/status/" in message.content:
         # a 1 in 3 chance to send a message
