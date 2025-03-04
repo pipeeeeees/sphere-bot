@@ -162,3 +162,4 @@ config/token.txt
 config/token.json
 /plots
 modules/pollen_data/pollen_counts.csv
+plots/plot.png
