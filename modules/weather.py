@@ -68,3 +68,143 @@ def get_sun_time(delta_days=0, event="sunset"):
     
     # Return the local event time as a string in HH:MM AM/PM format
     return event_local_datetime.strftime("%I:%M %p").lstrip("0")
+
+def get_today_temperatures():
+    # NWS API endpoint for Atlanta, GA (gridpoint: FFC/52,88)
+    url = "https://api.weather.gov/gridpoints/FFC/52,88/forecast"
+
+    headers = {"User-Agent": "Mozilla/5.0"}  # Required by NWS API
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()  # Raise error if request fails
+
+    data = response.json()
+    periods = data["properties"]["periods"]
+
+    high_temp = None
+    low_temp = None
+
+    for period in periods:
+        if "day" in period["name"].lower():  # Look for daytime period (high temp)
+            high_temp = period["temperature"]
+        elif "night" in period["name"].lower():  # Look for nighttime period (low temp)
+            low_temp = period["temperature"]
+
+    return high_temp, low_temp
+
+def get_current_weather():
+    url = "https://api.weather.gov/stations/KATL/observations/latest"  # KATL = Atlanta Airport station
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    data = response.json()["properties"]
+
+    weather = {
+        "temperature": data["temperature"]["value"] * 9/5 + 32,  # Convert C to F
+        "humidity": data["relativeHumidity"]["value"],
+        "wind_speed": data["windSpeed"]["value"] * 0.621371,  # Convert km/h to mph
+        "conditions": data["textDescription"]
+    }
+    
+    return weather
+
+def get_hourly_forecast():
+    url = "https://api.weather.gov/gridpoints/FFC/52,88/forecast/hourly"
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    data = response.json()["properties"]["periods"]
+
+    forecast = []
+    for period in data[:12]:  # Next 12 hours
+        forecast.append({
+            "time": period["startTime"][:16],  # Keep only YYYY-MM-DDTHH:MM
+            "temp": period["temperature"],
+            "conditions": period["shortForecast"]
+        })
+
+    return forecast
+
+def get_weekly_forecast():
+    url = "https://api.weather.gov/gridpoints/FFC/52,88/forecast"
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    data = response.json()["properties"]["periods"]
+
+    forecast = []
+    for period in data:
+        forecast.append({
+            "day": period["name"],
+            "temp": period["temperature"],
+            "conditions": period["shortForecast"]
+        })
+
+    return forecast
+
+
+def get_weather_alerts():
+    url = "https://api.weather.gov/alerts/active?zone=GAZ021"  # Atlanta Zone
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    data = response.json()["features"]
+
+    alerts = []
+    for alert in data:
+        alerts.append({
+            "event": alert["properties"]["event"],
+            "description": alert["properties"]["description"]
+        })
+
+    return alerts
+
+
+
+if __name__ == "__main__":
+    # Example usage
+    print("EXAMPLE 1:")
+    high_temp, low_temp = get_today_temperatures()
+    if high_temp is not None and low_temp is not None:
+        print(f"Today's high temperature in Atlanta: {high_temp}°F")
+        print(f"Tonight's low temperature in Atlanta: {low_temp}°F")
+    else:
+        print("Temperature data unavailable.")
+
+
+    # Example usage
+    print("\n\n\nEXAMPLE 2:")
+    current_weather = get_current_weather()
+    print(f"Current Temp: {current_weather['temperature']:.1f}°F")
+    print(f"Humidity: {current_weather['humidity']}%")
+    print(f"Wind Speed: {current_weather['wind_speed']:.1f} mph")
+    print(f"Conditions: {current_weather['conditions']}")
+
+
+
+
+    # Example usage
+    print("\n\n\nEXAMPLE 3:")
+    hourly_forecast = get_hourly_forecast()
+    for hour in hourly_forecast:
+        print(f"{hour['time']}: {hour['temp']}°F - {hour['conditions']}")
+
+
+    # Example usage
+    print("\n\n\nEXAMPLE 4:")
+    weekly_forecast = get_weekly_forecast()
+    for day in weekly_forecast:
+        print(f"{day['day']}: {day['temp']}°F - {day['conditions']}")
+
+
+    # Example usage
+    print("\n\n\nEXAMPLE 5:")
+    alerts = get_weather_alerts()
+    if alerts:
+        for alert in alerts:
+            print(f"ALERT: {alert['event']}\n{alert['description']}\n")
+    else:
+        print("No active weather alerts.")
