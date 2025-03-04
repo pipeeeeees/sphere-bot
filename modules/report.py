@@ -16,14 +16,6 @@ def get_morning_report():
         morning_report_str += f"\n  🌡️ Today's high temperature: **{high_temp}°F**"
         morning_report_str += f"\n  🌡️ Tonight's low temperature: **{low_temp}°F**"
 
-    # get current weather
-    current_weather = weather.get_current_weather()
-    if current_weather != None:
-        morning_report_str += f"\n  🌡️ Current temperature: **{current_weather['temperature']}°F**"
-        morning_report_str += f"\n  💧 Current Humidity: **{current_weather['humidity']}%**"
-        morning_report_str += f"\n  💨 Current Wind speed: **{current_weather['wind_speed']} mph**"
-        morning_report_str += f"\n  🌦️ Current Conditions: **{current_weather['conditions']}**"
-
     pollen_count = pollen.get_atl_pollen_count()
     if type(pollen_count) == int:
         morning_report_str += f"\n  🌼 Pollen count: **{pollen_count}**"
@@ -38,6 +30,15 @@ def get_morning_report():
     morning_report_str = morning_report_str + sunset_string
     morning_report_str = morning_report_str + sunrise_string
 
+    # get current weather
+    current_weather = weather.get_current_weather()
+    if current_weather != None:
+        morning_report_str += "\nHere are the current weather conditions:"
+        morning_report_str += f"\n  🌡️ Temperature: **{current_weather['temperature']}°F**"
+        morning_report_str += f"\n  💧 Humidity: **{current_weather['humidity']}%**"
+        morning_report_str += f"\n  💨 Wind speed: **{current_weather['wind_speed']} mph**"
+        morning_report_str += f"\n  🌦️ Conditions: **{current_weather['conditions']}**"
+
 
     return morning_report_str
 
@@ -47,7 +48,7 @@ def get_weather_alerts():
     alerts = weather.get_weather_alerts()
     if alerts:
         for alert in alerts:
-            report_str += f"  🚨**ALERT: {alert['event']}**\n{alert['description']}\n"
+            report_str += f"\n  🚨 **{alert['event']}**\n{alert['description']}\n"
         return report_str
     else:
         return None
