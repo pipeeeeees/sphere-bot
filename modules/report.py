@@ -33,7 +33,7 @@ def get_morning_report():
     # get current weather
     current_weather = weather.get_current_weather()
     if current_weather != None:
-        morning_report_str += "\nHere are the current weather conditions:"
+        morning_report_str += "\n\nHere are the **Current Weather Conditions**:"
         morning_report_str += f"\n  🌡️ Temperature: **{current_weather['temperature']}°F**"
         morning_report_str += f"\n  💧 Humidity: **{current_weather['humidity']}%**"
         morning_report_str += f"\n  💨 Wind speed: **{current_weather['wind_speed']} mph**"
@@ -44,11 +44,11 @@ def get_morning_report():
 
 def get_weather_alerts():
     """Gets the weather alerts for Atlanta."""
-    report_str = "Here are the **Current Weather Alerts** for Atlanta:\n" 
+    report_str = "Here are the **Current Weather Alerts** for Atlanta:" 
     alerts = weather.get_weather_alerts()
     if alerts:
         for alert in alerts:
-            report_str += f"\n  🚨 **{alert['event']}**\n{alert['description']}\n"
+            report_str += f"\n  🚨 **{alert['event']}**\n> [{alert['description']}\\n"
         return report_str
     else:
         return None
