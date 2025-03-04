@@ -53,6 +53,12 @@
             "message": "[morningreport]",
             "time": "09:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+            "id": 1079612189175988264,
+            "message": "[alert]",
+            "time": "11:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         }
     ]
 }
