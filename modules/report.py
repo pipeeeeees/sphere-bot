@@ -13,8 +13,7 @@ def get_morning_report():
     # get today's temperatures
     high_temp, low_temp = weather.get_today_temperatures()
     if high_temp != None and low_temp != None:
-        morning_report_str += f"\n  🌡️ Today's high temperature: **{high_temp}°F**"
-        morning_report_str += f"\n  🌡️ Tonight's low temperature: **{low_temp}°F**"
+        morning_report_str += f"\n  🌡️ Today's temperature range: **{low_temp}°F → {high_temp}°F**"
 
     pollen_count = pollen.get_atl_pollen_count()
     if type(pollen_count) == int:
