@@ -122,7 +122,9 @@ async def send_scheduled_messages():
     current_day = now.strftime("%A")  # Get full day name
 
     schedule_data = read_json(SCHEDULE_FILE)
+    pollen_data = read_json("config/pollen_sub.json")
 
+    # Send regular scheduled messages
     for reminder in schedule_data.get("reminders", []):
         if current_time == reminder["time"] and current_day in reminder["days"]:
             target_id = reminder["id"]  # Can be user id or channel id
@@ -133,7 +135,6 @@ async def send_scheduled_messages():
                 user = await bot.fetch_user(target_id)
                 if user:
                     await user.send(message)
-                    #logger.info(f"✅ Sent scheduled message to user {user.name}: {message}")
                     continue  # Skip the channel check if it's a valid user ID
 
             except discord.NotFound:
@@ -141,24 +142,16 @@ async def send_scheduled_messages():
                 try:
                     channel = await bot.fetch_channel(target_id)
                     if isinstance(channel, discord.TextChannel):
-                        
-                        # for the morning report...
-                        # if the channel id number is 1079612189175988264...
-                        if target_id == 1079612189175988264 or target_id == 1344165418885054534:
-                            # ... and the message is "[morningreport]"
+                        if target_id in [1079612189175988264, 1344165418885054534]:
                             if message == "[morningreport]":
-                                # ... then modify the message to "Good morning!"
                                 message = report.get_morning_report()
                                 await channel.send(message)
-                            elif message == "[alert]" :
+                            elif message == "[alert]":
                                 weather_alert = report.get_weather_alerts()
-                                if weather_alert != None:
+                                if weather_alert is not None:
                                     await channel.send(weather_alert)
-
-                        # just send the message as is from the json file
                         else:
                             await channel.send(message)
-                        #logger.info(f"✅ Sent scheduled message to channel {channel.name}: {message}")
                     else:
                         logger.warning(f"⚠️ Target {target_id} is not a valid text channel.")
                 except discord.Forbidden:
@@ -171,31 +164,19 @@ async def send_scheduled_messages():
             except discord.HTTPException as e:
                 logger.error(f"⚠️ Failed to send message to {target_id}: {e}")
 
-#@bot.command()
-#async def add_reminder(ctx, time: str, days: str, user_id: int, *, message: str):
-#    """
-#    Command to add a new scheduled reminder.
-#    Usage: !add_reminder HH:MM "Monday,Tuesday" USER_ID message text
-#    Example: !add_reminder 08:00 "Monday,Wednesday,Friday" 123456789012345678 "Time to wake up!"
-#    """
-#    days_list = [day.strip() for day in days.split(",")]
-#
-#    # Load current reminders
-#    schedule_data = read_json(SCHEDULE_FILE)
-#
-#    # Append new reminder
-#    new_reminder = {
-#        "user_id": user_id,
-#        "message": message,
-#        "time": time,
-#        "days": days_list
-#    }
-#    schedule_data["reminders"].append(new_reminder)
-#
-#    # Save back to file
-#    write_json(SCHEDULE_FILE, schedule_data)
-#
-#    await ctx.send(f"✅ Reminder added for {time} on {', '.join(days_list)}.")
+    # Send pollen subscription messages
+    if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
+        for user_id in pollen_data.get("subscribers", []):
+            try:
+                user = await bot.fetch_user(user_id)
+                if user:
+                    await user.send("Hello!")
+            except discord.NotFound:
+                logger.warning(f"⚠️ User {user_id} not found.")
+            except discord.Forbidden:
+                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+            except discord.HTTPException as e:
+                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
 
 
 @bot.event

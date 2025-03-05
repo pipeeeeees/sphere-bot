@@ -13,6 +13,7 @@ import traceback
 from modules import pollen
 from modules import weather
 from modules import report
+from modules import subscriptions
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -46,8 +47,27 @@ async def handle_message(bot, message, log_channel_id):
 
 
         # -- COMMANDS --
+        # if $subscribe is sent, send the message sharing what the subscription options are
+        if message.content.strip() == "$subscribe":
+            subscribe_str = "📬 **Subscription Options:**\n"
+            #subscribe_str += "  - $subscribe weather\n"
+            subscribe_str += "  - $subscribe pollen\n"
+            #subscribe_str += "  - $subscribe report\n"
+            #subscribe_str += "  - $subscribe all\n"
+            await message.channel.send(subscribe_str)
+            logger.info("✅ Sent subscription options.")
+
+        # if $subscribe pollen is sent, add the user to the pollen subscription list
+        elif message.content.strip() == "$subscribe pollen":
+            action = subscriptions.manage_pollen_subscription(message.author.id)
+            if action == "added":
+                await message.channel.send("📬 **You have been added to the pollen subscription list.**")
+            else:
+                await message.channel.send("📬 **You have been removed from the pollen subscription list.**")
+            logger.info(f"✅ {action.capitalize()} user {message.author.id} to pollen subscription list.")
+
         # if $schedule is sent in the bot-testing channel, send the schedule file
-        if message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
+        elif message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
             schedule_data = read_json(SCHEDULE_FILE)
             schedule_text = json.dumps(schedule_data, indent=4)
 

@@ -1,12 +1,6 @@
 {
     "reminders": [
         {
-            "id": 326676188057567232,
-            "message": "Good morning, Mr. Pipes! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
             "id": 497548855357865986,
             "message": "Good morning, Mr. Gill! I hope you have a great day!",
             "time": "08:00",
@@ -33,6 +27,12 @@
         {
             "id": 577922382761820180,
             "message": "Good morning, Mr. Patel! I hope you have a great day!",
+            "time": "08:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+            "id": 326676188057567232,
+            "message": "Good morning, Mr. Pipes! I hope you have a great day!",
             "time": "08:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
