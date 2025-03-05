@@ -17,9 +17,9 @@ def get_morning_report():
 
     pollen_count = pollen.get_atl_pollen_count()
     if type(pollen_count) == int:
-        morning_report_str += f"\n  🌼 [Pollen count](https://www.atlantaallergy.com/pollen_counts): **{pollen_count}**"
+        morning_report_str += f"\n  🌼 Pollen count: **{pollen_count}**"
     elif pollen_count == None:
-        morning_report_str += "\n  🌼 [Pollen count](https://www.atlantaallergy.com/pollen_counts) is not yet reported"
+        morning_report_str += "\n  🌼 Pollen count [is not yet reported](https://www.atlantaallergy.com/pollen_counts)"
         
 
     sunset = weather.get_sun_time(0, "sunset")
@@ -48,7 +48,8 @@ def get_weather_alerts():
     if alerts:
         for alert in alerts:
             report_str += f"\n  🚨 {alert['event']}:"
-            report_str += f"\n{alert['description'].replace('\n\n','\n')}\n"
+            description = alert["description"].replace("\n\n", "\n")
+            report_str += f"\n{description}\n"
         return report_str
     else:
         return None
