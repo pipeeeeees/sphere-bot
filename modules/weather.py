@@ -100,9 +100,9 @@ def get_current_weather():
     data = response.json()["properties"]
 
     weather = {
-        "temperature": data["temperature"]["value"] * 9/5 + 32,  # Convert C to F
+        "temperature": data["temperature"]["value"] * 9/5 + 32 if data["temperature"]["value"] is not None else None,  # Convert C to F
         "humidity": data["relativeHumidity"]["value"],
-        "wind_speed": data["windSpeed"]["value"] * 0.621371,  # Convert km/h to mph
+        "wind_speed": (data["windSpeed"]["value"] * 0.621371) if data["windSpeed"]["value"] is not None else None,  # Convert km/h to mph
         "conditions": data["textDescription"]
     }
     
