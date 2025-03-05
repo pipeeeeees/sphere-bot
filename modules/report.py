@@ -48,7 +48,7 @@ def get_weather_alerts():
     if alerts:
         for alert in alerts:
             report_str += f"\n  🚨 {alert['event']}:"
-            report_str += f"\n{alert['description']}\n"
+            report_str += f"\n{alert['description'].replace('\n\n','\n')}\n"
         return report_str
     else:
         return None
