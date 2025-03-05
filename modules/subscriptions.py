@@ -17,7 +17,7 @@ def manage_pollen_subscription(discord_id: int) -> str:
     
     # Default metadata
     metadata = {
-        "time": "22:54", 
+        "time": "11:00", 
         "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
         "subscribers": []
     }
@@ -59,6 +59,6 @@ if __name__ == "__main__":
     print(f"Discord ID {discord_id} was {action}.")
 
     # Manage another ID
-    discord_id = 431121754568523796
-    action = manage_pollen_subscription(discord_id)
-    print(f"Discord ID {discord_id} was {action}.")
+    #discord_id = 431121754568523796
+    #action = manage_pollen_subscription(discord_id)
+    #print(f"Discord ID {discord_id} was {action}.")

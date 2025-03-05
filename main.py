@@ -11,6 +11,7 @@ import pytz
 
 from modules.message_handler import handle_message 
 from modules import report
+from modules import pollen
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -170,7 +171,7 @@ async def send_scheduled_messages():
             try:
                 user = await bot.fetch_user(user_id)
                 if user:
-                    await user.send("Hello!")
+                    await user.send(pollen.result_handler())
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:
