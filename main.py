@@ -144,7 +144,7 @@ async def send_scheduled_messages():
                         
                         # for the morning report...
                         # if the channel id number is 1079612189175988264...
-                        if target_id == 1079612189175988264:
+                        if target_id == 1079612189175988264 or target_id == 1344165418885054534:
                             # ... and the message is "[morningreport]"
                             if message == "[morningreport]":
                                 # ... then modify the message to "Good morning!"
