@@ -48,17 +48,17 @@ async def handle_message(bot, message, log_channel_id):
 
         # -- COMMANDS --
         # if $subscribe is sent, send the message sharing what the subscription options are
-        if message.content.strip() == "$subscribe":
+        if message.content.strip() == "$sub":
             subscribe_str = "📬 **Subscription Options:**\n"
-            #subscribe_str += "  - $subscribe weather\n"
-            subscribe_str += "  - $subscribe pollen\n"
-            #subscribe_str += "  - $subscribe report\n"
-            #subscribe_str += "  - $subscribe all\n"
+            #subscribe_str += "  - $sub weather\n"
+            subscribe_str += "  - $sub pollen\n"
+            #subscribe_str += "  - $sub report\n"
+            #subscribe_str += "  - $sub all\n"
             await message.channel.send(subscribe_str)
             logger.info("✅ Sent subscription options.")
 
         # if $subscribe pollen is sent, add the user to the pollen subscription list
-        elif message.content.strip() == "$subscribe pollen":
+        elif message.content.strip() == "$sub pollen":
             action = subscriptions.manage_pollen_subscription(message.author.id)
             if action == "added":
                 await message.channel.send("📬 **You have been added to the pollen subscription list.**")
