@@ -45,13 +45,23 @@ def get_weather_alerts():
     """Gets the weather alerts for Atlanta."""
     report_str = "## Here are the Current Weather Alerts for Atlanta:" 
     alerts = weather.get_weather_alerts()
+    
     if alerts:
         for alert in alerts:
             report_str += f"\n  🚨 {alert['event']}:"
-            description = alert["description"].replace("\n\n", "\n")
+            description = alert["description"]
+            
+            # Check if description contains bullet points
+            if any(bullet in description for bullet in ["* ", " - "]):
+                lines = description.split("\n")
+                cleaned_lines = []
+                for line in lines:
+                    if line.strip():  # Keep non-empty lines
+                        cleaned_lines.append(line.strip())
+                description = "\n".join(cleaned_lines)  # Rejoin with newlines
+            
             report_str += f"\n{description}\n"
+        
         return report_str
     else:
         return None
-        
-    
