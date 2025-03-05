@@ -152,7 +152,8 @@ async def send_scheduled_messages():
                                 await channel.send(message)
                             elif message == "[alert]" :
                                 message = report.get_weather_alerts()
-                                await channel.send(message)
+                                if message != None:
+                                    await channel.send(message)
 
                         # just send the message as is from the json file
                         else:
