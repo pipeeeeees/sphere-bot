@@ -26,7 +26,7 @@ def get_atl_pollen_count():
 def result_handler():
     result = get_atl_pollen_count()
     if type(result) == int:
-        return f"The pollen count in Atlanta for the day is {result}"
+        return f"🌼 The pollen count in Atlanta for the day is {result}"
     elif result == None:
         return "The pollen count in Atlanta has not been reported yet. Please try again later.\n\nNote: Atlanta's pollen count is not reported on the weekends (outside of pollen season).\nhttps://www.atlantaallergy.com/pollen_counts"
     elif result == 'HTML Failure':

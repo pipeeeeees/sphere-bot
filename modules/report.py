@@ -19,7 +19,7 @@ def get_morning_report():
     if type(pollen_count) == int:
         morning_report_str += f"\n  🌼 Pollen count: **{pollen_count}**"
     elif pollen_count == None:
-        morning_report_str += "\n  🌼 Pollen count [is not yet reported](https://www.atlantaallergy.com/pollen_counts)"
+        morning_report_str += "\n  🌼 Pollen count is not yet reported"
         
 
     sunset = weather.get_sun_time(0, "sunset")
