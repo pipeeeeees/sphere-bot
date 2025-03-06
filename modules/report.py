@@ -53,7 +53,7 @@ def get_weather_alerts():
             
             # Check if description contains bullet points
             if any(bullet in description for bullet in ["* ", " - "]):
-                lines = description.split("-")
+                lines = description.split("*")
                 cleaned_lines = []
                 for line in lines:
                     if line.strip():  # Keep non-empty lines
