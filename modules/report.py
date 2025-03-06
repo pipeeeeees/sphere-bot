@@ -53,11 +53,11 @@ def get_weather_alerts():
             
             # Check if description contains bullet points
             if any(bullet in description for bullet in ["* ", " - "]):
-                lines = description.split("\n")
+                lines = description.split("-")
                 cleaned_lines = []
                 for line in lines:
                     if line.strip():  # Keep non-empty lines
-                        cleaned_lines.append(line.strip())
+                        cleaned_lines.append('- ' + line.replace('\n', '').strip())
                 description = "\n".join(cleaned_lines)  # Rejoin with newlines
             
             report_str += f"\n{description}\n"
