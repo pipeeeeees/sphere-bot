@@ -181,7 +181,8 @@ async def send_scheduled_messages():
                     await user.send(pollen.result_handler())
                     if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
                         await user.send(file=discord.File("plots/plot.png"))
-                        await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n Send `$pollen plot {now.year}-01-01 {now.strftime("%Y-%m-%d")}` to see the year to date.")
+                        today = now.strftime("%Y-%m-%d")
+                        await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n Send `$pollen plot {now.year}-01-01 {today}` to see the year to date.")
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:
