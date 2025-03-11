@@ -47,17 +47,17 @@ async def handle_message(bot, message, log_channel_id):
 
 
         # -- COMMANDS --
-        # if $subscribe is sent, send the message sharing what the subscription options are
+        # if $sub is sent, send the message sharing what the subscription options are
         if message.content.strip() == "$sub":
             subscribe_str = "📬 Here are the current Subscription Options:\n"
             #subscribe_str += "  - $sub weather\n"
             subscribe_str += "  - $sub pollen\n"
-            #subscribe_str += "  - $sub report\n"
+            subscribe_str += "  - $sub morning report\n"
             #subscribe_str += "  - $sub all\n"
             await message.channel.send(subscribe_str)
             logger.info("✅ Sent subscription options.")
 
-        # if $subscribe pollen is sent, add the user to the pollen subscription list
+        # if $sub pollen is sent, add the user to the pollen subscription list
         elif message.content.strip() == "$sub pollen":
             action = subscriptions.manage_pollen_subscription(message.author.id)
             if action == "added":
@@ -65,6 +65,16 @@ async def handle_message(bot, message, log_channel_id):
             else:
                 await message.channel.send("📬 **You have been removed from the pollen subscription list.**\n\nSend `$sub pollen` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to pollen subscription list.")
+
+        # if $sub morning report is sent, add the user to the morning report subscription list
+        elif message.content.strip() == "$sub morning report":
+            action = subscriptions.manage_morning_report_subscription(message.author.id)
+            if action == "added":
+                await message.channel.send("📬 **You have been added to the morning report subscription list.**\n\nSend `$sub morning report` again to unsubscribe.")
+            else:
+                await message.channel.send("📬 **You have been removed from the morning report subscription list.**\n\nSend `$sub morning report` again to resubscribe.")
+            logger.info(f"✅ {action.capitalize()} user {message.author.id} to morning report subscription list.")
+
 
         # if $schedule is sent in the bot-testing channel, send the schedule file
         elif message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
