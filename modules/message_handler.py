@@ -105,7 +105,7 @@ async def handle_message(bot, message, log_channel_id):
                 # start_date is first of the current year
                 start_date = datetime.date(datetime.date.today().year, 1, 1).strftime("%Y-%m-%d")
                 end_date = datetime.date.today().strftime("%Y-%m-%d")
-                pollen.plot_pollen_counts(start_date, end_date)
+                await pollen.plot_pollen_counts(start_date, end_date)
                 await message.channel.send(file=discord.File("plots/plot.png"))
             elif len(parts) == 4 and parts[1] == "plot":
                 try:
