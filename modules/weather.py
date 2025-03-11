@@ -69,25 +69,48 @@ def get_sun_time(delta_days=0, event="sunset"):
     # Return the local event time as a string in HH:MM AM/PM format
     return event_local_datetime.strftime("%I:%M %p").lstrip("0")
 
-def get_today_temperatures():
-    # NWS API endpoint for Atlanta, GA (gridpoint: FFC/52,88)
-    url = "https://api.weather.gov/gridpoints/FFC/52,88/forecast"
-
+def get_today_temperatures(gridpoint="FFC/52,88"):
+    """
+    Fetch today's high and low temperatures for a given NWS gridpoint.
+    
+    Args:
+        gridpoint (str): NWS gridpoint in the format "OFFICE/X,Y" (default: Atlanta, GA).
+    
+    Returns:
+        tuple: (high_temp, low_temp) in Fahrenheit, or (None, None) if not found.
+    
+    Raises:
+        requests.RequestException: If the API request fails.
+    """
+    # NWS API endpoint
+    url = f"https://api.weather.gov/gridpoints/{gridpoint}/forecast"
     headers = {"User-Agent": "Mozilla/5.0"}  # Required by NWS API
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()  # Raise error if request fails
+    
+    # Make the API request
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise error for bad status codes
+    except requests.RequestException as e:
+        raise requests.RequestException(f"Failed to fetch weather data: {e}")
 
+    # Parse the response
     data = response.json()
     periods = data["properties"]["periods"]
 
+    # Get today's date
+    today = datetime.now().date()  # March 10, 2025, as of now
     high_temp = None
     low_temp = None
 
+    # Loop through periods to find today's high and low
     for period in periods:
-        if "day" in period["name"].lower():  # Look for daytime period (high temp)
-            high_temp = period["temperature"]
-        elif "night" in period["name"].lower():  # Look for nighttime period (low temp)
-            low_temp = period["temperature"]
+        period_start = datetime.fromisoformat(period["startTime"]).date()
+        if period_start == today:
+            temp = period["temperature"]
+            if period["isDaytime"]:  # Use the API's daytime flag for accuracy
+                high_temp = temp
+            else:
+                low_temp = temp
 
     return high_temp, low_temp
 

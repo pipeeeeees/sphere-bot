@@ -30,13 +30,13 @@ def get_morning_report():
     morning_report_str = morning_report_str + sunrise_string
 
     # get current weather
-    current_weather = weather.get_current_weather()
-    if current_weather != None:
-        morning_report_str += "\n\nHere are the **Current Weather Conditions**:"
-        morning_report_str += f"\n  🌡️ Temperature: **{current_weather['temperature']}°F**"
-        morning_report_str += f"\n  💧 Humidity: **{current_weather['humidity']}%**"
-        morning_report_str += f"\n  💨 Wind speed: **{current_weather['wind_speed']} mph**"
-        morning_report_str += f"\n  🌦️ Conditions: **{current_weather['conditions']}**"
+    #current_weather = weather.get_current_weather()
+    #if current_weather != None:
+    #    morning_report_str += "\n\nHere are the **Current Weather Conditions**:"
+    #    morning_report_str += f"\n  🌡️ Temperature: **{current_weather['temperature']}°F**"
+    #    morning_report_str += f"\n  💧 Humidity: **{current_weather['humidity']}%**"
+    #    morning_report_str += f"\n  💨 Wind speed: **{current_weather['wind_speed']} mph**"
+    #    morning_report_str += f"\n  🌦️ Conditions: **{current_weather['conditions']}**"
 
 
     return morning_report_str

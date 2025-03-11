@@ -129,7 +129,10 @@ async def handle_message(bot, message, log_channel_id):
             report_str = report.get_morning_report()
             await message.channel.send(report_str)
             alert_str = report.get_weather_alerts()
-            await message.channel.send(alert_str)
+            if alert_str is not None:
+                await message.channel.send(alert_str)
+            else:
+                await message.channel.send("❌ **No weather alerts.**")
             logger.info("✅ Sent morning report.")
 
         # if $reboot is sent, reboot
