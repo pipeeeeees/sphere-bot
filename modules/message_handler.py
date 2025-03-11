@@ -51,8 +51,8 @@ async def handle_message(bot, message, log_channel_id):
         if message.content.strip() == "$sub":
             subscribe_str = "📬 Here are the current Subscription Options:\n"
             #subscribe_str += "  - $sub weather\n"
-            subscribe_str += "  - $sub pollen\n"
-            subscribe_str += "  - $sub morning report\n"
+            subscribe_str += "- $sub pollen\n"
+            subscribe_str += "- $sub morning report\n"
             #subscribe_str += "  - $sub all\n"
             await message.channel.send(subscribe_str)
             logger.info("✅ Sent subscription options.")
@@ -74,7 +74,6 @@ async def handle_message(bot, message, log_channel_id):
             else:
                 await message.channel.send("📬 **You have been removed from the morning report subscription list.**\n\nSend `$sub morning report` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to morning report subscription list.")
-
 
         # if $schedule is sent in the bot-testing channel, send the schedule file
         elif message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):

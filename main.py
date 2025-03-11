@@ -124,6 +124,7 @@ async def send_scheduled_messages():
 
     schedule_data = read_json(SCHEDULE_FILE)
     pollen_data = read_json("config/pollen_sub.json")
+    morning_report_data = read_json("config/morning_report_sub.json")
 
     # Send regular scheduled messages
     for reminder in schedule_data.get("reminders", []):
@@ -178,10 +179,24 @@ async def send_scheduled_messages():
             try:
                 user = await bot.fetch_user(user_id)
                 if user:
-                    await user.send(pollen.result_handler())
+                    await user.send(f"{pollen.result_handler()}\nTo unsubscribe from pollen alerts at any time, send `$sub pollen`.")
                     if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
                         await user.send(file=discord.File("plots/plot.png"))
                         await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n Send `$pollen plot {now.year}-01-01 {end_date}` to see the year to date.")
+            except discord.NotFound:
+                logger.warning(f"⚠️ User {user_id} not found.")
+            except discord.Forbidden:
+                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+            except discord.HTTPException as e:
+                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+    # Send morning report messages
+    if current_time == morning_report_data.get("time") and current_day in morning_report_data.get("days", []):
+        for user_id in morning_report_data.get("subscribers", []):
+            try:
+                user = await bot.fetch_user(user_id)
+                if user:
+                    await user.send(f"{report.get_morning_report()}\nTo unsubscribe from the morning report at any time, send `$sub morning report`.")
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:
