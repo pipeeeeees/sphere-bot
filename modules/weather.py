@@ -166,7 +166,7 @@ def get_hourly_temperatures_ascii_plot(gridpoint="FFC/52,88"):
     ]
 
     # Build the ASCII graph as a string
-    ascii_graph = "Next 9 Hours Temperature Forecast:\n"
+    ascii_graph = "Atlanta 9-Hour Temperature Forecast:\n"
     for row in range(graph_height - 1, -1, -1):
         line = f"{min_temp + int((row / (graph_height - 1)) * temp_range):3d}°F | "
         for temp in scaled_temps:
