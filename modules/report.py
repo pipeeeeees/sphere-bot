@@ -29,19 +29,20 @@ def get_morning_report():
     morning_report_str = morning_report_str + sunset_string
     morning_report_str = morning_report_str + sunrise_string
 
-    ascii_plot = weather.get_hourly_temperatures_ascii_plot()
-    if ascii_plot:
-        morning_report_str += f"\n\n{ascii_plot}"
+    
 
     # get current weather
-    #current_weather = weather.get_current_weather()
-    #if current_weather != None:
+    current_weather = weather.get_current_weather()
+    if current_weather != None:
     #    morning_report_str += "\n\nHere are the **Current Weather Conditions**:"
     #    morning_report_str += f"\n  🌡️ Temperature: **{current_weather['temperature']}°F**"
     #    morning_report_str += f"\n  💧 Humidity: **{current_weather['humidity']}%**"
     #    morning_report_str += f"\n  💨 Wind speed: **{current_weather['wind_speed']} mph**"
-    #    morning_report_str += f"\n  🌦️ Conditions: **{current_weather['conditions']}**"
+        morning_report_str += f"\n  🌦️ Conditions: **{current_weather['conditions']}**"
 
+    ascii_plot = weather.get_hourly_temperatures_ascii_plot()
+    if ascii_plot:
+        morning_report_str += f"\n{ascii_plot}"
 
     return morning_report_str
 
