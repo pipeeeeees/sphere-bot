@@ -127,8 +127,9 @@ async def handle_message(bot, message, log_channel_id):
         # if $weather ascii is sent, send the ascii plot
         elif message.content.strip() == "$weather ascii":
             ascii_plot = weather.get_hourly_temperatures_ascii_plot()
-            await message.channel.send({ascii_plot})
+            await message.channel.send(ascii_plot)  # Send as a raw string, not inside {}
             logger.info("✅ Sent ASCII weather plot.")
+
 
         # if $report is sent, send the morning report
         elif message.content.strip() == "$report":
