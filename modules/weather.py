@@ -117,7 +117,7 @@ def get_today_temperatures(gridpoint="FFC/52,88"):
 
 def get_hourly_temperatures_ascii_plot(gridpoint="FFC/52,88"):
     """
-    Fetch hourly temperatures, calculate today's high/low, and return a 9-hour ASCII graphic as a string.
+    Fetch hourly temperatures and return a 9-hour ASCII temperature graph as a formatted string.
     
     Args:
         gridpoint (str): NWS gridpoint in the format "OFFICE/X,Y" (default: Atlanta, GA).
@@ -137,27 +137,18 @@ def get_hourly_temperatures_ascii_plot(gridpoint="FFC/52,88"):
     data = response.json()
     periods = data["properties"]["periods"]
 
-    today = datetime.now().date()
     tz = pytz.timezone("America/New_York")
     now = datetime.now(tz)  # Directly use timezone-aware datetime
-    today_temps = []
     next_9_hours = []
 
-    # Collect today's temps and next 9 hours
+    # Collect the next 9 hours
     for period in periods:
         period_start = datetime.fromisoformat(period["startTime"])
         temp = period["temperature"]
-        
-        if period_start.date() == today:
-            today_temps.append(temp)
-        
+
         if now <= period_start < now + timedelta(hours=9):  # Now limited to 9 hours
             next_9_hours.append((period_start.strftime("%H:%M"), temp))
 
-    today_high = max(today_temps) if today_temps else None
-    today_low = min(today_temps) if today_temps else None
-
-    # Generate ASCII graph
     if not next_9_hours:
         return "No temperature data available for the next 9 hours."
 
@@ -168,6 +159,7 @@ def get_hourly_temperatures_ascii_plot(gridpoint="FFC/52,88"):
     temp_range = max_temp - min_temp + 1 if max_temp != min_temp else 10
     graph_height = 10
 
+    # Scale the graph (max height of 10 lines)
     scaled_temps = [
         int(((temp - min_temp) / temp_range) * (graph_height - 1)) if temp_range > 1 else 5
         for temp in temps
@@ -178,22 +170,15 @@ def get_hourly_temperatures_ascii_plot(gridpoint="FFC/52,88"):
     for row in range(graph_height - 1, -1, -1):
         line = f"{min_temp + int((row / (graph_height - 1)) * temp_range):3d}°F | "
         for temp in scaled_temps:
-            if temp == row:
-                if temps[scaled_temps.index(temp)] == max_temp:
-                    line += " H "
-                elif temps[scaled_temps.index(temp)] == min_temp:
-                    line += " L "
-                else:
-                    line += " * "
-            else:
-                line += "   "
+            line += " * " if temp == row else "   "
         ascii_graph += line + "\n"
 
     # Time labels
     time_line = "      | " + " ".join(f"{t[:2]}" for t in times)
     ascii_graph += time_line
 
-    return f"```\n{ascii_graph}\n```" 
+    return f"```\n{ascii_graph}\n```"  # Format for Discord code block
+
 
 def get_current_weather():
     url = "https://api.weather.gov/stations/KATL/observations/latest"  # KATL = Atlanta Airport station
