@@ -49,7 +49,7 @@ async def handle_message(bot, message, log_channel_id):
         # -- COMMANDS --
         # if $subscribe is sent, send the message sharing what the subscription options are
         if message.content.strip() == "$sub":
-            subscribe_str = "📬 **Subscription Options:**\n"
+            subscribe_str = "📬 Here are the current Subscription Options:\n"
             #subscribe_str += "  - $sub weather\n"
             subscribe_str += "  - $sub pollen\n"
             #subscribe_str += "  - $sub report\n"
@@ -61,9 +61,9 @@ async def handle_message(bot, message, log_channel_id):
         elif message.content.strip() == "$sub pollen":
             action = subscriptions.manage_pollen_subscription(message.author.id)
             if action == "added":
-                await message.channel.send("📬 **You have been added to the pollen subscription list.**")
+                await message.channel.send("📬 **You have been added to the pollen subscription list.**\nSend `$sub pollen` again to unsubscribe.")
             else:
-                await message.channel.send("📬 **You have been removed from the pollen subscription list.**")
+                await message.channel.send("📬 **You have been removed from the pollen subscription list.**\nSend `$sub pollen` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to pollen subscription list.")
 
         # if $schedule is sent in the bot-testing channel, send the schedule file

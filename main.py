@@ -167,11 +167,20 @@ async def send_scheduled_messages():
 
     # Send pollen subscription messages
     if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
+        # if today is wednesday in the month of march, april or may, generate the pollen plot
+        if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
+            # start date is february 1st
+            start_date = "2022-02-01"
+            end_date = now.strftime("%Y-%m-%d")
+            await pollen.plot_pollen_counts(start_date, end_date)
+
         for user_id in pollen_data.get("subscribers", []):
             try:
                 user = await bot.fetch_user(user_id)
                 if user:
                     await user.send(pollen.result_handler())
+                    if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
+                        await user.send(file=discord.File("plots/plot.png"))
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:
