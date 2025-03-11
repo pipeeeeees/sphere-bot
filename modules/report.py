@@ -11,9 +11,9 @@ def get_morning_report():
     morning_report_str += f"Here is your **Atlanta Morning Report** for **{datetime.datetime.now().strftime('%A, %B %d, %Y')}**:"
     
     # get today's temperatures
-    high_temp, low_temp = weather.get_today_temperatures()
-    if high_temp != None and low_temp != None:
-        morning_report_str += f"\n  🌡️ Today's temperature range: **{low_temp}°F → {high_temp}°F**"
+    #high_temp, low_temp = weather.get_today_temperatures()
+    #if high_temp != None and low_temp != None:
+    #    morning_report_str += f"\n  🌡️ Today's temperature range: **{low_temp}°F → {high_temp}°F**"
 
     pollen_count = pollen.get_atl_pollen_count()
     if type(pollen_count) == int:
@@ -28,6 +28,10 @@ def get_morning_report():
     sunrise_string = f"\n  🌅 Sunrise tomorrow is at **{sunrise}**"
     morning_report_str = morning_report_str + sunset_string
     morning_report_str = morning_report_str + sunrise_string
+
+    ascii_plot = weather.get_hourly_temperatures_ascii_plot()
+    if ascii_plot:
+        morning_report_str += f"\n\n{ascii_plot}"
 
     # get current weather
     #current_weather = weather.get_current_weather()
