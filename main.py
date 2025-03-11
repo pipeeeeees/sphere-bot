@@ -169,8 +169,8 @@ async def send_scheduled_messages():
     if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
         # if today is wednesday in the month of march, april or may, generate the pollen plot
         if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
-            # start date is february 1st
-            start_date = "2022-02-01"
+            # start date is february 1st of this year
+            start_date = datetime(now.year, 2, 1).strftime("%Y-%m-%d")
             end_date = now.strftime("%Y-%m-%d")
             await pollen.plot_pollen_counts(start_date, end_date)
 
@@ -181,6 +181,7 @@ async def send_scheduled_messages():
                     await user.send(pollen.result_handler())
                     if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
                         await user.send(file=discord.File("plots/plot.png"))
+                        await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n Send `$pollen plot {now.year}-01-01 {now.strftime("%Y-%m-%d")}` to see the year to date.")
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:
