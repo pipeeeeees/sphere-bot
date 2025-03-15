@@ -52,6 +52,16 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         #user = await bot.fetch_user(326676188057567232)
         #await user.send(history_str)
 
+        # Introduction message for first DM
+        if message.guild == None and len(message_history) == 1:
+            intro_msg = "👋 Hello! I'm Sphere, an Atlanta-based bot assistant. " \
+                        "I give reports you can subscribe to. I am also pretty chill. Feel free to chat with me about anything. " \
+                        "Type `$sub` to see available subscription options or feel free to ask me anything!" \
+                        "\n\n📝 **Note:** I am still in development, so please be patient with me. " \
+                        "My source code is here: https://github.com/pipeeeeees/sphere-bot"
+            await message.channel.send(intro_msg)
+            logger.info("✅ Sent introduction message to new DM user.")
+
         # -- COMMANDS --
         # if $sub is sent, send the message sharing what the subscription options are
         if message.content.strip() == "$sub":
