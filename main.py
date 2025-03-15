@@ -71,6 +71,8 @@ def write_json(path, data):
 OWNERS = read_json("config/user_ids.json")
 CHANNELS = read_json("config/channel_ids.json")
 TOKEN = read_json("config/token.json").get("token")
+GEMINI_API_KEY = read_json("config/token.json").get("gemini")
+
 if not TOKEN:
     raise ValueError("TOKEN is missing. Check config/token.json.")
 

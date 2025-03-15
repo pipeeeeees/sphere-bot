@@ -9,11 +9,12 @@ import subprocess
 import sys
 import traceback
 
-
+from main import GEMINI_API_KEY
 from modules import pollen
 from modules import weather
 from modules import report
 from modules import subscriptions
+from modules import google_gemini as gg
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -179,6 +180,14 @@ async def handle_message(bot, message, log_channel_id):
             #    await asyncio.sleep(10)
             #    await message.channel.send("Fuck Trae Young")
             #    logger.info("✅ Sent The Trae Young message.")
+
+        # default case handler
+        else:
+            # if the message starts with $, pass the rest of the message into Gemini
+            if message.content.startswith("$"):
+                raw_message = message.content[1:]
+                await message.channel.send(gg.get_gemini_response(raw_message, GEMINI_API_KEY))
+
     except Exception as e:
         error_message = f"⚠️ Error encountered:\n{traceback.format_exc()}"
         user = await bot.fetch_user(326676188057567232)
