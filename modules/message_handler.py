@@ -56,7 +56,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         if message.guild == None and len(message_history) == 1:
             intro_msg = "👋 Hello! I'm Sphere, an Atlanta-based bot assistant. " \
                         "I give reports you can subscribe to. I am also pretty chill. Feel free to chat with me about anything. " \
-                        "Type `$sub` to see available subscription options or feel free to ask me anything!" \
+                        "Type `$info` to see available subscription options or feel free to ask me anything!" \
                         "\n\n📝 **Note:** I am still in development, so please be patient with me. " \
                         "My source code is here: https://github.com/pipeeeeees/sphere-bot"
             await message.channel.send(intro_msg)
@@ -64,7 +64,22 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
 
         # -- COMMANDS --
         # if $sub is sent, send the message sharing what the subscription options are
-        if message.content.strip() == "$sub":
+        if message.content.strip() == "$info":
+            info_str = "👋 Hello! I'm Sphere, an Atlanta-based bot assistant.\n"
+            info_str += "Here are the available commands I can respond to:\n"
+            info_str += "  - `$sub' - Subscription options\n"
+            info_str += "  - `$pollen` - Pollen count\n"
+            info_str += "  - `$pollen plot` - Pollen count plot\n"
+            #info_str += "  - `$pollen plot YYYY-MM-DD YYYY-MM-DD`
+            info_str += "  - `$temp ascii` - ASCII temperature plot\n"
+            info_str += "  - `$report` - A weather report\n"
+            info_str += "  - `$uptime` - time since bot was last updated\n"
+            info_str += "I also reply to DM's with an LLM. So feel free to chat!"
+            await message.channel.send(info_str)
+            logger.info("✅ Sent info message.")
+
+        
+        elif message.content.strip() == "$sub":
             subscribe_str = "📬 Here are the current Subscription Options:\n"
             #subscribe_str += "  - $sub weather\n"
             subscribe_str += "- $sub pollen\n"
@@ -149,11 +164,11 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
                     await message.channel.send("❌ **Invalid date format. Use YYYY-MM-DD YYYY-MM-DD.**")
 
 
-        # if $weather ascii is sent, send the ascii plot
-        elif message.content.strip() == "$weather ascii":
+        # if $temp ascii is sent, send the ascii plot
+        elif message.content.strip() == "$temp ascii":
             ascii_plot = weather.get_hourly_temperatures_ascii_plot()
             await message.channel.send(ascii_plot)  # Send as a raw string, not inside {}
-            logger.info("✅ Sent ASCII weather plot.")
+            logger.info("✅ Sent ASCII temp plot.")
 
 
         # if $report is sent, send the morning report
