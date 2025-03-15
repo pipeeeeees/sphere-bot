@@ -1,9 +1,24 @@
 import requests
 
 def get_gemini_response(history: str, message: str, api_key: str) -> str:
+    intro_message_base = 'Your name is "Sphere#1751". here is the message history for context from oldest to newest:\n\n'
+    message_part = f"\n\nReply to this message with that context in mind. It may be useful or irrelevant: {message}"
+    
+    # Split history into individual messages
+    history_lines = history.split("\n")
+    
+    # Start with full history and reduce if necessary
+    current_history = history
+    intro_message = intro_message_base + current_history + message_part
+    max_length = 2000
 
-    intro_message = rf'Your name is "Sphere#1751". here is the message history for context from oldest to newest:\n\n{history}\n\nReply to this message with that context in mind. It may be useful or irrelevant: '
-    prompt = intro_message + message
+    # Reduce history one line at a time from the oldest if over max_length
+    while len(intro_message) > max_length and history_lines:
+        history_lines.pop(0)  # Remove the oldest message
+        current_history = "\n".join(history_lines)
+        intro_message = intro_message_base + current_history + message_part
+
+    prompt = intro_message
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
