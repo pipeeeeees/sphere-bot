@@ -6,4 +6,4 @@ Sphere Bot is a modular Discord bot written in **Python**, currently deployed li
 
 ## DM the Bot
 
-You can start DMing Sphere Bot directly using this link: [DM Sphere Bot](https://discord.com/users/1275637004821860402). Commands are so far limited with plans to add opt-in mass messaging and reports. Try `$uptime` for now to see how long the bot has been deployed. 
+You can start DMing Sphere Bot directly using this link: [DM Sphere Bot](https://discord.com/users/1275637004821860402). Just message it something to get started!
