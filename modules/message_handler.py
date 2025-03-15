@@ -182,10 +182,17 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
 
         # default case handler
         else:
-            # if the message starts with $, pass the rest of the message into Gemini
-            if message.content.startswith("$"):
+            # If the message is a DM, process the full message
+            if isinstance(message.channel, discord.DMChannel):
+                raw_message = message.content
+            # If the message is in a server channel, require the $ prefix
+            elif message.content.startswith("$"):
                 raw_message = message.content[1:]
-                await message.channel.send(gg.get_gemini_response(raw_message, GEMINI_API_KEY))
+            else:
+                return  # Ignore messages without $ in a server channel
+
+            await message.channel.send(gg.get_gemini_response(raw_message, GEMINI_API_KEY))
+
 
     except Exception as e:
         error_message = f"⚠️ Error encountered:\n{traceback.format_exc()}"
