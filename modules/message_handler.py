@@ -47,11 +47,10 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         message_history = []
         async for msg in message.channel.history(limit=10, oldest_first=False):
             message_history.insert(0, f"{msg.author}: {msg.content}")
-
         history_str = "\n".join(message_history)
-        logger.info(f"📜 Message History:\n{history_str}")
-        user = await bot.fetch_user(326676188057567232)
-        await user.send(history_str)
+        #logger.info(f"📜 Message History:\n{history_str}")
+        #user = await bot.fetch_user(326676188057567232)
+        #await user.send(history_str)
 
         # -- COMMANDS --
         # if $sub is sent, send the message sharing what the subscription options are
@@ -192,15 +191,15 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             # If the message is a DM, process the full message
             if isinstance(message.channel, discord.DMChannel):
                 raw_message = message.content
-            # If the message is in a server channel, require the $ prefix
-            elif message.content.startswith("$"):
-                raw_message = message.content[1:]
+                await message.channel.send(gg.get_gemini_response(history_str, raw_message, GEMINI_API_KEY))
+            # If the message is in a server channel, require @Sphere mention
+            elif f"<@1275637004821860402>" in message.content:
+                # Remove the mention from the message before processing
+                raw_message = message.content.replace(f"<@1275637004821860402>", "").strip()
+                await message.channel.send(gg.get_gemini_response(history_str, raw_message, GEMINI_API_KEY))
             else:
-                return  # Ignore messages without $ in a server channel
-
-            await message.channel.send(gg.get_gemini_response(raw_message, GEMINI_API_KEY))
-
-
+                return  # Ignore messages without @Sphere in a server channel
+            
     except Exception as e:
         error_message = f"⚠️ Error encountered:\n{traceback.format_exc()}"
         user = await bot.fetch_user(326676188057567232)

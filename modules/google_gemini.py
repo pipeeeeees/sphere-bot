@@ -1,16 +1,14 @@
 import requests
 
-def get_gemini_response(message: str, api_key: str) -> str:
-    """
-    Sends a message to the Google Gemini API and returns the response.
-    :param message: The input message.
-    :param api_key: Your Google Gemini API key.
-    :return: The response text if available, otherwise None.
-    """
+def get_gemini_response(history: str, message: str, api_key: str) -> str:
+
+    intro_message = rf'Your name is "Sphere#1751". here is the message history for context from oldest to newest:\n\n{history}\n\nReply to this message with that context in mind. It may be useful or irrelevant: '
+    prompt = intro_message + message
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {
-        "contents": [{"parts": [{"text": message}]}]
+        "contents": [{"parts": [{"text": prompt}]}]
     }
     
     response = requests.post(url, json=payload, headers=headers)
