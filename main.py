@@ -244,7 +244,7 @@ async def on_message(message):
 
     print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
     
-    await handle_message(bot, message, LOG_CHANNEL_ID)
+    await handle_message(bot, message, LOG_CHANNEL_ID, GEMINI_API_KEY)
 
     await bot.process_commands(message)  # Ensure commands still work
 

@@ -9,7 +9,6 @@ import subprocess
 import sys
 import traceback
 
-from main import GEMINI_API_KEY
 from modules import pollen
 from modules import weather
 from modules import report
@@ -30,7 +29,7 @@ def read_json(path):
         logger.error(f"Error reading {path}.")
         return {"reminders": []}
 
-async def handle_message(bot, message, log_channel_id):
+async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
     """Handles messages for the bot"""
     try:
         # user DM handling - redirects to me
