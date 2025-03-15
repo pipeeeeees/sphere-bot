@@ -28,7 +28,7 @@ def result_handler():
     if type(result) == int:
         return f"🌼 The pollen count in Atlanta for the day is {result}"
     elif result == None:
-        return "The pollen count in Atlanta has not been reported yet. Please try again later.\n\nNote: Atlanta's pollen count is not reported on the weekends (outside of pollen season).\nhttps://www.atlantaallergy.com/pollen_counts"
+        return "The pollen count in Atlanta has not been reported yet.\n\nNote: Atlanta's pollen count is not reported on the weekends (outside of pollen season).\nhttps://www.atlantaallergy.com/pollen_counts"
     elif result == 'HTML Failure':
         return "HTML Parsing Error"
     else:

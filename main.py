@@ -179,10 +179,12 @@ async def send_scheduled_messages():
             try:
                 user = await bot.fetch_user(user_id)
                 if user:
-                    await user.send(f"{pollen.result_handler()}\nTo unsubscribe from pollen alerts at any time, send `$sub pollen`.")
-                    if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
-                        await user.send(file=discord.File("plots/plot.png"))
-                        await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n\nSend `$pollen plot {now.year}-01-01 {end_date}` to see the year to date.")
+                    the_return = pollen.result_handler()
+                    if "The pollen count in Atlanta for the day is" in the_return:
+                        await user.send(f"{pollen.result_handler()}\n\nTo unsubscribe from pollen alerts at any time, send `$sub pollen`.")
+                        if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
+                            await user.send(file=discord.File("plots/plot.png"))
+                            await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n\nSend `$pollen plot {now.year}-01-01 {end_date}` to see the year to date.")
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:
