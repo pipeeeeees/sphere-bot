@@ -2,6 +2,7 @@ import os
 import io
 import json
 import logging
+import asyncio
 import discord
 import subprocess
 import sys
@@ -39,7 +40,6 @@ class DiscordHandler(logging.Handler):
             self.bot.loop.create_task(self.send_log(log_message))
 
 def setup_logging(bot):
-    """Attach the custom Discord log handler to the logger."""
     if LOG_CHANNEL_ID:
         discord_handler = DiscordHandler(bot, LOG_CHANNEL_ID)
         discord_handler.setLevel(logging.INFO)
@@ -62,7 +62,7 @@ def read_json(path):
         logger.error(f"Invalid JSON in {path}.")
         return {"reminders": []}
 
-# Function to write JSON file (used for adding new reminders)
+# Function to write JSON file
 def write_json(path, data):
     with open(path, "w") as file:
         json.dump(data, file, indent=4)
@@ -91,18 +91,13 @@ bot = commands.Bot(command_prefix="!", intents=intents, heartbeat_timeout=6000)
 @bot.event
 async def on_ready():
     logger.info(f"✅ Logged in as {bot.user}")
-
     setup_logging(bot)  # Attach logging to Discord
 
-    # Send DM to primary admin if available
     if OWNER_ID:
         try:
             user = await bot.fetch_user(OWNER_ID)
             if user:
                 await user.send(f"✅ Bot {bot.user} is online!")
-                #logger.info(f"✅ Successfully booted!")
-            else:
-                logger.warning("Could not fetch user")
         except discord.Forbidden:
             logger.warning("⚠️ Bot cannot send a DM. Enable DMs from server members.")
         except discord.HTTPException as e:
@@ -111,12 +106,9 @@ async def on_ready():
         logger.warning("⚠️ OWNER_ID is not set or invalid")
 
     # Start the scheduled message task
-    if not send_scheduled_messages.is_running():
-        send_scheduled_messages.start()
+    bot.loop.create_task(minute_checker())
 
-    #logger.info("✅ Scheduled message system initialized")
-
-@tasks.loop(minutes=1)  # Check every minute
+#@tasks.loop(minutes=1)  # Check every minute
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
     est = pytz.timezone("America/New_York")
@@ -208,6 +200,22 @@ async def send_scheduled_messages():
             except discord.HTTPException as e:
                 logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
 
+async def minute_checker():
+    """Custom loop to check and run send_scheduled_messages every minute."""
+    last_minute = None
+    est = pytz.timezone("America/New_York")
+    
+    while True:
+        now = datetime.now(est)
+        current_minute = now.strftime("%H:%M")
+        
+        # Run the task only when the minute changes
+        if current_minute != last_minute:
+            last_minute = current_minute
+            await send_scheduled_messages()
+        
+        # Sleep until the next second to avoid busy-waiting
+        await asyncio.sleep(1 - (now.microsecond / 1000000))  # Sleep until the next second
 
 @bot.event
 async def on_message(message):
