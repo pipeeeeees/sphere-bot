@@ -39,7 +39,13 @@
         {
             "id": 945693340639330314,
             "message": "👕 Lululemon made too much just dropped, son! Grab them deals: https://shop.lululemon.com/c/men-we-made-too-much/n18mhdznrqw",
-            "time": "07:00",
+            "time": "09:00",
+            "days": ["Thursday"]
+        },
+        {
+            "id": 945693340639330314,
+            "message": "🎮 The Epic Games Free Game of the Week just dropped today! Get that game while you can: https://store.epicgames.com/en-US/free-games",
+            "time": "17:00",
             "days": ["Thursday"]
         },
         {
