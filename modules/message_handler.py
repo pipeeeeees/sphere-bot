@@ -202,7 +202,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         elif "https://fixvx.com/TheTraeYoung/status/" in message.content:
             # a 1 in 3 chance to send a message
             result = random.randint(1, 100)
-            if result < 40:
+            if result < 70:
                 await message.channel.send("🗣️🗣️🗣️ **Trae Young Tweeted** 🗣️🗣️🗣️")
                 logger.info("✅ Sent The Trae Young message.")
             #elif result == 2:

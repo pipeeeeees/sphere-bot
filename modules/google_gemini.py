@@ -2,7 +2,7 @@ import requests
 
 def get_gemini_response(history: str, message: str, api_key: str) -> str:
     intro_message_base = f'youre a bot named "Sphere#1751", Sphere for short. here is the message history for context from oldest to newest:\n\n'
-    message_part = f"\n\nreply to the following message in less than 2000 chars: {message}"
+    message_part = f"\n\nreply with just your message content to the following message in less than 2000 chars: {message}"
     
     # Split history into individual messages
     history_lines = history.split("\n")
