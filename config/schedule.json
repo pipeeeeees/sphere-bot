@@ -59,6 +59,12 @@
             "message": "[alert]",
             "time": "21:00",
             "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+            "id": 1079612189175988264,
+            "message": "[alert]",
+            "time": "20:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         }
     ]
 }

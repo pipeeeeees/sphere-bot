@@ -39,7 +39,8 @@ def get_morning_report():
 
     ascii_plot = weather.get_hourly_temperatures_ascii_plot()
     if ascii_plot:
-        morning_report_str += f"\n{ascii_plot}"
+        if "Error" not in ascii_plot:
+            morning_report_str += f"\n{ascii_plot}"
 
     return morning_report_str
 
