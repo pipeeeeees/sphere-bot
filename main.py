@@ -242,7 +242,7 @@ async def send_scheduled_messages():
                 user = await bot.fetch_user(user_id)
                 if user:
                     url = r"https://store.epicgames.com/en-US/free-games"
-                    await user.send(f"The Epic Games Free Game of the Week is **{epic_games.get_latest_free_game()}**. Get it today: {url}\n\nTo unsubscribe from the free Epic Game of the Week at any time, send `$sub free epic game of the week`.")
+                    await user.send(f"The Epic Games Free Game of the Week is **{epic_games.get_latest_free_game()}**. Get it today: {url}\n\nTo unsubscribe from the free Epic Game of the Week at any time, send `$sub free epic games`.")
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:

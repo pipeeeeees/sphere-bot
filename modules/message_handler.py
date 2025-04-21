@@ -121,7 +121,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         
         # if $sub free epic games is sent, add the user to the free epic games subscription list
         elif message.content.strip() == "$sub free epic games":
-            action = subscriptions.manage_free_epic_games_subscription(message.author.id)
+            action = subscriptions.manage_free_epic_game_of_the_week_subscription(message.author.id)
             if action == "added":
                 await message.channel.send("📬 **You have been added to the free epic games subscription list.**\n\nSend `$sub free epic games` again to unsubscribe.")
             else:
