@@ -14,6 +14,7 @@ from modules import weather
 from modules import report
 from modules import subscriptions
 from modules import google_gemini as gg
+from modules import mlb
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -129,6 +130,13 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             
             await message.channel.send(f"⏳ Uptime: **{uptime_str}**")
             logger.info(f"✅ Sent uptime: {uptime_str}")
+
+        # if $standings is sent, send the NL East standings
+        elif message.content.strip() == "$standings":
+            standings_str = mlb.get_nl_east_standings()
+            await message.channel.send(standings_str)
+            logger.info("✅ Sent NL East standings.")
+        
 
         # if $pollen is sent, send the pollen count
         elif "$pollen" in message.content.strip():
