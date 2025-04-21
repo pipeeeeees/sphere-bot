@@ -14,6 +14,7 @@ from modules.message_handler import handle_message
 from modules import report
 from modules import pollen
 from modules import mlb
+from modules import epic_games
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -121,6 +122,7 @@ async def send_scheduled_messages():
     pollen_data = read_json("config/pollen_sub.json")
     morning_report_data = read_json("config/morning_report_sub.json")
     nl_east_data = read_json("config/nl_east_sub.json")
+    free_game_data = read_json("config/free_epic_game_of_the_week_sub.json")
 
     # Send regular scheduled messages
     for reminder in schedule_data.get("reminders", []):
@@ -232,6 +234,22 @@ async def send_scheduled_messages():
                 logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
             except discord.HTTPException as e:
                 logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+    # Send free epic game of the week messages
+    if current_time == free_game_data.get("time") and current_day in free_game_data.get("days", []):
+        for user_id in free_game_data.get("subscribers", []):
+            try:
+                user = await bot.fetch_user(user_id)
+                if user:
+                    url = r"https://store.epicgames.com/en-US/free-games"
+                    await user.send(f"The Epic Games Free Game of the Week is **{epic_games.get_latest_free_game()}**. Get it today: {url}\n\nTo unsubscribe from the free Epic Game of the Week at any time, send `$sub free epic game of the week`.")
+            except discord.NotFound:
+                logger.warning(f"⚠️ User {user_id} not found.")
+            except discord.Forbidden:
+                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+            except discord.HTTPException as e:
+                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+    
 
 async def minute_checker():
     """Custom loop to check and run send_scheduled_messages every minute."""

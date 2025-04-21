@@ -154,6 +154,56 @@ def manage_nl_east_subscription(discord_id: int) -> str:
     
     return action
 
+def manage_free_epic_game_of_the_week_subscription(discord_id: int) -> str:
+    """
+    Adds or removes a Discord ID from free_epic_game_of_the_week_sub.json in the config/ directory.
+    If the file does not exist, it is created with default metadata.
+    If metadata fields (time, days) change in the script, the JSON file updates accordingly.
+
+    :param discord_id: Discord user ID to add or remove
+    :return: "added" if added, "removed" if removed
+    """
+    config_path = "config/free_epic_game_of_the_week_sub.json"
+    
+    # Ensure config directory exists
+    os.makedirs("config", exist_ok=True)
+    
+    # Default metadata
+    metadata = {
+        "time": "10:00", 
+        "days": ["Thursday"],
+        "subscribers": []
+    }
+    
+    # Load existing subscriptions if the file exists
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+                if not isinstance(data, dict) or "subscribers" not in data:
+                    data = metadata  # Reset if file is corrupted
+            except json.JSONDecodeError:
+                data = metadata  # Reset if file is corrupted
+    else:
+        data = metadata
+    
+    # Ensure metadata consistency (overwrite time/days if they differ)
+    data["time"] = metadata["time"]
+    data["days"] = metadata["days"]
+
+    # Add or remove the Discord ID
+    if discord_id in data["subscribers"]:
+        data["subscribers"].remove(discord_id)
+        action = "removed"
+    else:
+        data["subscribers"].append(discord_id)
+        action = "added"
+    
+    # Save the updated data back to the file
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    
+    return action
 
 if __name__ == "__main__":
     # Example usage

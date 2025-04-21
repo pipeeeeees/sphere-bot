@@ -86,6 +86,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             subscribe_str += "- $sub pollen\n"
             subscribe_str += "- $sub morning report\n"
             subscribe_str += "- $sub nl east\n"
+            subscribe_str += "- $sub free epic games\n"
             #subscribe_str += "- $sub all\n"
             await message.channel.send(subscribe_str)
             logger.info("✅ Sent subscription options.")
@@ -116,6 +117,16 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             else:
                 await message.channel.send("📬 **You have been removed from the NL East subscription list.**\n\nSend `$sub nl east` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to NL East subscription list.")
+            return
+        
+        # if $sub free epic games is sent, add the user to the free epic games subscription list
+        elif message.content.strip() == "$sub free epic games":
+            action = subscriptions.manage_free_epic_games_subscription(message.author.id)
+            if action == "added":
+                await message.channel.send("📬 **You have been added to the free epic games subscription list.**\n\nSend `$sub free epic games` again to unsubscribe.")
+            else:
+                await message.channel.send("📬 **You have been removed from the free epic games subscription list.**\n\nSend `$sub free epic games` again to resubscribe.")
+            logger.info(f"✅ {action.capitalize()} user {message.author.id} to free epic games subscription list.")
             return
         
         # if $schedule is sent in the bot-testing channel, send the schedule file
