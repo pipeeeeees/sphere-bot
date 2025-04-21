@@ -107,7 +107,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             else:
                 await message.channel.send("📬 **You have been removed from the morning report subscription list.**\n\nSend `$sub morning report` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to morning report subscription list.")
-
+        
         # if $sub nl east is sent, add the user to the NL East subscription list
         elif message.content.strip() == "$sub nl east":
             action = subscriptions.manage_nl_east_subscription(message.author.id)
@@ -116,6 +116,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             else:
                 await message.channel.send("📬 **You have been removed from the NL East subscription list.**\n\nSend `$sub nl east` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to NL East subscription list.")
+            return
         
         # if $schedule is sent in the bot-testing channel, send the schedule file
         elif message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
@@ -125,6 +126,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             file = discord.File(io.BytesIO(schedule_text.encode()), filename="schedule.json")
             await message.channel.send("📂 **Schedule file:**", file=file)
             logger.info("✅ Sent schedule file.")
+            return
 
         # if $uptime is sent, send the uptime
         elif message.content.strip() == "$uptime":
@@ -140,13 +142,67 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             
             await message.channel.send(f"⏳ Uptime: **{uptime_str}**")
             logger.info(f"✅ Sent uptime: {uptime_str}")
+            return
 
-        # if $standings is sent, send the NL East standings
-        elif message.content.strip() == "$standings":
+        # if $standings nl east is sent, send the NL East standings
+        elif message.content.strip() == "$standings nl east":
             standings_str = mlb.get_nl_east_standings()
             await message.channel.send(standings_str)
             logger.info("✅ Sent NL East standings.")
+            return
         
+        # if $standings nl west is sent, send the NL West standings
+        elif message.content.strip() == "$standings nl west":
+            standings_str = mlb.get_nl_west_standings()
+            await message.channel.send(standings_str)
+            logger.info("✅ Sent NL West standings.")
+            return
+
+        # if $standings nl central is sent, send the NL Central standings
+        elif message.content.strip() == "$standings nl central":
+            standings_str = mlb.get_nl_central_standings()
+            await message.channel.send(standings_str)
+            logger.info("✅ Sent NL Central standings.")
+            return
+
+        # if $standings al east is sent, send the AL East standings
+        elif message.content.strip() == "$standings al east":
+            standings_str = mlb.get_al_east_standings()
+            await message.channel.send(standings_str)
+            logger.info("✅ Sent AL East standings.")
+            return
+        
+        # if $standings al west is sent, send the AL West standings
+        elif message.content.strip() == "$standings al west":
+            standings_str = mlb.get_al_west_standings()
+            await message.channel.send(standings_str)
+            logger.info("✅ Sent AL West standings.")
+            return
+
+        # if $standings al central is sent, send the AL Central standings
+        elif message.content.strip() == "$standings al central":
+            standings_str = mlb.get_al_central_standings()
+            await message.channel.send(standings_str)
+            logger.info("✅ Sent AL Central standings.")
+            return
+
+        # if $standings all is sent, send all the standings
+        elif message.content.strip() == "$standings all":
+            nl_east_str = mlb.get_nl_east_standings()
+            nl_west_str = mlb.get_nl_west_standings()
+            nl_central_str = mlb.get_nl_central_standings()
+            al_east_str = mlb.get_al_east_standings()
+            al_west_str = mlb.get_al_west_standings()
+            al_central_str = mlb.get_al_central_standings()
+
+            await message.channel.send(nl_east_str)
+            await message.channel.send(nl_west_str)
+            await message.channel.send(nl_central_str)
+            await message.channel.send(al_east_str)
+            await message.channel.send(al_west_str)
+            await message.channel.send(al_central_str)
+            logger.info("✅ Sent all standings.")
+            return
 
         # if $pollen is sent, send the pollen count
         elif "$pollen" in message.content.strip():
@@ -202,6 +258,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
 
         # if $reboot is sent, reboot
         elif message.content.strip() == "$reboot":
+            await message.channel.send("🔄 **Rebooting...**")
             subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
             sys.exit(0)  # Exit the current script
 
@@ -220,7 +277,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         elif "https://fixvx.com/TheTraeYoung/status/" in message.content:
             # a 1 in 3 chance to send a message
             result = random.randint(1, 100)
-            if result < 70:
+            if result < 90:
                 await message.channel.send("🗣️🗣️🗣️ **Trae Young Tweeted** 🗣️🗣️🗣️")
                 logger.info("✅ Sent The Trae Young message.")
             #elif result == 2:
