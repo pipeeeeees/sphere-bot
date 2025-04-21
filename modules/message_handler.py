@@ -107,7 +107,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             else:
                 await message.channel.send("📬 **You have been removed from the morning report subscription list.**\n\nSend `$sub morning report` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to morning report subscription list.")
-        
+
         # if $sub nl east is sent, add the user to the NL East subscription list
         elif message.content.strip() == "$sub nl east":
             action = subscriptions.manage_nl_east_subscription(message.author.id)
@@ -195,12 +195,10 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             al_west_str = mlb.get_al_west_standings()
             al_central_str = mlb.get_al_central_standings()
 
-            await message.channel.send(nl_east_str)
-            await message.channel.send(nl_west_str)
-            await message.channel.send(nl_central_str)
-            await message.channel.send(al_east_str)
-            await message.channel.send(al_west_str)
-            await message.channel.send(al_central_str)
+            # combine all the standings into one message
+            all_standings_str = f"{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
+
+            await message.channel.send(all_standings_str)
             logger.info("✅ Sent all standings.")
             return
 
