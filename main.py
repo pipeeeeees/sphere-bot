@@ -13,6 +13,7 @@ import pytz
 from modules.message_handler import handle_message 
 from modules import report
 from modules import pollen
+from modules import mlb
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -119,6 +120,7 @@ async def send_scheduled_messages():
     schedule_data = read_json(SCHEDULE_FILE)
     pollen_data = read_json("config/pollen_sub.json")
     morning_report_data = read_json("config/morning_report_sub.json")
+    nl_east_data = read_json("config/nl_east_sub.json")
 
     # Send regular scheduled messages
     for reminder in schedule_data.get("reminders", []):
@@ -138,7 +140,7 @@ async def send_scheduled_messages():
                 try:
                     channel = await bot.fetch_channel(target_id)
                     if isinstance(channel, discord.TextChannel):
-                        if target_id in [1079612189175988264, 1344165418885054534]:
+                        if target_id in [1079612189175988264, 1344165418885054534, 1010706336905961593]:
                             if message == "[morningreport]":
                                 message = report.get_morning_report()
                                 await channel.send(message)
@@ -146,6 +148,10 @@ async def send_scheduled_messages():
                                 weather_alert = report.get_weather_alerts()
                                 if weather_alert is not None:
                                     await channel.send(weather_alert)
+                            elif message == "[nleast]":
+                                if now.month >= 4 and now.month < 10:
+                                    message = mlb.get_nl_east_standings()
+                                    await channel.send(message)
                         else:
                             await channel.send(message)
                     else:
@@ -193,6 +199,20 @@ async def send_scheduled_messages():
                 user = await bot.fetch_user(user_id)
                 if user:
                     await user.send(f"{report.get_morning_report()}\n\nTo unsubscribe from the morning report at any time, send `$sub morning report`.")
+            except discord.NotFound:
+                logger.warning(f"⚠️ User {user_id} not found.")
+            except discord.Forbidden:
+                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+            except discord.HTTPException as e:
+                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+    # Send nl east standings messages
+    if current_time == nl_east_data.get("time") and current_day in nl_east_data.get("days", []) and now.month >= 4 and now.month < 10:
+        for user_id in nl_east_data.get("subscribers", []):
+            try:
+                user = await bot.fetch_user(user_id)
+                if user:
+                    await user.send(f"{mlb.get_nl_east_standings()}\n\nTo unsubscribe from the NL East standings at any time, send `$sub nl east`.")
             except discord.NotFound:
                 logger.warning(f"⚠️ User {user_id} not found.")
             except discord.Forbidden:

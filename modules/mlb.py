@@ -8,7 +8,7 @@ def get_nl_east_standings():
         return "NL East standings not found."
 
     # Header
-    lines = ["2025 NL East Standings",
+    lines = ["```", "2025 NL East Standings",
              f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
     
     for team in nl_east['teams']:
@@ -19,6 +19,7 @@ def get_nl_east_standings():
         gb = team['gb']
         lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
 
+    lines.append("```")
     return "\n".join(lines)
 
 if __name__ == "__main__":

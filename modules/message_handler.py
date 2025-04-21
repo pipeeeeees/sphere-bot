@@ -85,7 +85,8 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             #subscribe_str += "  - $sub weather\n"
             subscribe_str += "- $sub pollen\n"
             subscribe_str += "- $sub morning report\n"
-            #subscribe_str += "  - $sub all\n"
+            subscribe_str += "- $sub nl east\n"
+            #subscribe_str += "- $sub all\n"
             await message.channel.send(subscribe_str)
             logger.info("✅ Sent subscription options.")
 
@@ -107,6 +108,15 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
                 await message.channel.send("📬 **You have been removed from the morning report subscription list.**\n\nSend `$sub morning report` again to resubscribe.")
             logger.info(f"✅ {action.capitalize()} user {message.author.id} to morning report subscription list.")
 
+        # if $sub nl east is sent, add the user to the NL East subscription list
+        elif message.content.strip() == "$sub nl east":
+            action = subscriptions.manage_nl_east_subscription(message.author.id)
+            if action == "added":
+                await message.channel.send("📬 **You have been added to the NL East subscription list.**\n\nSend `$sub nl east` again to unsubscribe.")
+            else:
+                await message.channel.send("📬 **You have been removed from the NL East subscription list.**\n\nSend `$sub nl east` again to resubscribe.")
+            logger.info(f"✅ {action.capitalize()} user {message.author.id} to NL East subscription list.")
+        
         # if $schedule is sent in the bot-testing channel, send the schedule file
         elif message.content.strip() == "$schedule" and int(message.channel.id) == int(log_channel_id):
             schedule_data = read_json(SCHEDULE_FILE)
