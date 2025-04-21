@@ -152,6 +152,18 @@ async def send_scheduled_messages():
                                 if now.month >= 4 and now.month < 10:
                                     message = mlb.get_nl_east_standings()
                                     await channel.send(message)
+                            elif message == "[allmlb]":
+                                if now.month >= 4 and now.month < 10:
+                                    nl_east_str = mlb.get_nl_east_standings()
+                                    nl_west_str = mlb.get_nl_west_standings()
+                                    nl_central_str = mlb.get_nl_central_standings()
+                                    al_east_str = mlb.get_al_east_standings()
+                                    al_west_str = mlb.get_al_west_standings()
+                                    al_central_str = mlb.get_al_central_standings()
+
+                                    # combine all the standings into one message
+                                    all_standings_str = f"Here are the current MLB Standings:\n{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
+                                    await channel.send(all_standings_str)
                         else:
                             await channel.send(message)
                     else:
