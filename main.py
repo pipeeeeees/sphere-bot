@@ -153,7 +153,7 @@ async def send_scheduled_messages():
                             elif message == "[nleast]":
                                 if now.month >= 4 and now.month < 10:
                                     message = mlb.get_standings(104, 204, "NL East Standings")
-                                    message += "\n To see all MLB standings, send `$standings all` at any time."
+                                    message += "\n To see all MLB standings, send `$standings mlb` at any time."
                                     await channel.send(message)
                             elif message == "[allmlb]":
                                 if now.month >= 4 and now.month < 10:

@@ -19,9 +19,9 @@ def get_standings(league_id, division_id, title):
     return "\n".join(lines)
 
 if __name__ == "__main__":
-    print(get_standings(104, 204, "NL East Standings"))     # Correct
-    print(get_standings(104, 205, "NL Central Standings"))  # Correct
-    print(get_standings(104, 203, "NL West Standings"))     # Correct
-    print(get_standings(103, 201, "AL East Standings"))     # Correct
-    print(get_standings(103, 202, "AL Central Standings"))  # Corrected from 200
-    print(get_standings(103, 200, "AL West Standings"))     # Corrected from 202
+    print(get_standings(104, 204, "NL East Standings"))    
+    print(get_standings(104, 205, "NL Central Standings")) 
+    print(get_standings(104, 203, "NL West Standings"))    
+    print(get_standings(103, 201, "AL East Standings"))    
+    print(get_standings(103, 202, "AL Central Standings")) 
+    print(get_standings(103, 200, "AL West Standings"))    
