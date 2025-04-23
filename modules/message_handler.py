@@ -21,6 +21,15 @@ start_time = datetime.datetime.now()
 
 SCHEDULE_FILE = "config/schedule.json"
 
+standings_lookup = {
+    "$standings nl east":    (104, 204, "NL East Standings"),
+    "$standings nl west":    (104, 205, "NL West Standings"),
+    "$standings nl central": (104, 203, "NL Central Standings"),
+    "$standings al east":    (103, 201, "AL East Standings"),
+    "$standings al west":    (103, 202, "AL West Standings"),
+    "$standings al central": (103, 200, "AL Central Standings"),
+}
+
 def read_json(path):
     """Reads a JSON file and returns its contents."""
     try:
@@ -154,57 +163,23 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             await message.channel.send(f"⏳ Uptime: **{uptime_str}**")
             logger.info(f"✅ Sent uptime: {uptime_str}")
             return
-
-        # if $standings nl east is sent, send the NL East standings
-        elif message.content.strip() == "$standings nl east":
-            standings_str = mlb.get_nl_east_standings()
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent NL East standings.")
-            return
         
-        # if $standings nl west is sent, send the NL West standings
-        elif message.content.strip() == "$standings nl west":
-            standings_str = mlb.get_nl_west_standings()
+        # if $standings [division] is sent, send the standings for that division
+        elif message.content.strip() in standings_lookup:
+            league_id, division_id, title = standings_lookup[message.content.strip()]
+            standings_str = mlb.get_standings(league_id, division_id, title)
             await message.channel.send(standings_str)
-            logger.info("✅ Sent NL West standings.")
-            return
-
-        # if $standings nl central is sent, send the NL Central standings
-        elif message.content.strip() == "$standings nl central":
-            standings_str = mlb.get_nl_central_standings()
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent NL Central standings.")
-            return
-
-        # if $standings al east is sent, send the AL East standings
-        elif message.content.strip() == "$standings al east":
-            standings_str = mlb.get_al_east_standings()
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent AL East standings.")
-            return
-        
-        # if $standings al west is sent, send the AL West standings
-        elif message.content.strip() == "$standings al west":
-            standings_str = mlb.get_al_west_standings()
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent AL West standings.")
-            return
-
-        # if $standings al central is sent, send the AL Central standings
-        elif message.content.strip() == "$standings al central":
-            standings_str = mlb.get_al_central_standings()
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent AL Central standings.")
+            logger.info(f"✅ Sent {title.lower()}.")
             return
 
         # if $standings all is sent, send all the standings
         elif message.content.strip() == "$standings all":
-            nl_east_str = mlb.get_nl_east_standings()
-            nl_west_str = mlb.get_nl_west_standings()
-            nl_central_str = mlb.get_nl_central_standings()
-            al_east_str = mlb.get_al_east_standings()
-            al_west_str = mlb.get_al_west_standings()
-            al_central_str = mlb.get_al_central_standings()
+            nl_east_str     = mlb.get_standings(104, 204, "NL East Standings")
+            nl_west_str     = mlb.get_standings(104, 205, "NL West Standings")
+            nl_central_str  = mlb.get_standings(104, 203, "NL Central Standings")
+            al_east_str     = mlb.get_standings(103, 201, "AL East Standings")
+            al_west_str     = mlb.get_standings(103, 202, "AL West Standings")
+            al_central_str  = mlb.get_standings(103, 200, "AL Central Standings")
 
             # combine all the standings into one message
             all_standings_str = f"{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
