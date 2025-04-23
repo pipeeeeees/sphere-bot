@@ -23,11 +23,11 @@ SCHEDULE_FILE = "config/schedule.json"
 
 standings_lookup = {
     "$standings nl east":    (104, 204, "NL East Standings"),
-    "$standings nl west":    (104, 205, "NL West Standings"),
-    "$standings nl central": (104, 203, "NL Central Standings"),
+    "$standings nl central": (104, 205, "NL Central Standings"),
+    "$standings nl west":    (104, 203, "NL West Standings"),
     "$standings al east":    (103, 201, "AL East Standings"),
-    "$standings al west":    (103, 202, "AL West Standings"),
-    "$standings al central": (103, 200, "AL Central Standings"),
+    "$standings al central": (103, 202, "AL Central Standings"),
+    "$standings al west":    (103, 200, "AL West Standings"),
 }
 
 def read_json(path):
@@ -175,11 +175,11 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
         # if $standings all is sent, send all the standings
         elif message.content.strip() == "$standings all":
             nl_east_str     = mlb.get_standings(104, 204, "NL East Standings")
-            nl_west_str     = mlb.get_standings(104, 205, "NL West Standings")
-            nl_central_str  = mlb.get_standings(104, 203, "NL Central Standings")
+            nl_west_str     = mlb.get_standings(104, 205, "NL Central Standings")
+            nl_central_str  = mlb.get_standings(104, 203, "NL West Standings")
             al_east_str     = mlb.get_standings(103, 201, "AL East Standings")
-            al_west_str     = mlb.get_standings(103, 202, "AL West Standings")
-            al_central_str  = mlb.get_standings(103, 200, "AL Central Standings")
+            al_west_str     = mlb.get_standings(103, 202, "AL Central Standings")
+            al_central_str  = mlb.get_standings(103, 200, "AL West Standings")   
 
             # combine all the standings into one message
             all_standings_str = f"{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
