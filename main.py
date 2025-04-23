@@ -14,6 +14,7 @@ from modules.message_handler import handle_message
 from modules import report
 from modules import pollen
 from modules import mlb
+from modules import nba
 from modules import epic_games
 
 logging.basicConfig(level=logging.INFO)
@@ -142,19 +143,22 @@ async def send_scheduled_messages():
                 try:
                     channel = await bot.fetch_channel(target_id)
                     if isinstance(channel, discord.TextChannel):
-                        if target_id in [1079612189175988264, 1344165418885054534, 1010706336905961593]:
+                        if target_id in [1079612189175988264, 1344165418885054534, 1010706336905961593, 924430124366045214]:
                             if message == "[morningreport]":
                                 message = report.get_morning_report()
                                 await channel.send(message)
+
                             elif message == "[alert]":
                                 weather_alert = report.get_weather_alerts()
                                 if weather_alert is not None:
                                     await channel.send(weather_alert)
+
                             elif message == "[nleast]":
                                 if now.month >= 4 and now.month < 10:
                                     message = mlb.get_standings(104, 204, "NL East Standings")
                                     message += "\n To see all MLB standings, send `$standings mlb` at any time."
                                     await channel.send(message)
+
                             elif message == "[allmlb]":
                                 if now.month >= 4 and now.month < 10:
                                     nl_east_str     = mlb.get_standings(104, 204, "NL East Standings")
@@ -163,10 +167,16 @@ async def send_scheduled_messages():
                                     al_east_str     = mlb.get_standings(103, 201, "AL East Standings")
                                     al_west_str     = mlb.get_standings(103, 202, "AL Central Standings")
                                     al_central_str  = mlb.get_standings(103, 200, "AL West Standings")   
-
-                                    # combine all the standings into one message
                                     all_standings_str = f"Here are the current MLB Standings:\n{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
                                     await channel.send(all_standings_str)
+
+                            elif message == "[allnba]":
+                                if (now.month == 10 and now.day >= 15) or (now.month > 10 and now.month < 6) or (now.month == 6 and now.day <= 15):
+                                    east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
+                                    west_str = nba.get_nba_standings("Western Conference Standings", "West")
+                                    all_standings_str = f"{east_str}\n{west_str}"
+                                    await channel.send(all_standings_str)
+
                         else:
                             await channel.send(message)
                     else:
