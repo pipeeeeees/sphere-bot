@@ -6,6 +6,7 @@ import asyncio
 import discord
 import subprocess
 import sys
+import socket
 from discord.ext import commands, tasks
 from datetime import datetime
 import pytz
@@ -96,11 +97,14 @@ async def on_ready():
     logger.info(f"✅ Logged in as {bot.user}")
     setup_logging(bot)  # Attach logging to Discord
 
+    # Get the hostname of the machine
+    hostname = socket.gethostname()
+
     if OWNER_ID:
         try:
             user = await bot.fetch_user(OWNER_ID)
             if user:
-                await user.send(f"✅ Bot {bot.user} is online!")
+                await user.send(f"✅ Bot {bot.user} is online! From machine: {hostname}")
         except discord.Forbidden:
             logger.warning("⚠️ Bot cannot send a DM. Enable DMs from server members.")
         except discord.HTTPException as e:
