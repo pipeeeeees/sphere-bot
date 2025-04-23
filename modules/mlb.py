@@ -1,17 +1,13 @@
 import statsapi
-from datetime import datetime
 
 def get_standings(league_id, division_id, title):
-    today = datetime.today().strftime("%m-%d-%Y")
-    full_title = f"{title} - {today}"
-
     standings = statsapi.standings_data(leagueId=league_id)
     division = standings.get(division_id)
 
     if not division:
-        return f"{full_title} standings not found."
+        return f"{title} standings not found."
 
-    lines = ["```", full_title, f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
+    lines = ["```", title, f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     for team in division['teams']:
         name = team['name']
         w = int(team['w'])
