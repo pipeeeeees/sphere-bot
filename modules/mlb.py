@@ -9,15 +9,15 @@ def get_nl_east_standings():
 
     # Header
     lines = ["```", "2025 NL East Standings",
-             f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
+             f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     
     for team in nl_east['teams']:
         name = team['name']
         w = int(team['w'])
         l = int(team['l'])
-        pct = f"{w / (w + l):.3f}"
+        #pct = f"{w / (w + l):.3f}"
         gb = team['gb']
-        lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
+        lines.append(f"{name:<25} {w:>2} {l:>2}  {gb:>4}")
 
     lines.append("```")
     return "\n".join(lines)
@@ -31,15 +31,15 @@ def get_nl_west_standings():
 
     # Header
     lines = ["```", "2025 NL West Standings",
-             f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
+             f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     
     for team in nl_west['teams']:
         name = team['name']
         w = int(team['w'])
         l = int(team['l'])
-        pct = f"{w / (w + l):.3f}"
+        #pct = f"{w / (w + l):.3f}"
         gb = team['gb']
-        lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
+        lines.append(f"{name:<25} {w:>2} {l:>2}  {gb:>4}")
 
     lines.append("```")
     return "\n".join(lines)
@@ -53,15 +53,15 @@ def get_nl_central_standings():
 
     # Header
     lines = ["```", "2025 NL Central Standings",
-             f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
+             f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     
     for team in nl_central['teams']:
         name = team['name']
         w = int(team['w'])
         l = int(team['l'])
-        pct = f"{w / (w + l):.3f}"
+        #pct = f"{w / (w + l):.3f}"
         gb = team['gb']
-        lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
+        lines.append(f"{name:<25} {w:>2} {l:>2}  {gb:>4}")
 
     lines.append("```")
     return "\n".join(lines)
@@ -75,15 +75,15 @@ def get_al_east_standings():
 
     # Header
     lines = ["```", "2025 AL East Standings",
-             f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
+             f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     
     for team in al_east['teams']:
         name = team['name']
         w = int(team['w'])
         l = int(team['l'])
-        pct = f"{w / (w + l):.3f}"
+        #pct = f"{w / (w + l):.3f}"
         gb = team['gb']
-        lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
+        lines.append(f"{name:<25} {w:>2} {l:>2}  {gb:>4}")
 
     lines.append("```")
     return "\n".join(lines)
@@ -97,15 +97,15 @@ def get_al_west_standings():
 
     # Header
     lines = ["```", "2025 AL West Standings",
-             f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
+             f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     
     for team in al_west['teams']:
         name = team['name']
         w = int(team['w'])
         l = int(team['l'])
-        pct = f"{w / (w + l):.3f}"
+        #pct = f"{w / (w + l):.3f}"
         gb = team['gb']
-        lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
+        lines.append(f"{name:<25} {w:>2} {l:>2}  {gb:>4}")
 
     lines.append("```")
     return "\n".join(lines)
@@ -119,15 +119,15 @@ def get_al_central_standings():
 
     # Header
     lines = ["```", "2025 AL Central Standings",
-             f"{'Team':<25} {'W':>2} {'L':>2}  {'PCT':>5}  {'GB':>4}"]
+             f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     
     for team in al_central['teams']:
         name = team['name']
         w = int(team['w'])
         l = int(team['l'])
-        pct = f"{w / (w + l):.3f}"
+        #pct = f"{w / (w + l):.3f}"
         gb = team['gb']
-        lines.append(f"{name:<25} {w:>2} {l:>2}  {pct:>5}  {gb:>4}")
+        lines.append(f"{name:<25} {w:>2} {l:>2}  {gb:>4}")
 
     lines.append("```")
     return "\n".join(lines)
