@@ -104,7 +104,7 @@ async def on_ready():
         try:
             user = await bot.fetch_user(OWNER_ID)
             if user:
-                await user.send(f"✅ Bot {bot.user} is online! From machine: {hostname}")
+                await user.send(f"✅ Bot {bot.user} is online from the machine: {hostname}")
         except discord.Forbidden:
             logger.warning("⚠️ Bot cannot send a DM. Enable DMs from server members.")
         except discord.HTTPException as e:
