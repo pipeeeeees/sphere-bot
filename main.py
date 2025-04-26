@@ -175,7 +175,7 @@ async def send_scheduled_messages():
                                     await channel.send(all_standings_str)
 
                             elif message == "[allnba]":
-                                if now.month <= 4:
+                                if now.month <= 3 or now.month >= 10:
                                     east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
                                     west_str = nba.get_nba_standings("Western Conference Standings", "West")
                                     all_standings_str = f"{east_str}\n{west_str}"
