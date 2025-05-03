@@ -15,7 +15,6 @@ from modules import report
 from modules import subscriptions
 from modules import google_gemini as gg
 from modules import mlb
-from modules import nba
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -173,8 +172,8 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             logger.info(f"✅ Sent {title.lower()}.")
             return
 
-        # if $standings mlb is sent, send all the standings
-        elif message.content.strip() == "$standings mlb":
+        # if $standings all is sent, send all the standings
+        elif message.content.strip() == "$standings all":
             nl_east_str     = mlb.get_standings(104, 204, "NL East Standings")
             nl_west_str     = mlb.get_standings(104, 205, "NL Central Standings")
             nl_central_str  = mlb.get_standings(104, 203, "NL West Standings")
@@ -187,29 +186,6 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
 
             await message.channel.send(all_standings_str)
             logger.info("✅ Sent all standings.")
-            return
-        
-        # if $standings west or $standings western is sent, send the western conference standings
-        elif message.content.strip() == "$standings west" or message.content.strip() == "$standings western":
-            standings_str = nba.get_nba_standings("Western Conference Standings", "West")
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent western conference standings.")
-            return
-        
-        # if $standings east or $standings eastern is sent, send the eastern conference standings
-        elif message.content.strip() == "$standings east" or message.content.strip() == "$standings eastern":
-            standings_str = nba.get_nba_standings("Eastern Conference Standings", "East")
-            await message.channel.send(standings_str)
-            logger.info("✅ Sent eastern conference standings.")
-            return
-        
-        # if $standings nba is sent, send all the standings
-        elif message.content.strip() == "$standings nba":
-            east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
-            west_str = nba.get_nba_standings("Western Conference Standings", "West")
-            all_standings_str = f"{east_str}\n{west_str}"
-            await message.channel.send(all_standings_str)
-            logger.info("✅ Sent all NBA standings.")
             return
 
         # if $pollen is sent, send the pollen count
