@@ -246,6 +246,12 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
             sys.exit(0)  # Exit the current script
 
+        # if $hard reboot is sent, hard reboot the raspberry pi
+        elif message.content.strip() == "$hard reboot":
+            await message.channel.send("🔄 **Hard rebooting...**")
+            subprocess.Popen(["sudo", "reboot"])
+            sys.exit(0)  # Exit the current script
+
         # if $pull is sent, git pull
         elif message.content.strip() == "$pull":
             try:
