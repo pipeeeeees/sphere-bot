@@ -100,6 +100,9 @@ async def on_ready():
     # Get the hostname of the machine
     hostname = socket.gethostname()
 
+    if not send_scheduled_messages.is_running():
+        send_scheduled_messages.start()
+
     if OWNER_ID:
         try:
             user = await bot.fetch_user(OWNER_ID)
@@ -113,87 +116,103 @@ async def on_ready():
         logger.warning("⚠️ OWNER_ID is not set or invalid")
 
     # Start the scheduled message task
-    bot.loop.create_task(minute_checker())
+    #bot.loop.create_task(minute_checker())
 
-@tasks.loop(minutes=1)  # Check every minute
+last_run_minute = None  # Tracks the last minute the task executed
+
+@tasks.loop(seconds=20)
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
+    global last_run_minute
     est = pytz.timezone("America/New_York")
     now = datetime.now(est)
     current_time = now.strftime("%H:%M")  # Format HH:MM
     current_day = now.strftime("%A")  # Get full day name
+    current_minute = now.strftime("%Y-%m-%d %H:%M")
+    status_log = f"🕒 `{now.strftime('%Y-%m-%d %H:%M:%S')}` Status:\n"
 
-    schedule_data = read_json(SCHEDULE_FILE)
-    pollen_data = read_json("config/pollen_sub.json")
-    morning_report_data = read_json("config/morning_report_sub.json")
-    nl_east_data = read_json("config/nl_east_sub.json")
-    free_game_data = read_json("config/free_epic_game_of_the_week_sub.json")
+    if last_run_minute == current_minute:
+        status_log += "⏭ Already ran this minute. Skipping scheduled checks.\n"
+    else:
+        last_run_minute = current_minute
 
-    # Send regular scheduled messages
-    for reminder in schedule_data.get("reminders", []):
-        if current_time == reminder["time"] and current_day in reminder["days"]:
-            target_id = reminder["id"]  # Can be user id or channel id
-            message = reminder["message"]
+        schedule_data = read_json(SCHEDULE_FILE)
+        pollen_data = read_json("config/pollen_sub.json")
+        morning_report_data = read_json("config/morning_report_sub.json")
+        nl_east_data = read_json("config/nl_east_sub.json")
+        free_game_data = read_json("config/free_epic_game_of_the_week_sub.json")
 
-            try:
-                # Try fetching as a user
-                user = await bot.fetch_user(target_id)
-                if user:
-                    await user.send(message)
-                    continue  # Skip the channel check if it's a valid user ID
+        # Send regular scheduled messages
+        for reminder in schedule_data.get("reminders", []):
+            if current_time == reminder["time"] and current_day in reminder["days"]:
+                target_id = reminder["id"]  # Can be user id or channel id
+                message = reminder["message"]
 
-            except discord.NotFound:
-                # User not found, assume it's a channel ID and try fetching as a channel
                 try:
-                    channel = await bot.fetch_channel(target_id)
-                    if isinstance(channel, discord.TextChannel):
-                        if target_id in [1079612189175988264, 1344165418885054534, 1010706336905961593, 924430124366045214]:
-                            if message == "[morningreport]":
-                                message = report.get_morning_report()
-                                await channel.send(message)
+                    # Try fetching as a user
+                    user = await bot.fetch_user(target_id)
+                    if user:
+                        await user.send(message)
+                        continue  # Skip the channel check if it's a valid user ID
 
-                            elif message == "[alert]":
-                                weather_alert = report.get_weather_alerts()
-                                if weather_alert is not None:
-                                    await channel.send(weather_alert)
-
-                            elif message == "[nleast]":
-                                if now.month >= 4 and now.month < 10:
-                                    message = mlb.get_standings(104, 204, "NL East Standings")
-                                    message += "\n To see all MLB standings, send `$standings all` at any time."
+                except discord.NotFound:
+                    # User not found, assume it's a channel ID and try fetching as a channel
+                    try:
+                        channel = await bot.fetch_channel(target_id)
+                        if isinstance(channel, discord.TextChannel):
+                            if target_id in [1079612189175988264, 1344165418885054534, 1010706336905961593, 924430124366045214]:
+                                if message == "[morningreport]":
+                                    message = report.get_morning_report()
                                     await channel.send(message)
 
-                            elif message == "[allmlb]":
-                                if now.month >= 4 and now.month < 10:
-                                    nl_east_str     = mlb.get_standings(104, 204, "NL East Standings")
-                                    nl_west_str     = mlb.get_standings(104, 205, "NL Central Standings")
-                                    nl_central_str  = mlb.get_standings(104, 203, "NL West Standings")
-                                    al_east_str     = mlb.get_standings(103, 201, "AL East Standings")
-                                    al_west_str     = mlb.get_standings(103, 202, "AL Central Standings")
-                                    al_central_str  = mlb.get_standings(103, 200, "AL West Standings")   
-                                    all_standings_str = f"Here are the current MLB Standings:\n{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
-                                    await channel.send(all_standings_str)
+                                elif message == "[alert]":
+                                    weather_alert = report.get_weather_alerts()
+                                    if weather_alert is not None:
+                                        await channel.send(weather_alert)
 
-                            elif message == "[allnba]":
-                                if now.month <= 3 or now.month >= 10:
-                                    east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
-                                    west_str = nba.get_nba_standings("Western Conference Standings", "West")
-                                    all_standings_str = f"{east_str}\n{west_str}"
-                                    await channel.send(all_standings_str)
+                                elif message == "[nleast]":
+                                    if now.month >= 4 and now.month < 10:
+                                        message = mlb.get_standings(104, 204, "NL East Standings")
+                                        message += "\n To see all MLB standings, send `$standings all` at any time."
+                                        await channel.send(message)
 
+                                elif message == "[allmlb]":
+                                    if now.month >= 4 and now.month < 10:
+                                        nl_east_str     = mlb.get_standings(104, 204, "NL East Standings")
+                                        nl_west_str     = mlb.get_standings(104, 205, "NL Central Standings")
+                                        nl_central_str  = mlb.get_standings(104, 203, "NL West Standings")
+                                        al_east_str     = mlb.get_standings(103, 201, "AL East Standings")
+                                        al_west_str     = mlb.get_standings(103, 202, "AL Central Standings")
+                                        al_central_str  = mlb.get_standings(103, 200, "AL West Standings")   
+                                        all_standings_str = f"Here are the current MLB Standings:\n{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
+                                        await channel.send(all_standings_str)
+
+                                elif message == "[allnba]":
+                                    if now.month <= 3 or now.month >= 10:
+                                        east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
+                                        west_str = nba.get_nba_standings("Western Conference Standings", "West")
+                                        all_standings_str = f"{east_str}\n{west_str}"
+                                        await channel.send(all_standings_str)
+
+                            else:
+                                await channel.send(message)
                         else:
-                            await channel.send(message)
-                    else:
-                        logger.warning(f"⚠️ Target {target_id} is not a valid text channel.")
-                except discord.Forbidden:
-                    logger.warning(f"⚠️ Cannot send message to channel {target_id}. Check permissions.")
-                except discord.HTTPException as e:
-                    logger.error(f"⚠️ Failed to send message to channel {target_id}: {e}")
+                            logger.warning(f"⚠️ Target {target_id} is not a valid text channel.")
+                    except discord.Forbidden:
+                        logger.warning(f"⚠️ Cannot send message to channel {target_id}. Check permissions.")
+                    except discord.HTTPException as e:
+                        logger.error(f"⚠️ Failed to send message to channel {target_id}: {e}")
 
-            except discord.Forbidden:
-                logger.warning(f"⚠️ Cannot send DM to user {target_id}. Check permissions.")
-            except discord.HTTPException as e:
-                logger.error(f"⚠️ Failed to send message to {target_id}: {e}")
+                except discord.Forbidden:
+                    logger.warning(f"⚠️ Cannot send DM to user {target_id}. Check permissions.")
+                except discord.HTTPException as e:
+                    logger.error(f"⚠️ Failed to send message to {target_id}: {e}")
+        # Always send status message
+    try:
+        status_channel = await bot.fetch_channel(1368787921653731339)
+        await status_channel.send(status_log.strip())
+    except Exception as e:
+        logger.error(f"❌ Failed to send status message to status channel: {e}")
 
     # Send pollen subscription messages
     if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
@@ -265,22 +284,22 @@ async def send_scheduled_messages():
                 logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
     
 
-async def minute_checker():
-    """Custom loop to check and run send_scheduled_messages every minute."""
-    last_minute = None
-    est = pytz.timezone("America/New_York")
-    
-    while True:
-        now = datetime.now(est)
-        current_minute = now.strftime("%H:%M")
-        
-        # Run the task only when the minute changes
-        if current_minute != last_minute:
-            last_minute = current_minute
-            await send_scheduled_messages()
-        
-        # Sleep until the next second to avoid busy-waiting
-        await asyncio.sleep(1 - (now.microsecond / 1000000))  # Sleep until the next second
+#async def minute_checker():
+#    """Custom loop to check and run send_scheduled_messages every minute."""
+#    last_minute = None
+#    est = pytz.timezone("America/New_York")
+#    
+#    while True:
+#        now = datetime.now(est)
+#        current_minute = now.strftime("%H:%M")
+#        
+#        # Run the task only when the minute changes
+#        if current_minute != last_minute:
+#            last_minute = current_minute
+#            await send_scheduled_messages()
+#        
+#        # Sleep until the next second to avoid busy-waiting
+#        await asyncio.sleep(1 - (now.microsecond / 1000000))  # Sleep until the next second
 
 @bot.event
 async def on_message(message):
