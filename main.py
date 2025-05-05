@@ -115,7 +115,7 @@ async def on_ready():
     # Start the scheduled message task
     bot.loop.create_task(minute_checker())
 
-#@tasks.loop(minutes=1)  # Check every minute
+@tasks.loop(minutes=1)  # Check every minute
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
     est = pytz.timezone("America/New_York")
