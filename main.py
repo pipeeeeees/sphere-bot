@@ -120,7 +120,7 @@ async def on_ready():
 
 last_run_minute = None  # Tracks the last minute the task executed
 
-@tasks.loop(seconds=20)
+@tasks.loop(seconds=15)
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
     global last_run_minute
@@ -132,7 +132,7 @@ async def send_scheduled_messages():
     status_log = f"🕒 `{now.strftime('%Y-%m-%d %H:%M:%S')}` Status:\n"
 
     if last_run_minute == current_minute:
-        status_log += "⏭ Already ran this minute. Skipping scheduled checks.\n"
+        status_log += "\t⏭ Already ran this minute. Skipping scheduled checks.\n"
     else:
         last_run_minute = current_minute
 
@@ -165,14 +165,14 @@ async def send_scheduled_messages():
                                 if message == "[morningreport]":
                                     message = report.get_morning_report()
                                     await channel.send(message)
-                                    status_log += f"✅ Sent morning report to channel `{target_id}`\n"
+                                    status_log += f"\t✅ Sent morning report to channel `{target_id}`\n"
 
 
                                 elif message == "[alert]":
                                     weather_alert = report.get_weather_alerts()
                                     if weather_alert is not None:
                                         await channel.send(weather_alert)
-                                        status_log += f"✅ Sent weather alert to channel `{target_id}`\n"
+                                        status_log += f"\t✅ Sent weather alert to channel `{target_id}`\n"
 
 
                                 elif message == "[nleast]":
@@ -180,7 +180,7 @@ async def send_scheduled_messages():
                                         message = mlb.get_standings(104, 204, "NL East Standings")
                                         message += "\n To see all MLB standings, send `$standings all` at any time."
                                         await channel.send(message)
-                                        status_log += f"✅ Sent NL East standings to `{target_id}`\n"
+                                        status_log += f"\t✅ Sent NL East standings to `{target_id}`\n"
 
 
                                 elif message == "[allmlb]":
@@ -193,7 +193,7 @@ async def send_scheduled_messages():
                                         al_central_str  = mlb.get_standings(103, 200, "AL West Standings")   
                                         all_standings_str = f"Here are the current MLB Standings:\n{nl_east_str}\n{nl_west_str}\n{nl_central_str}\n{al_east_str}\n{al_west_str}\n{al_central_str}"
                                         await channel.send(all_standings_str)
-                                        status_log += f"✅ Sent all MLB standings to `{target_id}`\n"
+                                        status_log += f"\t✅ Sent all MLB standings to `{target_id}`\n"
 
 
                                 elif message == "[allnba]":
@@ -202,33 +202,33 @@ async def send_scheduled_messages():
                                         west_str = nba.get_nba_standings("Western Conference Standings", "West")
                                         all_standings_str = f"{east_str}\n{west_str}"
                                         await channel.send(all_standings_str)
-                                        status_log += f"✅ Sent all NBA standings to `{target_id}`\n"
+                                        status_log += f"\t✅ Sent all NBA standings to `{target_id}`\n"
 
 
                             else:
                                 await channel.send(message)
-                                status_log += f"✅ Sent scheduled message to channel `{target_id}`: `{message}`\n"
+                                status_log += f"\t✅ Sent scheduled message to channel `{target_id}`: `{message}`\n"
                         else:
                             logger.warning(f"⚠️ Target {target_id} is not a valid text channel.")
                     except discord.Forbidden:
                         logger.warning(f"⚠️ Cannot send message to channel {target_id}. Check permissions.")
-                        status_log += f"❌ Forbidden: Can't send to channel `{target_id}`\n"
+                        status_log += f"\t❌ Forbidden: Can't send to channel `{target_id}`\n"
                     except discord.HTTPException as e:
                         logger.error(f"⚠️ Failed to send message to channel {target_id}: {e}")
-                        status_log += f"❌ HTTP Error sending to channel `{target_id}`: {e}\n"
+                        status_log += f"\t❌ HTTP Error sending to channel `{target_id}`: {e}\n"
 
                 except discord.Forbidden:
                     logger.warning(f"⚠️ Cannot send DM to user {target_id}. Check permissions.")
-                    status_log += f"❌ Forbidden: Can't DM user `{target_id}`\n"
+                    status_log += f"\t❌ Forbidden: Can't DM user `{target_id}`\n"
                 except discord.HTTPException as e:
                     logger.error(f"⚠️ Failed to send message to {target_id}: {e}")
-                    status_log += f"❌ HTTP Error sending DM to `{target_id}`: {e}\n"
+                    status_log += f"\t❌ HTTP Error sending DM to `{target_id}`: {e}\n"
     # Always send status message
     try:
         status_channel = await bot.fetch_channel(1368787921653731339)
         await status_channel.send(status_log.strip())
     except Exception as e:
-        logger.error(f"❌ Failed to send status message to status channel: {e}")
+        logger.error(f"\t❌ Failed to send status message to status channel: {e}")
 
     # Send pollen subscription messages
     if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
