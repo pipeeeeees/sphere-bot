@@ -126,7 +126,7 @@ free_game_data = read_json("config/free_epic_game_of_the_week_sub.json")
 
 last_run_minute = None  # Tracks the last minute the task executed
 
-@tasks.loop(seconds=15)
+@tasks.loop(seconds=10)
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
     global last_run_minute
@@ -138,14 +138,15 @@ async def send_scheduled_messages():
 
     status_log = f"🕒 `{now.strftime('%Y-%m-%d %H:%M:%S')}`"
     status_channel = await bot.fetch_channel(1368787921653731339)
-    await status_channel.send(status_log.strip())
+    
     
     #status_log = f"Status:\n"
 
     if last_run_minute == current_minute:
-        status_log = "\t⏭ Already ran this minute. Skipping scheduled checks.\n"
+        status_log += " Already ran this minute. Skipping...\n"
         await status_channel.send(status_log.strip())
     else:
+        await status_channel.send(status_log.strip())
         last_run_minute = current_minute
 
         
