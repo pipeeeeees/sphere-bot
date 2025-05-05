@@ -123,18 +123,17 @@ last_run_minute = None  # Tracks the last minute the task executed
 @tasks.loop(seconds=15)
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
-
-    status_log = f"🕒 `{now.strftime('%Y-%m-%d %H:%M:%S')}`"
-    status_channel = await bot.fetch_channel(1368787921653731339)
-    await status_channel.send(status_log.strip())
-    
-
     global last_run_minute
     est = pytz.timezone("America/New_York")
     now = datetime.now(est)
     current_time = now.strftime("%H:%M")  # Format HH:MM
     current_day = now.strftime("%A")  # Get full day name
     current_minute = now.strftime("%Y-%m-%d %H:%M")
+
+    status_log = f"🕒 `{now.strftime('%Y-%m-%d %H:%M:%S')}`"
+    status_channel = await bot.fetch_channel(1368787921653731339)
+    await status_channel.send(status_log.strip())
+    
     status_log = f"Status:\n"
 
     if last_run_minute == current_minute:
