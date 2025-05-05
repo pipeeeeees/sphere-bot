@@ -143,7 +143,8 @@ async def send_scheduled_messages():
     #status_log = f"Status:\n"
 
     if last_run_minute == current_minute:
-        #status_log += "\t⏭ Already ran this minute. Skipping scheduled checks.\n"
+        status_log = "\t⏭ Already ran this minute. Skipping scheduled checks.\n"
+        await status_channel.send(status_log.strip())
     else:
         last_run_minute = current_minute
 
