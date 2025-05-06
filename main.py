@@ -261,10 +261,9 @@ async def send_scheduled_messages():
                     logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
     except Exception as e:
         if OWNER_ID:
-            try:
-                user = await bot.fetch_user(OWNER_ID)
-                if user:
-                    await user.send(f"⚠️ Error in scheduled messages: {e}")
+            user = await bot.fetch_user(OWNER_ID)
+            if user:
+                await user.send(f"⚠️ Error in scheduled messages: {e}")
 
     # Send morning report messages
     if current_time == morning_report_data.get("time") and current_day in morning_report_data.get("days", []):
