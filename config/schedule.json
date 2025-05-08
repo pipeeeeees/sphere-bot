@@ -71,12 +71,6 @@
             "message": "[allmlb]",
             "time": "08:00",
             "days": ["Monday"]
-        },
-        {
-            "id": 924430124366045214,
-            "message": "[allnba]",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         }
     ]
 }
