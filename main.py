@@ -126,7 +126,7 @@ free_game_data = read_json("config/free_epic_game_of_the_week_sub.json")
 
 last_run_minute = None  # Tracks the last minute the task executed
 
-@tasks.loop(seconds=30)
+@tasks.loop(seconds=60)
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
     try:
