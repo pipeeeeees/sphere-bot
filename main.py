@@ -126,7 +126,7 @@ free_game_data = read_json("config/free_epic_game_of_the_week_sub.json")
 
 last_run_minute = None  # Tracks the last minute the task executed
 
-@tasks.loop(seconds=60)
+@tasks.loop(seconds=15)
 async def send_scheduled_messages():
     """Sends scheduled messages based on the config file."""
     try:
@@ -152,7 +152,7 @@ async def send_scheduled_messages():
 
             
 
-            # Send regular scheduled messages
+            # Send scheduled messages from `schedule.json`
             for reminder in schedule_data.get("reminders", []):
                 if current_time == reminder["time"] and current_day in reminder["days"]:
                     target_id = reminder["id"]  # Can be user id or channel id
@@ -176,6 +176,7 @@ async def send_scheduled_messages():
                                         message = report.get_morning_report()
                                         await channel.send(message)
                                         #status_log += f"\t✅ Sent morning report to channel `{target_id}`\n"
+                                        await status_channel.send(f"📝 Sent morning report to channel `{target_id}`")
 
 
                                     elif message == "[alert]":
@@ -183,6 +184,7 @@ async def send_scheduled_messages():
                                         if weather_alert is not None:
                                             await channel.send(weather_alert)
                                             #status_log += f"\t✅ Sent weather alert to channel `{target_id}`\n"
+                                            await status_channel.send(f"📝 Sent weather alert to channel `{target_id}`")
 
 
                                     elif message == "[nleast]":
@@ -191,6 +193,7 @@ async def send_scheduled_messages():
                                             message += "\n To see all MLB standings, send `$standings all` at any time."
                                             await channel.send(message)
                                             #status_log += f"\t✅ Sent NL East standings to `{target_id}`\n"
+                                            await status_channel.send(f"📝 Sent NL East standings to channel `{target_id}`")
 
 
                                     elif message == "[allmlb]":
@@ -206,13 +209,13 @@ async def send_scheduled_messages():
                                             #status_log += f"\t✅ Sent all MLB standings to `{target_id}`\n"
 
 
-                                    elif message == "[allnba]":
-                                        if now.month <= 3 or now.month >= 10:
-                                            east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
-                                            west_str = nba.get_nba_standings("Western Conference Standings", "West")
-                                            all_standings_str = f"{east_str}\n{west_str}"
-                                            await channel.send(all_standings_str)
-                                            #status_log += f"\t✅ Sent all NBA standings to `{target_id}`\n"
+                                    #elif message == "[allnba]":
+                                    #    if now.month <= 3 or now.month >= 10:
+                                    #        east_str = nba.get_nba_standings("Eastern Conference Standings", "East")
+                                    #        west_str = nba.get_nba_standings("Western Conference Standings", "West")
+                                    #        all_standings_str = f"{east_str}\n{west_str}"
+                                    #        await channel.send(all_standings_str)
+                                    #        #status_log += f"\t✅ Sent all NBA standings to `{target_id}`\n"
 
 
                                 else:
@@ -259,72 +262,62 @@ async def send_scheduled_messages():
                         logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
                     except discord.HTTPException as e:
                         logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+            # Send individually subscribed messages
+            # Send morning report messages
+            if current_time == morning_report_data.get("time") and current_day in morning_report_data.get("days", []):
+                for user_id in morning_report_data.get("subscribers", []):
+                    try:
+                        user = await bot.fetch_user(user_id)
+                        if user:
+                            await user.send(f"{report.get_morning_report()}\n\nTo unsubscribe from the morning report at any time, send `$sub morning report`.")
+                    except discord.NotFound:
+                        logger.warning(f"⚠️ User {user_id} not found.")
+                    except discord.Forbidden:
+                        logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+                    except discord.HTTPException as e:
+                        logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+            # Send nl east standings messages
+            if current_time == nl_east_data.get("time") and current_day in nl_east_data.get("days", []) and now.month >= 4 and now.month < 10:
+                for user_id in nl_east_data.get("subscribers", []):
+                    try:
+                        user = await bot.fetch_user(user_id)
+                        if user:
+                            await user.send(f"{mlb.get_nl_east_standings()}\n\nTo unsubscribe from the NL East standings at any time, send `$sub nl east`.")
+                    except discord.NotFound:
+                        logger.warning(f"⚠️ User {user_id} not found.")
+                    except discord.Forbidden:
+                        logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+                    except discord.HTTPException as e:
+                        logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+            # Send free epic game of the week messages
+            if current_time == free_game_data.get("time") and current_day in free_game_data.get("days", []):
+                for user_id in free_game_data.get("subscribers", []):
+                    try:
+                        user = await bot.fetch_user(user_id)
+                        if user:
+                            url = r"https://store.epicgames.com/en-US/free-games"
+                            await user.send(f"The Epic Games Free Game of the Week is **{epic_games.get_latest_free_game()}**. Get it today: {url}\n\nTo unsubscribe from the free Epic Game of the Week at any time, send `$sub free epic games`.")
+                    except discord.NotFound:
+                        logger.warning(f"⚠️ User {user_id} not found.")
+                    except discord.Forbidden:
+                        logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+                    except discord.HTTPException as e:
+                        logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+
+
+
     except Exception as e:
         if OWNER_ID:
             user = await bot.fetch_user(OWNER_ID)
             if user:
                 await user.send(f"⚠️ Error in scheduled messages: {e}")
 
-    # Send morning report messages
-    if current_time == morning_report_data.get("time") and current_day in morning_report_data.get("days", []):
-        for user_id in morning_report_data.get("subscribers", []):
-            try:
-                user = await bot.fetch_user(user_id)
-                if user:
-                    await user.send(f"{report.get_morning_report()}\n\nTo unsubscribe from the morning report at any time, send `$sub morning report`.")
-            except discord.NotFound:
-                logger.warning(f"⚠️ User {user_id} not found.")
-            except discord.Forbidden:
-                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
-            except discord.HTTPException as e:
-                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
-
-    # Send nl east standings messages
-    if current_time == nl_east_data.get("time") and current_day in nl_east_data.get("days", []) and now.month >= 4 and now.month < 10:
-        for user_id in nl_east_data.get("subscribers", []):
-            try:
-                user = await bot.fetch_user(user_id)
-                if user:
-                    await user.send(f"{mlb.get_nl_east_standings()}\n\nTo unsubscribe from the NL East standings at any time, send `$sub nl east`.")
-            except discord.NotFound:
-                logger.warning(f"⚠️ User {user_id} not found.")
-            except discord.Forbidden:
-                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
-            except discord.HTTPException as e:
-                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
-
-    # Send free epic game of the week messages
-    if current_time == free_game_data.get("time") and current_day in free_game_data.get("days", []):
-        for user_id in free_game_data.get("subscribers", []):
-            try:
-                user = await bot.fetch_user(user_id)
-                if user:
-                    url = r"https://store.epicgames.com/en-US/free-games"
-                    await user.send(f"The Epic Games Free Game of the Week is **{epic_games.get_latest_free_game()}**. Get it today: {url}\n\nTo unsubscribe from the free Epic Game of the Week at any time, send `$sub free epic games`.")
-            except discord.NotFound:
-                logger.warning(f"⚠️ User {user_id} not found.")
-            except discord.Forbidden:
-                logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
-            except discord.HTTPException as e:
-                logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+    
     
 
-#async def minute_checker():
-#    """Custom loop to check and run send_scheduled_messages every minute."""
-#    last_minute = None
-#    est = pytz.timezone("America/New_York")
-#    
-#    while True:
-#        now = datetime.now(est)
-#        current_minute = now.strftime("%H:%M")
-#        
-#        # Run the task only when the minute changes
-#        if current_minute != last_minute:
-#            last_minute = current_minute
-#            await send_scheduled_messages()
-#        
-#        # Sleep until the next second to avoid busy-waiting
-#        await asyncio.sleep(1 - (now.microsecond / 1000000))  # Sleep until the next second
 
 @bot.event
 async def on_message(message):
