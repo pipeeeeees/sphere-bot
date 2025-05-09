@@ -234,31 +234,31 @@ async def send_scheduled_messages():
                         logger.error(f"⚠️ Failed to send message to {target_id}: {e}")
                         #status_log += f"\t❌ HTTP Error sending DM to `{target_id}`: {e}\n"
 
-        # Send pollen subscription messages
-        if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
-            # if today is wednesday in the month of march, april or may, generate the pollen plot
-            if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
-                # start date is february 1st of this year
-                start_date = datetime(now.year, 2, 1).strftime("%Y-%m-%d")
-                end_date = now.strftime("%Y-%m-%d")
-                await pollen.plot_pollen_counts(start_date, end_date)
+            # Send pollen subscription messages
+            if current_time == pollen_data.get("time") and current_day in pollen_data.get("days", []):
+                # if today is wednesday in the month of march, april or may, generate the pollen plot
+                if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
+                    # start date is february 1st of this year
+                    start_date = datetime(now.year, 2, 1).strftime("%Y-%m-%d")
+                    end_date = now.strftime("%Y-%m-%d")
+                    await pollen.plot_pollen_counts(start_date, end_date)
 
-            for user_id in pollen_data.get("subscribers", []):
-                try:
-                    user = await bot.fetch_user(user_id)
-                    if user:
-                        the_return = pollen.result_handler()
-                        if "The pollen count in Atlanta for the day is" in the_return:
-                            await user.send(f"{pollen.result_handler()}\n\nTo unsubscribe from pollen alerts at any time, send `$sub pollen`.")
-                            if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
-                                await user.send(file=discord.File("plots/plot.png"))
-                                await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n\nSend `$pollen plot {now.year}-01-01 {end_date}` to see the year to date.")
-                except discord.NotFound:
-                    logger.warning(f"⚠️ User {user_id} not found.")
-                except discord.Forbidden:
-                    logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
-                except discord.HTTPException as e:
-                    logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
+                for user_id in pollen_data.get("subscribers", []):
+                    try:
+                        user = await bot.fetch_user(user_id)
+                        if user:
+                            the_return = pollen.result_handler()
+                            if "The pollen count in Atlanta for the day is" in the_return:
+                                await user.send(f"{pollen.result_handler()}\n\nTo unsubscribe from pollen alerts at any time, send `$sub pollen`.")
+                                if now.month in [3, 4, 5] and now.strftime("%A") == "Wednesday":
+                                    await user.send(file=discord.File("plots/plot.png"))
+                                    await user.send(f"📊 It's Wednesday! Here is a plot of the pollen count for the current pollen season.\n\nSend `$pollen plot {now.year}-01-01 {end_date}` to see the year to date.")
+                    except discord.NotFound:
+                        logger.warning(f"⚠️ User {user_id} not found.")
+                    except discord.Forbidden:
+                        logger.warning(f"⚠️ Cannot send DM to user {user_id}. Check permissions.")
+                    except discord.HTTPException as e:
+                        logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
     except Exception as e:
         if OWNER_ID:
             user = await bot.fetch_user(OWNER_ID)
