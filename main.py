@@ -284,7 +284,7 @@ async def send_scheduled_messages():
                     try:
                         user = await bot.fetch_user(user_id)
                         if user:
-                            await user.send(f"{mlb.get_nl_east_standings()}\n\nTo unsubscribe from the NL East standings at any time, send `$sub nl east`.")
+                            await user.send(f"{mlb.get_standings(104, 204, "NL East Standings")}\n\nTo unsubscribe from the NL East standings at any time, send `$sub nl east`.")
                     except discord.NotFound:
                         logger.warning(f"⚠️ User {user_id} not found.")
                     except discord.Forbidden:
