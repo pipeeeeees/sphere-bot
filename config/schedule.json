@@ -1,42 +1,6 @@
 {
     "reminders": [
         {
-            "id": 497548855357865986,
-            "message": "Good morning, Mr. Gill! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 318585198105198604,
-            "message": "Good morning, Mr. Utberg! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 431121754568523796,
-            "message": "Good morning, Mr. Pipes! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 479049466758823966,
-            "message": "Good morning, Mr. Littig! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 577922382761820180,
-            "message": "Good morning, Mr. Patel! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 326676188057567232,
-            "message": "Good morning, Mr. Pipes! I hope you have a great day!",
-            "time": "08:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
             "id": 945693340639330314,
             "message": "👕 Lululemon made too much just dropped, son! Grab them deals: https://shop.lululemon.com/c/men-we-made-too-much/n18mhdznrqw",
             "time": "09:00",
