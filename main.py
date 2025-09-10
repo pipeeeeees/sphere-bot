@@ -308,6 +308,11 @@ async def send_scheduled_messages():
                     except discord.HTTPException as e:
                         logger.error(f"⚠️ Failed to send message to {user_id}: {e}")
 
+            # if the current time is 00:00, reboot the bot
+            if current_time == "00:00":
+                subprocess.Popen([sys.executable, "main.py"])  # Start new bot process
+                sys.exit(0)  # Exit the current script
+
 
 
     except Exception as e:
