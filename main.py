@@ -173,7 +173,7 @@ async def send_scheduled_messages():
                         try:
                             channel = await bot.fetch_channel(target_id)
                             if isinstance(channel, discord.TextChannel):
-                                if target_id in [1010706949660221561, 1079612189175988264, 1344165418885054534, 1010706336905961593, 924430124366045214]:
+                                if target_id in [1146581673643884554, 1010706949660221561, 1079612189175988264, 1344165418885054534, 1010706336905961593, 924430124366045214]:
                                     if message == "[morningreport]":
                                         message = report.get_morning_report()
                                         await channel.send(message)
