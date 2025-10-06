@@ -2,6 +2,7 @@ import requests
 import time
 import json
 import os
+import re
 
 CACHE_FILE = "reddit_cache.json"
 CACHE_DURATION = 300  # seconds (5 minutes)
@@ -15,6 +16,10 @@ def load_cache():
 def save_cache(cache):
     with open(CACHE_FILE, "w") as f:
         json.dump(cache, f)
+
+def strip_emojis(text):
+    # Remove emojis / non-ASCII characters
+    return re.sub(r'[^\x00-\x7F]+', '', text)
 
 def get_top_posts(subreddit, limit=5):
     # Load cache
@@ -39,9 +44,10 @@ def get_top_posts(subreddit, limit=5):
                 children = data["data"]["children"]
                 if children:
                     for post in children[:limit]:
-                        title = post["data"]["title"]
+                        title = strip_emojis(post["data"]["title"])
                         link = "https://reddit.com" + post["data"]["permalink"]
-                        posts.append(f"[{title}]({link})")
+                        # Use <link> style to prevent preview
+                        posts.append(f"{title} <{link}>")
                     break
         except Exception as e:
             print(f"Error fetching {subreddit}: {e}")
@@ -53,7 +59,7 @@ def get_top_posts(subreddit, limit=5):
     return posts
 
 if __name__ == "__main__":
-    top_posts = get_top_posts("Georgia", 5)
+    top_posts = get_top_posts("Amazing", 5)
     if not top_posts:
         print("No posts available.")
     else:
