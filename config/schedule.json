@@ -39,8 +39,38 @@
         {
             "id": 1010706949660221561,
             "message": "[ap25]",
-            "time": "02:05",
+            "time": "14:05",
             "days": ["Sunday"]
+        },
+        {
+            "id": 1010706336905961593,
+            "message": "[news]mlb",
+            "time": "10:00",
+            "days": ["Monday", "Friday"]
+        },
+        {
+            "id": 1010706949660221561,
+            "message": "[news]cfb",
+            "time": "10:00",
+            "days": ["Friday", "Saturday"]
+        },
+        {
+            "id": 1010706949660221561,
+            "message": "[news]nfl",
+            "time": "10:00",
+            "days": ["Thursday", "Sunday", "Monday"]
+        },
+        {
+            "id": 1146581673643884554,
+            "message": "[news]news",
+            "time": "9:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+            "id": 1146581673643884554,
+            "message": "[news]nottheonion",
+            "time": "12:00",
+            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         }
     ]
 }

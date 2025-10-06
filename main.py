@@ -18,6 +18,7 @@ from modules import mlb
 from modules import nba
 from modules import epic_games
 from modules import ap_top25
+from modules import reddit_top_posts as rtp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -203,6 +204,17 @@ async def send_scheduled_messages():
                                             rankings_text = ap_top25.get_ap_top25()
                                             await channel.send(rankings_text)
                                             await status_channel.send(f"📝 Sent AP Top 25 to channel `{target_id}`")
+
+                                    elif message.startswith("[news]"):
+                                        subreddit = message.replace("[news]", "").strip()
+                                        if subreddit:
+                                            top_posts = rtp.get_top_posts(subreddit, 5)
+                                            if top_posts:
+                                                news_str = f"📰 **Top posts from r/{subreddit}:**\n"
+                                                for i, post in enumerate(top_posts, start=1):
+                                                    news_str += f"{i}. {post}\n"
+                                                await channel.send(news_str)
+                                                await status_channel.send(f"📝 Sent top posts from r/{subreddit} to channel `{target_id}`")
 
 
                                     elif message == "[allmlb]":

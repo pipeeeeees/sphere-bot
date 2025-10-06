@@ -198,18 +198,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             logger.info("✅ Sent AP Top 25 rankings.")
             return
         
-        # if $news is sent, send the top 5 posts from r/news
-        elif message.content.strip() == "$news":
-            top_posts = rtp.get_top_posts("news", 5)
-            if not top_posts:
-                await message.channel.send("❌ **No posts available.**")
-            else:
-                news_str = "📰 **Top 5 posts from r/news:**\n"
-                for i, post in enumerate(top_posts, start=1):
-                    news_str += f"{i}. {post}\n"
-                await message.channel.send(news_str)
-                logger.info("✅ Sent top posts from r/news.")
-            return
+
         
         # if $news [subreddit] is sent, send the top 5 posts from that subreddit
         elif message.content.strip().startswith("$news "):
@@ -220,7 +209,7 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
                 if not top_posts:
                     await message.channel.send(f"❌ **No posts available from r/{subreddit}.**")
                 else:
-                    news_str = f"📰 **Top 5 posts from r/{subreddit}:**\n"
+                    news_str = f"📰 **Top posts from r/{subreddit}:**\n"
                     for i, post in enumerate(top_posts, start=1):
                         news_str += f"{i}. {post}\n"
                     await message.channel.send(news_str)
