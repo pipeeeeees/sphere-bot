@@ -35,6 +35,12 @@
             "message": "[allmlb]",
             "time": "08:00",
             "days": ["Monday"]
+        },
+        {
+            "id": 1010706949660221561,
+            "message": "[ap25]",
+            "time": "02:05",
+            "days": ["Sunday"]
         }
     ]
 }

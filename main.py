@@ -17,6 +17,7 @@ from modules import pollen
 from modules import mlb
 from modules import nba
 from modules import epic_games
+from modules import ap_top25
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -194,6 +195,14 @@ async def send_scheduled_messages():
                                             await channel.send(message)
                                             #status_log += f"\t✅ Sent NL East standings to `{target_id}`\n"
                                             await status_channel.send(f"📝 Sent NL East standings to channel `{target_id}`")
+
+
+                                    elif message == "[ap25]":
+                                        # time gate to only run during football season (first week of september to first week of january)
+                                        if (now.month == 9 and now.day >= 1) or (now.month in [10, 11, 12]) or (now.month == 1 and now.day <= 10):
+                                            rankings_text = ap_top25.get_ap_top25()
+                                            await channel.send(rankings_text)
+                                            await status_channel.send(f"📝 Sent AP Top 25 to channel `{target_id}`")
 
 
                                     elif message == "[allmlb]":

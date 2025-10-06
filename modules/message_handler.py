@@ -15,6 +15,7 @@ from modules import report
 from modules import subscriptions
 from modules import google_gemini as gg
 from modules import mlb
+from modules import ap_top25
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -186,6 +187,13 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
 
             await message.channel.send(all_standings_str)
             logger.info("✅ Sent all standings.")
+            return
+        
+        # if $top25 is sent, send the AP Top 25 rankings
+        elif message.content.strip() == "$top25":
+            rankings_text = ap_top25.get_ap_top25()
+            await message.channel.send(rankings_text)
+            logger.info("✅ Sent AP Top 25 rankings.")
             return
 
         # if $pollen is sent, send the pollen count
