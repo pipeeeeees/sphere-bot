@@ -16,6 +16,8 @@ from modules import subscriptions
 from modules import google_gemini as gg
 from modules import mlb
 from modules import ap_top25
+from modules import nba
+from modules import reddit_top_posts as rtp
 
 logger = logging.getLogger(__name__)
 start_time = datetime.datetime.now()
@@ -194,6 +196,17 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             rankings_text = ap_top25.get_ap_top25()
             await message.channel.send(rankings_text)
             logger.info("✅ Sent AP Top 25 rankings.")
+            return
+        
+        # if #news is sent, send the top 5 posts from r/news
+        elif message.content.strip() == "$news":
+            top_posts = rtp.get_top_posts("news", 5)
+            if not top_posts:
+                await message.channel.send("❌ **No posts available.**")
+            else:
+                news_str = "📰 **Top 5 posts from r/news:**\n" + "\n".join([f"{i}. {post}" for i, post in enumerate(top_posts, start=1)])
+                await message.channel.send(news_str)
+                logger.info("✅ Sent top posts from r/news.")
             return
 
         # if $pollen is sent, send the pollen count
