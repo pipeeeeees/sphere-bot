@@ -204,7 +204,9 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY):
             if not top_posts:
                 await message.channel.send("❌ **No posts available.**")
             else:
-                news_str = "📰 **Top 5 posts from r/news:**\n" + "\n".join([f"{i}. {post}" for i, post in enumerate(top_posts, start=1)])
+                news_str = "📰 **Top 5 posts from r/news:**\n"
+                for i, post in enumerate(top_posts, start=1):
+                    news_str += f"{i}. {post}\n"
                 await message.channel.send(news_str)
                 logger.info("✅ Sent top posts from r/news.")
             return
