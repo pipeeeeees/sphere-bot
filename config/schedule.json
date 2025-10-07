@@ -58,7 +58,7 @@
             "id": 1010706949660221561,
             "message": "[news]nfl",
             "time": "10:00",
-            "days": ["Thursday", "Sunday", "Monday"]
+            "days": ["Monday", "Tuesday", "Thursday", "Sunday"]
         },
         {
             "id": 1146581673643884554,
