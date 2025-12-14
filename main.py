@@ -78,6 +78,7 @@ OWNERS = read_json("config/user_ids.json")
 CHANNELS = read_json("config/channel_ids.json")
 TOKEN = read_json("config/token.json").get("token")
 GEMINI_API_KEY = read_json("config/token.json").get("gemini")
+GROK_API_KEY = read_json("config/grok.json").get("token")
 
 if not TOKEN:
     raise ValueError("TOKEN is missing. Check config/token.json.")
@@ -381,7 +382,7 @@ async def on_message(message):
 
     print(f"Received message in channel '{channel_name}' from '{username}': {message.content}")  # Debugging
     
-    await handle_message(bot, message, LOG_CHANNEL_ID, GEMINI_API_KEY)
+    await handle_message(bot, message, LOG_CHANNEL_ID, GEMINI_API_KEY, GROK_API_KEY)
 
     await bot.process_commands(message)  # Ensure commands still work
 
