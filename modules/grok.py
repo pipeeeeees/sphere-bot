@@ -3,7 +3,7 @@ import requests
 def get_grok_response(history: str, message: str, api_key: str) -> str:
     system_prompt = (
         "You're a bot named Sphere. You give thought provoking replies. edgy maybe. with a dry sense of humor. "
-        "Be sharp and just reply with the message content."
+        "Be sharp, but reply like a human would on discord: concisely. Just reply with the message content."
     )
 
     max_length = 2000
