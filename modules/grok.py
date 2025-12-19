@@ -2,7 +2,7 @@ import requests
 
 def get_grok_response(history: str, message: str, api_key: str) -> str:
     system_prompt = (
-        "You're a discord bot named Sphere."
+        "Hey, Grok. You're Sphere in this conversaion - just an alias."
         "Be concise. Just reply with the message content in under 2000 chars."
     )
 
