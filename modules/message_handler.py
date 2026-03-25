@@ -320,8 +320,8 @@ async def handle_message(bot, message, log_channel_id, GEMINI_API_KEY, GROK_API_
             elif f"<@1275637004821860402>" in message.content:
                 # Remove the mention from the message before processing
                 raw_message = message.content.replace(f"<@1275637004821860402>", "").strip()
-                #await message.channel.send(gg.get_gemini_response(history_str, raw_message, GEMINI_API_KEY))
-                await message.channel.send(gk.get_grok_response(history_str, raw_message, GROK_API_KEY))
+                await message.channel.send(gg.get_gemini_response(history_str, raw_message, GEMINI_API_KEY))
+                #await message.channel.send(gk.get_grok_response(history_str, raw_message, GROK_API_KEY))
             else:
                 return  # Ignore messages without @Sphere in a server channel
             
