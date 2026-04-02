@@ -12,8 +12,8 @@ from datetime import datetime
 import random
 import time
 
-from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key
-from toaster.config import load_config
+from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
+from toaster.config import load_config, load_channel_whitelist
 
 
 # Create bot instance
@@ -67,21 +67,82 @@ async def handle_dm_response(message: discord.Message) -> None:
     if message.author == bot.user:
         return
     
-    # Response when AI quota is exceeded
-    await message.channel.send("🤖 The bot's AI is currently unavailable (quota exceeded). Try again tomorrow or the owner can upgrade to a paid plan at https://ai.google.dev/pricing")
+    # Get conversation history
+    key = get_conversation_key(message)
+    history = conversation_history.get(key, "")
+    
+    # Try Gemini first
+    response = get_gemini_response_with_key(history, message.content, "config")
+    
+    # If Gemini fails, try Grok
+    if not response:
+        response = get_grok_response_with_key(history, message.content, "config")
+    
+    # If both fail, DM the owner about the issue instead of sending to user
+    if not response:
+        config = load_config("config")
+        bot_config = config.get("bot_config", {})
+        owner_id = bot_config.get("owner_user_id")
+        
+        if owner_id:
+            try:
+                owner = await bot.fetch_user(owner_id)
+                await owner.send(f"⚠️ AI response failed for DM from {message.author} ({message.author.id}):\nMessage: {message.content}")
+            except Exception as e:
+                print(f"Failed to notify owner about AI error: {e}")
+        
+        print(f"AI response failed for DM from {message.author}: both Gemini and Grok returned None")
+        return
+    
+    # Store conversation history and send response
+    update_conversation_history(key, message.content, response)
+    await message.channel.send(response)
 
 
 async def handle_random_channel_response(message: discord.Message) -> None:
-    """Handle random AI responses in channels (40% chance)."""
+    """Handle random AI responses in whitelisted channels (40% chance)."""
     if message.author == bot.user:
+        return
+    
+    # Check if channel is whitelisted
+    whitelist = load_channel_whitelist("config")
+    if message.channel.id not in whitelist:
         return
     
     # Skip if 40% chance doesn't trigger
     if random.random() > 0.4:
         return
     
-    # Just skip silently when quota is exceeded - don't spam errors in channels
-    pass
+    # Get conversation history
+    key = get_conversation_key(message)
+    history = conversation_history.get(key, "")
+    
+    # Try Gemini first
+    response = get_gemini_response_with_key(history, message.content, "config")
+    
+    # If Gemini fails, try Grok
+    if not response:
+        response = get_grok_response_with_key(history, message.content, "config")
+    
+    # If both fail, DM the owner about the issue instead of spamming the channel
+    if not response:
+        config = load_config("config")
+        bot_config = config.get("bot_config", {})
+        owner_id = bot_config.get("owner_user_id")
+        
+        if owner_id:
+            try:
+                owner = await bot.fetch_user(owner_id)
+                await owner.send(f"⚠️ AI response failed for channel message from {message.author} ({message.author.id}) in {message.guild.name}:\nMessage: {message.content}")
+            except Exception as e:
+                print(f"Failed to notify owner about AI error: {e}")
+        
+        print(f"AI response failed for channel message: both Gemini and Grok returned None")
+        return
+    
+    # Store conversation history and send response
+    update_conversation_history(key, message.content, response)
+    await message.channel.send(response)
 
 
 def load_commands_from_config() -> None:

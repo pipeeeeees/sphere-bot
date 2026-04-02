@@ -73,3 +73,25 @@ def load_token(config_path: str = "config") -> str:
     if not config["token"]:
         raise FileNotFoundError("Bot token not found in config/toast_discord_bot_token.json")
     return config["token"]
+
+
+def load_channel_whitelist(config_path: str = "config") -> list:
+    """
+    Load whitelisted channel IDs for random AI responses.
+    
+    Args:
+        config_path: Path to config folder
+        
+    Returns:
+        List of whitelisted channel IDs (integers)
+    """
+    try:
+        whitelist_file = Path(config_path) / "channel_whitelist.json"
+        if whitelist_file.exists():
+            with open(whitelist_file, 'r') as f:
+                data = json.load(f)
+                return data.get("channels", [])
+        return []
+    except Exception as e:
+        print(f"Error loading channel whitelist: {e}")
+        return []

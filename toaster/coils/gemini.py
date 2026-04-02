@@ -18,9 +18,9 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
         AI response text or None if error
     """
     
-    # Using v1 for gemini-1.5-flash (switching back after quota reset)
+    # Using v1 for gemini-2.0-flash (switching back after quota reset)
     # Note: v1 is stable API endpoint vs v1beta
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={api_key}"
     
     # Prepare the conversation history and current message
     contents = []
