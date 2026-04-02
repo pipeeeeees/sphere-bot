@@ -9,6 +9,8 @@ from discord.ext import commands
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -34,6 +36,8 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$ping", value="Check bot latency", inline=False)
     embed.add_field(name="$uptime", value="Display bot uptime", inline=False)
     embed.add_field(name="$toast", value="Toggle channel whitelist for Toast to speak in", inline=False)
+    embed.add_field(name="$reboot", value="Restart the bot process", inline=False)
+    embed.add_field(name="$pull", value="Run git pull and print results", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -119,11 +123,44 @@ async def toast_command(ctx: commands.Context) -> None:
         await ctx.send(f"Sorry, I encountered an error managing the channel whitelist: {str(e)}")
 
 
+async def reboot_command(ctx: commands.Context) -> None:
+    """
+    Restart the bot process.
+    """
+    try:
+        await ctx.send("🔄 **Rebooting...**")
+        script_path = Path(__file__).resolve().parents[1] / "toast.py"
+        subprocess.Popen([sys.executable, str(script_path)])
+        sys.exit(0)
+    except Exception as e:
+        await ctx.send(f"⚠️ Failed to reboot bot: {str(e)}")
+
+
+async def pull_command(ctx: commands.Context) -> None:
+    """
+    Perform a git pull in the bot repository and report output.
+    """
+    try:
+        process = subprocess.run(["git", "pull"], check=True, capture_output=True, text=True)
+        output = (process.stdout or "") + (process.stderr or "")
+        if not output:
+            output = "Git pull completed with no output."
+        await ctx.send(f"📝 Git Pull Output:\n```\n{output}\n```")
+    except subprocess.CalledProcessError as e:
+        error_output = (e.stdout or "") + (e.stderr or "")
+        if not error_output:
+            error_output = str(e)
+        await ctx.send(f"❌ Git pull failed:\n```\n{error_output}\n```")
+        print(f"Git pull failed: {e}")
+
+
 # Export all command implementations
 __all__ = [
     "hello_command",
     "help_command",
     "ping_command",
     "uptime_command",
-    "toast_command"
+    "toast_command",
+    "reboot_command",
+    "pull_command"
 ]
