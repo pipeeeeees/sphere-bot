@@ -21,10 +21,11 @@
   {
     "name": "new_year",
     "message": "🎆 Happy New Year! Let's make it a great one!",
-    "channel_id": 0,
-    "type": "date",
+    "channel_id": 790804246806790168,
+    "type": "annual",
     "time": "00:00",
     "date": "2027-01-01",
-    "enabled": false
+    "timezone": "America/New_York",
+    "enabled": true
   }
 ]

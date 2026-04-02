@@ -41,7 +41,7 @@ class ScheduleRegistry:
         name: str,
         message: str,
         channel_id: int,
-        schedule_type: Union[str, Literal["weekly", "date"]],
+        schedule_type: Union[str, Literal["weekly", "date", "annual"]],
         time_str: str,
         weekdays: Optional[List[int]] = None,
         date: Optional[str] = None,
@@ -85,6 +85,17 @@ class ScheduleRegistry:
                 datetime.strptime(date, "%Y-%m-%d")
             except ValueError:
                 raise ValueError(f"Invalid date format '{date}', use YYYY-MM-DD")
+        elif schedule_type == "annual":
+            if not date:
+                raise ValueError("date required for annual schedules (e.g., 2000-01-01 or 2027-01-01)")
+            try:
+                annual_date = datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(f"Invalid date format '{date}', use YYYY-MM-DD")
+            # Normalize month/day for annual check
+            date = annual_date.strftime("%m-%d")
+        else:
+            raise ValueError("schedule_type must be 'weekly', 'date', or 'annual'")
 
         # Validate timezone
         if timezone is not None:
@@ -208,6 +219,13 @@ class ScheduleRegistry:
                 # Check date-based schedules
                 elif schedule["type"] == "date":
                     if current_date == schedule["date"]:
+                        if current_time == schedule["time"]:
+                            should_send = True
+
+                # Check annual schedules
+                elif schedule["type"] == "annual":
+                    current_month_day = schedule_now.strftime("%m-%d")
+                    if current_month_day == schedule.get("date"):
                         if current_time == schedule["time"]:
                             should_send = True
 

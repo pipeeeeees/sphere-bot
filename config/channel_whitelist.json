@@ -7,6 +7,26 @@
     {
       "id": 1489085355599724684,
       "nickname": "\ud83c\udf5e-toasty"
+    },
+    {
+      "id": 790804246806790168,
+      "nickname": "steebon-general-chat"
+    },
+    {
+      "id": 1010706336905961593,
+      "nickname": "steebon-baseball-chat"
+    },
+    {
+        "id": 1146581673643884554,
+        "nickname": "steebon-news-chat"
+    },
+    {
+        "id": 1119463878250745887,
+        "nickname": "steebon-tech-station"
+    },
+    {
+        "id": 1316451422492950609,
+        "nickname": "steebon-finance-station"
     }
   ]
 }
