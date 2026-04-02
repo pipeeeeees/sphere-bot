@@ -8,11 +8,8 @@ def get_standings(league_id, division_id, title):
     if not division:
         return f"{title} standings not found."
 
-    # add to the title the current date and time (EST)
-    now = datetime.datetime.now(datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=-4)))  # Convert to EST
-    # format the time as "MM-DD-YYYY HH:MM" with AM/PM
-    title += f" (as of {now.strftime('%m-%d-%Y %I:%M %p EST')})"
-
+    now = datetime.datetime.now(datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=-4))) 
+    title += f" (as of {now.strftime('%m-%d-%Y')})"
 
     lines = ["```", title, f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     for team in division['teams']:
