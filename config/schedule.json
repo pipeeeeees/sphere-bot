@@ -27,5 +27,25 @@
     "date": "2027-01-01",
     "timezone": "America/New_York",
     "enabled": true
+  },
+  {
+    "name": "mlb_standings_monday_08am",
+    "message": "$mlb_standings",
+    "channel_id": 1010706336905961593,
+    "type": "weekly",
+    "time": "08:00",
+    "weekdays": [1],
+    "enabled": true
+  },
+  {
+    "name": "mlb_division_nl_east_every_other",
+    "message": "$mlb_division nl-east",
+    "channel_id": 1489085355599724684,
+    "type": "weekly",
+    "time": "17:01",
+    "weekdays": [2,3,4,5,6,7],
+    "months": [4,5,6,7,8,9],
+    "every_other_day": true,
+    "enabled": true
   }
 ]

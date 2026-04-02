@@ -46,7 +46,9 @@ class ScheduleRegistry:
         weekdays: Optional[List[int]] = None,
         date: Optional[str] = None,
         enabled: bool = True,
-        timezone: Optional[str] = None
+        timezone: Optional[str] = None,
+        months: Optional[List[int]] = None,
+        every_other_day: bool = False
     ) -> None:
         """
         Register a new scheduled message.
@@ -55,10 +57,12 @@ class ScheduleRegistry:
             name: Unique name for the schedule
             message: Message content to send
             channel_id: Discord channel ID
-            schedule_type: "weekly" or "date"
+            schedule_type: "weekly", "date", or "annual"
             time_str: Time in HH:MM format
             weekdays: List of weekdays [1-7] for weekly schedules
             date: YYYY-MM-DD for date-based schedules
+            months: Optional list of months [1-12] when message can be sent
+            every_other_day: If True, only send on alternating day-of-month in the months window
             enabled: Whether the schedule is active
         """
         if self.get_schedule(name):
@@ -71,9 +75,14 @@ class ScheduleRegistry:
             raise ValueError(f"Invalid time format '{time_str}', use HH:MM")
         
         # Validate schedule type
-        if schedule_type not in ["weekly", "date"]:
-            raise ValueError("schedule_type must be 'weekly' or 'date'")
+        if schedule_type not in ["weekly", "date", "annual"]:
+            raise ValueError("schedule_type must be 'weekly', 'date', or 'annual'")
         
+        # Validate months filter
+        if months is not None:
+            if not months or not all(1 <= m <= 12 for m in months):
+                raise ValueError("months must contain values 1-12")
+
         # Validate based on type
         if schedule_type == "weekly":
             if not weekdays or not all(1 <= d <= 7 for d in weekdays):
@@ -114,6 +123,8 @@ class ScheduleRegistry:
             "time": time_str,
             "weekdays": weekdays or [],
             "date": date,
+            "months": months or [],
+            "every_other_day": every_other_day,
             "enabled": enabled,
             "timezone": timezone,
             "last_sent": None  # Track last sent time to avoid duplicates
@@ -203,6 +214,17 @@ class ScheduleRegistry:
                 current_time = schedule_now.strftime("%H:%M")
                 current_weekday = schedule_now.isoweekday()  # 1=Monday, 7=Sunday
                 current_date = schedule_now.strftime("%Y-%m-%d")
+                current_month = schedule_now.month
+
+                # Skip if schedule has reduced month window
+                if schedule.get("months"):
+                    if current_month not in schedule["months"]:
+                        continue
+
+                # Alternating-day filter for schedules that require every-other-day frequency
+                if schedule.get("every_other_day"):
+                    if schedule_now.day % 2 == 0:
+                        continue
 
                 # Skip if already sent in this minute
                 if schedule["last_sent"] == current_time:
