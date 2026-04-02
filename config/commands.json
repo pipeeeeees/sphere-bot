@@ -1,0 +1,44 @@
+[
+  {
+    "name": "hello",
+    "description": "Greet the bot with a friendly message",
+    "module": "toaster.commands_impl",
+    "function": "hello_command"
+  },
+  {
+    "name": "commands",
+    "description": "Display all available commands",
+    "module": "toaster.commands_impl",
+    "function": "help_command"
+  },
+  {
+    "name": "ping",
+    "description": "Check bot latency",
+    "module": "toaster.commands_impl",
+    "function": "ping_command"
+  },
+  {
+    "name": "uptime",
+    "description": "Display bot uptime",
+    "module": "toaster.commands_impl",
+    "function": "uptime_command"
+  },
+  {
+    "name": "toast",
+    "description": "Toggle channel whitelist for Toast to speak in",
+    "module": "toaster.commands_impl",
+    "function": "toast_command"
+  },
+  {
+    "name": "reboot",
+    "description": "Restart the bot process",
+    "module": "toaster.commands_impl",
+    "function": "reboot_command"
+  },
+  {
+    "name": "pull",
+    "description": "Run git pull and print results",
+    "module": "toaster.commands_impl",
+    "function": "pull_command"
+  }
+]
