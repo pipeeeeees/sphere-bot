@@ -411,7 +411,7 @@ async def on_ready() -> None:
         if owner_id:
             try:
                 owner = await bot.fetch_user(owner_id)
-                await owner.send("🍞 Toast has booted successfully!")
+                await owner.send("🍞 Toast has booted successfully!!")
                 print(f'✓ Boot notification sent to owner ({owner_id})')
             except discord.NotFound:
                 print(f'✗ Failed to send boot notification: User ID {owner_id} not found. Please check your user ID in config/bot_config.json')
