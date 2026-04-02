@@ -77,21 +77,42 @@ def load_token(config_path: str = "config") -> str:
 
 def load_channel_whitelist(config_path: str = "config") -> list:
     """
-    Load whitelisted channel IDs for random AI responses.
-    
+    Load whitelisted channel definitions for random AI responses.
+
     Args:
         config_path: Path to config folder
-        
+
     Returns:
-        List of whitelisted channel IDs (integers)
+        List of channel entries with keys 'id' (int) and 'nickname' (str|None).
     """
     try:
         whitelist_file = Path(config_path) / "channel_whitelist.json"
         if whitelist_file.exists():
             with open(whitelist_file, 'r') as f:
                 data = json.load(f)
-                return data.get("channels", [])
+
+                channels = data.get("channels", [])
+                result = []
+
+                for entry in channels:
+                    if isinstance(entry, int):
+                        result.append({"id": entry, "nickname": None})
+                    elif isinstance(entry, dict):
+                        channel_id = entry.get("id")
+                        if channel_id is None:
+                            continue
+                        nickname = entry.get("nickname") or entry.get("name")
+                        result.append({"id": int(channel_id), "nickname": nickname})
+
+                return result
         return []
     except Exception as e:
         print(f"Error loading channel whitelist: {e}")
         return []
+
+
+def get_channel_whitelist_ids(config_path: str = "config") -> set:
+    """
+    Get a set of whitelisted channel IDs for quick membership checks.
+    """
+    return {entry["id"] for entry in load_channel_whitelist(config_path)}

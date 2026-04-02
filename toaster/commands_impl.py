@@ -7,6 +7,8 @@ Each function must be async and accept a discord.ext.commands.Context parameter.
 import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
+import json
+from pathlib import Path
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -31,6 +33,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$commands", value="Show this help message", inline=False)
     embed.add_field(name="$ping", value="Check bot latency", inline=False)
     embed.add_field(name="$uptime", value="Display bot uptime", inline=False)
+    embed.add_field(name="$toast", value="Toggle channel whitelist for Toast to speak in", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -69,10 +72,58 @@ async def uptime_command(ctx: commands.Context) -> None:
     await ctx.send(f"⏰ Bot has been online for: {uptime_str}")
 
 
+async def toast_command(ctx: commands.Context) -> None:
+    """
+    Toggle channel whitelist for Toast to speak in.
+    Adds or removes the current channel from the whitelist.
+    """
+    channel_id = ctx.channel.id
+    channel_name = ctx.channel.name
+    
+    whitelist_file = Path("config") / "channel_whitelist.json"
+    
+    try:
+        # Load current whitelist
+        if whitelist_file.exists():
+            with open(whitelist_file, 'r') as f:
+                data = json.load(f)
+        else:
+            data = {"channels": []}
+        
+        channels = data.get("channels", [])
+        
+        # Check if channel is already whitelisted
+        existing_entry = None
+        for entry in channels:
+            if entry.get("id") == channel_id:
+                existing_entry = entry
+                break
+        
+        if existing_entry:
+            # Remove from whitelist
+            channels.remove(existing_entry)
+            data["channels"] = channels
+            with open(whitelist_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            await ctx.send(f"Removed channel '{channel_name}' (ID: {channel_id}) from my list of channels to speak in. Use $toast again to add it back.")
+        else:
+            # Add to whitelist
+            new_entry = {"id": channel_id, "nickname": channel_name}
+            channels.append(new_entry)
+            data["channels"] = channels
+            with open(whitelist_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            await ctx.send(f"Added channel '{channel_name}' (ID: {channel_id}) to my list of channels to speak in! I can now respond with AI messages here.")
+    
+    except Exception as e:
+        await ctx.send(f"Sorry, I encountered an error managing the channel whitelist: {str(e)}")
+
+
 # Export all command implementations
 __all__ = [
     "hello_command",
     "help_command",
     "ping_command",
-    "uptime_command"
+    "uptime_command",
+    "toast_command"
 ]

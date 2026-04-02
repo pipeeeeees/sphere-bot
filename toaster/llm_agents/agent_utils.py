@@ -62,7 +62,7 @@ def build_grok_messages(history: str, message: str, max_length: int = 2000) -> L
             "content": (
                 "Here is the message history for context from oldest to newest:\n\n"
                 + (history_snippet + "\n" if history_snippet else "")
-                + f"Reply to the following message in under {max_length} characters without telling me how many characters you used:\n{message}"
+                + f"Reply to the following message in under {max_length} characters without telling me how many characters you used. Also do not add follow up questions:\n{message}"
             )
         }
     ]

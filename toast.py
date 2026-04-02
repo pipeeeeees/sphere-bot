@@ -232,9 +232,8 @@ async def should_respond_to_message(message: discord.Message) -> bool:
     #print(context)
     prompt = f"""Decide if this Discord message thread is interesting enough to respond to. You are Toast in this conversation. Respond with ONLY "true" or "false" - nothing else.
 - Does it mention the bot (Toast) in the last message? if so, respond with "true"
-- Is the last message(s) asking a question that can be answered factually? If so, respond with "true"
-- Is the last message(s) a reply to the bot? If so, respond with "true"
-- Is the overall conversation engaging? Can you add something valuable to it? If so, respond with "true"
+- Is the last message hint at an IRL question or gathering? If so, respond with "false". I don't want you to butt in on personal plans or real life arrangements.
+- Is the overall conversation engaging? Can you add something funny or valuable to it? If so, respond with "true"
 
 Recent conversation:
 {context}
@@ -259,16 +258,37 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     
     # Check if channel is whitelisted
     whitelist = load_channel_whitelist("config")
-    if message.channel.id not in whitelist:
+    whitelist_ids = {entry["id"] for entry in whitelist}
+    if message.channel.id not in whitelist_ids:
         return
-    
+
+    channel_meta = next((entry for entry in whitelist if entry["id"] == message.channel.id), None)
+    if channel_meta and channel_meta.get("nickname"):
+        # Optional: you can use this nickname for logging or future behavior.
+        channel_nickname = channel_meta["nickname"]
+    else:
+        channel_nickname = None
+
     # Ask LLM if this message is interesting
     if not await should_respond_to_message(message):
         return
     
-    # Get conversation history
-    key = get_conversation_key(message)
-    history = conversation_history.get(key, "")
+    # Fetch recent message history (last 15 messages before this one)
+    history_messages = []
+    try:
+        async for msg in message.channel.history(limit=15, before=message):
+            history_messages.insert(0, msg)  # Insert at beginning to maintain order
+    except:
+        pass
+    
+    # Build context string from recent messages
+    context = ""
+    for msg in history_messages:
+        context += f"{msg.author.display_name}: {msg.content}\n"
+    context += f"{message.author.display_name}: {message.content}\n"
+    
+    history = context
+    #print(history)
     
     # Get AI response
     response = await get_ai_response(history, message.content)
@@ -289,8 +309,7 @@ async def handle_random_channel_response(message: discord.Message) -> None:
         print(f"AI response failed for channel message: {AI_PROVIDER} returned None")
         return
     
-    # Store conversation history and send response
-    update_conversation_history(key, message.content, response)
+    # Send response
     await message.channel.send(response)
 
 
@@ -424,7 +443,7 @@ async def on_message(message: discord.Message) -> None:
         return
 
     # If msg requests silence, mute thread and skip responding
-    if is_shutup_command(message.content):
+    if is_shutup_command(message.content) and not is_channel_muted(message.channel.id):
         mute_channel(message.channel.id)
         try:
             await message.channel.send("🤐 Got it. I’ll stay quiet here for 3 hours.")
@@ -433,7 +452,7 @@ async def on_message(message: discord.Message) -> None:
         return
 
     # If msg requests unmute, unmute thread and allow future responses
-    if is_unmute_command(message.content):
+    if is_unmute_command(message.content) and is_channel_muted(message.channel.id):
         unmute_channel(message.channel.id)
         try:
             await message.channel.send("✅ Thanks! I’m back and ready to chat.")
