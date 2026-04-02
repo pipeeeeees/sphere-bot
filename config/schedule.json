@@ -13,8 +13,9 @@
     "message": "🎉 It's Thursday! Have a great day!",
     "channel_id": 1489085355599724684,
     "type": "weekly",
-    "time": "16:30",
+    "time": "16:50",
     "weekdays": [5],
+    "timezone": "America/New_York",
     "enabled": true
   },
   {

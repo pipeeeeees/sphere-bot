@@ -174,7 +174,7 @@ async def mlb_all_standings_command(ctx: commands.Context) -> None:
     all_text = ""
     for league_id, division_id, title in divisions:
         text = get_standings(league_id, division_id, f"{title} Standings")
-        all_text += text + "\n\n"
+        all_text += text + "\n"
     await ctx.send(all_text)
 
 

@@ -356,6 +356,7 @@ def load_schedules_from_config() -> None:
             
             weekdays = schedule_config.get("weekdays")
             date = schedule_config.get("date")
+            timezone = schedule_config.get("timezone")
             
             # Register with schedule registry
             schedule_registry.register(
@@ -366,7 +367,8 @@ def load_schedules_from_config() -> None:
                 time_str=time_str,
                 weekdays=weekdays,
                 date=date,
-                enabled=enabled
+                enabled=enabled,
+                timezone=timezone
             )
             
             status = "✓" if enabled else "⊘"

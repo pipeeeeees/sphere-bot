@@ -11,6 +11,11 @@ except ImportError:
 from datetime import datetime, time
 import asyncio
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None  # zoneinfo not available in older Python versions
+
 
 class ScheduleRegistry:
     """
@@ -40,7 +45,8 @@ class ScheduleRegistry:
         time_str: str,
         weekdays: Optional[List[int]] = None,
         date: Optional[str] = None,
-        enabled: bool = True
+        enabled: bool = True,
+        timezone: Optional[str] = None
     ) -> None:
         """
         Register a new scheduled message.
@@ -79,7 +85,16 @@ class ScheduleRegistry:
                 datetime.strptime(date, "%Y-%m-%d")
             except ValueError:
                 raise ValueError(f"Invalid date format '{date}', use YYYY-MM-DD")
-        
+
+        # Validate timezone
+        if timezone is not None:
+            if ZoneInfo is None:
+                raise ValueError("Timezone support is unavailable: install Python 3.9+ or required backport")
+            try:
+                ZoneInfo(timezone)
+            except Exception:
+                raise ValueError(f"Invalid timezone '{timezone}'. Use IANA zone name, e.g. 'America/New_York'.")
+
         self.schedules.append({
             "name": name,
             "message": message,
@@ -89,6 +104,7 @@ class ScheduleRegistry:
             "weekdays": weekdays or [],
             "date": date,
             "enabled": enabled,
+            "timezone": timezone,
             "last_sent": None  # Track last sent time to avoid duplicates
         })
     
@@ -159,33 +175,42 @@ class ScheduleRegistry:
         self.is_running = True
         
         while self.is_running:
-            now = datetime.now()
-            current_time = now.strftime("%H:%M")
-            current_weekday = now.isoweekday()  # 1=Monday, 7=Sunday
-            current_date = now.strftime("%Y-%m-%d")
-            
             for schedule in self.schedules:
                 if not schedule["enabled"]:
                     continue
-                
+
+                schedule_tz = schedule.get("timezone")
+                if schedule_tz and ZoneInfo is not None:
+                    try:
+                        schedule_now = datetime.now(ZoneInfo(schedule_tz))
+                    except Exception as e:
+                        print(f"Invalid timezone for schedule '{schedule['name']}': {e}")
+                        continue
+                else:
+                    schedule_now = datetime.now()
+
+                current_time = schedule_now.strftime("%H:%M")
+                current_weekday = schedule_now.isoweekday()  # 1=Monday, 7=Sunday
+                current_date = schedule_now.strftime("%Y-%m-%d")
+
                 # Skip if already sent in this minute
                 if schedule["last_sent"] == current_time:
                     continue
-                
+
                 should_send = False
-                
+
                 # Check weekly schedules
                 if schedule["type"] == "weekly":
                     if current_weekday in schedule["weekdays"]:
                         if current_time == schedule["time"]:
                             should_send = True
-                
+
                 # Check date-based schedules
                 elif schedule["type"] == "date":
                     if current_date == schedule["date"]:
                         if current_time == schedule["time"]:
                             should_send = True
-                
+
                 # Send message if conditions are met
                 if should_send:
                     try:
@@ -195,10 +220,10 @@ class ScheduleRegistry:
                             schedule["last_sent"] = current_time
                     except Exception as e:
                         print(f"Error sending scheduled message '{schedule['name']}': {e}")
-            
+
             # Check every 10 seconds to catch all minute boundaries
             await asyncio.sleep(10)
-    
+
     def stop_scheduler(self) -> None:
         """Stop the scheduler background task."""
         self.is_running = False
