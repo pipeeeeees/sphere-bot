@@ -1,76 +1,29 @@
-{
-    "reminders": [
-        {
-            "id": 945693340639330314,
-            "message": "👕 Lululemon made too much just dropped, son! Grab them deals: https://shop.lululemon.com/c/men-we-made-too-much/n18mhdznrqw",
-            "time": "09:00",
-            "days": ["Thursday"]
-        },
-        {
-            "id": 945693340639330314,
-            "message": "🎮 The Epic Games Free Game of the Week just dropped today! Get that game while you can: https://store.epicgames.com/en-US/free-games",
-            "time": "17:00",
-            "days": ["Thursday"]
-        },
-        {
-            "id": 1079612189175988264,
-            "message": "[morningreport]",
-            "time": "09:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 1079612189175988264,
-            "message": "[alert]",
-            "time": "20:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 1010706336905961593,
-            "message": "[nleast]",
-            "time": "08:00",
-            "days": ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 1010706336905961593,
-            "message": "[allmlb]",
-            "time": "08:00",
-            "days": ["Monday"]
-        },
-        {
-            "id": 1010706949660221561,
-            "message": "[ap25]",
-            "time": "15:00",
-            "days": ["Sunday"]
-        },
-        {
-            "id": 1010706336905961593,
-            "message": "[news]mlb",
-            "time": "10:00",
-            "days": ["Monday", "Friday"]
-        },
-        {
-            "id": 1010706949660221561,
-            "message": "[news]cfb",
-            "time": "10:00",
-            "days": ["Monday", "Friday", "Saturday"]
-        },
-        {
-            "id": 1010706949660221561,
-            "message": "[news]nfl",
-            "time": "10:00",
-            "days": ["Monday", "Tuesday", "Thursday", "Sunday"]
-        },
-        {
-            "id": 1146581673643884554,
-            "message": "[news]news",
-            "time": "9:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        },
-        {
-            "id": 1146581673643884554,
-            "message": "[news]nottheonion",
-            "time": "12:00",
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        }
-    ]
-}
+[
+  {
+    "name": "monday_morning",
+    "message": "🌅 Good morning! Hope you have a great Monday!",
+    "channel_id": 0,
+    "type": "weekly",
+    "time": "09:00",
+    "weekdays": [1],
+    "enabled": false
+  },
+  {
+    "name": "friday_evening",
+    "message": "🎉 It's Friday! Have a great weekend!",
+    "channel_id": 0,
+    "type": "weekly",
+    "time": "17:00",
+    "weekdays": [5],
+    "enabled": false
+  },
+  {
+    "name": "new_year",
+    "message": "🎆 Happy New Year! Let's make it a great one!",
+    "channel_id": 0,
+    "type": "date",
+    "time": "00:00",
+    "date": "2027-01-01",
+    "enabled": false
+  }
+]
