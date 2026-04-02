@@ -171,9 +171,11 @@ async def mlb_all_standings_command(ctx: commands.Context) -> None:
         (103, 200, "AL West"),
     ]
 
+    all_text = ""
     for league_id, division_id, title in divisions:
         text = get_standings(league_id, division_id, f"{title} Standings")
-        await ctx.send(text)
+        all_text += text + "\n\n"
+    await ctx.send(all_text)
 
 
 async def mlb_division_standings_command(ctx: commands.Context, division: str) -> None:
