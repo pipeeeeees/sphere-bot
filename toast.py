@@ -8,7 +8,7 @@ from discord.ext import commands
 import asyncio
 import importlib
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import time
 
@@ -25,6 +25,10 @@ from toaster.state import set_start_time
 # Conversation history storage
 conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history string
 
+# Mute state storage for channels/DMs
+muted_threads = {}  # Dict[int, datetime] -> unmute time
+MUTE_DURATION_SECONDS = 60 * 60 * 3  # 3 hours
+
 # Rate limiting for AI responses
 last_ai_response = {}  # Dict[str, float] - user_id/channel_id -> timestamp
 AI_COOLDOWN_SECONDS = 5  # Minimum seconds between AI responses per conversation
@@ -32,6 +36,86 @@ AI_COOLDOWN_SECONDS = 5  # Minimum seconds between AI responses per conversation
 # Initialize registries
 command_registry = CommandRegistry()
 schedule_registry = ScheduleRegistry()
+
+
+# AI Provider Configuration
+# Options: "grok", "gemini"
+AI_PROVIDER = "grok"
+
+
+async def get_ai_response(history: str, message: str) -> str:
+    """
+    Get AI response using the configured provider.
+    Can be easily swapped between "grok" and "gemini" by changing AI_PROVIDER.
+    
+    Args:
+        history: Conversation history
+        message: User message
+        
+    Returns:
+        AI response text or None if all providers fail
+    """
+    if AI_PROVIDER == "grok":
+        return get_grok_response_with_key(history, message, "config")
+    elif AI_PROVIDER == "gemini":
+        return get_gemini_response_with_key(history, message, "config")
+    else:
+        print(f"Unknown AI provider: {AI_PROVIDER}")
+        return None
+
+
+def is_channel_muted(channel_id: int) -> bool:
+    """Return True if channel/DM is currently muted."""
+    unmute_time = muted_threads.get(channel_id)
+    if not unmute_time:
+        return False
+    if datetime.now() >= unmute_time:
+        muted_threads.pop(channel_id, None)
+        return False
+    return True
+
+
+def mute_channel(channel_id: int, seconds: int = MUTE_DURATION_SECONDS) -> None:
+    """Mute a channel/DM for `seconds`."""
+    muted_threads[channel_id] = datetime.now() + timedelta(seconds=seconds)
+
+
+def is_shutup_command(message: str) -> bool:
+    """Detect explicit quiet commands."""
+    text = message.lower().strip()
+    if "$shutup" in text:
+        return True
+
+    # common forms: "shutup toast", "shut up toast", "toast shut up", "toast, shut up"
+    if "toast" in text and ("shutup" in text or "shut up" in text or "shut it" in text or "stfu" in text or "be quiet" in text or "shut the fuck up" in text):
+        return True
+
+    return False
+
+
+def is_unmute_command(message: str) -> bool:
+    """Detect the unmute command."""
+    text = message.lower().strip()
+    # Accept variants of request to resume talking
+    return any(
+        phrase in text
+        for phrase in [
+            "ok toast you can talk again",
+            "ok toast you can talk",
+            "toast you can talk again",
+            "toast you can talk",
+            "okay toast you can talk again",
+            "okay toast you can talk",
+            "toast talk again",
+            "toast please talk again"
+        ]
+    )
+
+
+def unmute_channel(channel_id: int) -> None:
+    """Immediately unmute a channel/DM."""
+    muted_threads.pop(channel_id, None)
+
 
 
 def get_conversation_key(message: discord.Message) -> str:
@@ -66,19 +150,18 @@ async def handle_dm_response(message: discord.Message) -> None:
     """Handle AI responses to DM messages."""
     if message.author == bot.user:
         return
+
+    if is_channel_muted(message.channel.id):
+        return
     
     # Get conversation history
     key = get_conversation_key(message)
     history = conversation_history.get(key, "")
     
-    # Try Gemini first
-    response = get_gemini_response_with_key(history, message.content, "config")
+    # Get AI response
+    response = await get_ai_response(history, message.content)
     
-    # If Gemini fails, try Grok
-    if not response:
-        response = get_grok_response_with_key(history, message.content, "config")
-    
-    # If both fail, DM the owner about the issue instead of sending to user
+    # If AI fails, DM the owner about the issue instead of sending to user
     if not response:
         config = load_config("config")
         bot_config = config.get("bot_config", {})
@@ -91,7 +174,7 @@ async def handle_dm_response(message: discord.Message) -> None:
             except Exception as e:
                 print(f"Failed to notify owner about AI error: {e}")
         
-        print(f"AI response failed for DM from {message.author}: both Gemini and Grok returned None")
+        print(f"AI response failed for DM from {message.author}: {AI_PROVIDER} returned None")
         return
     
     # Store conversation history and send response
@@ -99,9 +182,79 @@ async def handle_dm_response(message: discord.Message) -> None:
     await message.channel.send(response)
 
 
+async def should_respond_to_message(message: discord.Message) -> bool:
+    """
+    Use the LLM to intelligently decide if a message is interesting enough to respond to.
+    Checks basic heuristics first, then asks the LLM for its judgment with conversation context.
+    
+    Args:
+        message: The Discord message to evaluate
+        
+    Returns:
+        True if the message is interesting enough to respond to, False otherwise
+    """
+    message_lower = message.content.lower()
+    
+    # Basic heuristics to pass to LLM for context
+    heuristics = {
+        "mentions_bot": "toast" in message_lower,
+        "is_question": message_lower.strip().endswith("?"),
+        "is_reply_to_bot": False
+    }
+    
+    # Check if message is a reply to the bot
+    if message.reference:
+        try:
+            replied_to = await message.channel.fetch_message(message.reference.message_id)
+            heuristics["is_reply_to_bot"] = replied_to.author == bot.user
+        except:
+            pass
+    
+    # If none of the heuristics are met, don't bother asking the LLM
+    if not any(heuristics.values()):
+        return False
+    
+    # Fetch recent message history (last 15 messages before this one)
+    history_messages = []
+    try:
+        async for msg in message.channel.history(limit=15, before=message):
+            history_messages.insert(0, msg)  # Insert at beginning to maintain order
+    except:
+        pass
+    
+    # Build context string from recent messages
+    context = ""
+    for msg in history_messages:
+        context += f"{msg.author.display_name}: {msg.content}\n"
+    context += f"{message.author.display_name}: {message.content}\n"
+    
+    # Ask the LLM if this message is interesting
+    #print(context)
+    prompt = f"""Decide if this Discord message thread is interesting enough to respond to. You are Toast in this conversation. Respond with ONLY "true" or "false" - nothing else.
+- Does it mention the bot (Toast) in the last message? if so, respond with "true"
+- Is the last message(s) asking a question that can be answered factually? If so, respond with "true"
+- Is the last message(s) a reply to the bot? If so, respond with "true"
+- Is the overall conversation engaging? Can you add something valuable to it? If so, respond with "true"
+
+Recent conversation:
+{context}
+"""
+
+    response = await get_ai_response("", prompt)
+    
+    if not response:
+        return False
+    
+    # Parse the response to boolean
+    return response.strip().lower() == "true"
+
+
 async def handle_random_channel_response(message: discord.Message) -> None:
-    """Handle random AI responses in whitelisted channels (40% chance)."""
+    """Handle intelligent AI responses in whitelisted channels based on message relevance."""
     if message.author == bot.user:
+        return
+
+    if is_channel_muted(message.channel.id):
         return
     
     # Check if channel is whitelisted
@@ -109,22 +262,18 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     if message.channel.id not in whitelist:
         return
     
-    # Skip if 40% chance doesn't trigger
-    if random.random() > 0.4:
+    # Ask LLM if this message is interesting
+    if not await should_respond_to_message(message):
         return
     
     # Get conversation history
     key = get_conversation_key(message)
     history = conversation_history.get(key, "")
     
-    # Try Gemini first
-    response = get_gemini_response_with_key(history, message.content, "config")
+    # Get AI response
+    response = await get_ai_response(history, message.content)
     
-    # If Gemini fails, try Grok
-    if not response:
-        response = get_grok_response_with_key(history, message.content, "config")
-    
-    # If both fail, DM the owner about the issue instead of spamming the channel
+    # If AI fails, DM the owner about the issue instead of spamming the channel
     if not response:
         config = load_config("config")
         bot_config = config.get("bot_config", {})
@@ -137,7 +286,7 @@ async def handle_random_channel_response(message: discord.Message) -> None:
             except Exception as e:
                 print(f"Failed to notify owner about AI error: {e}")
         
-        print(f"AI response failed for channel message: both Gemini and Grok returned None")
+        print(f"AI response failed for channel message: {AI_PROVIDER} returned None")
         return
     
     # Store conversation history and send response
@@ -274,10 +423,32 @@ async def on_message(message: discord.Message) -> None:
     if message.author == bot.user:
         return
 
+    # If msg requests silence, mute thread and skip responding
+    if is_shutup_command(message.content):
+        mute_channel(message.channel.id)
+        try:
+            await message.channel.send("🤐 Got it. I’ll stay quiet here for 3 hours.")
+        except Exception:
+            pass
+        return
+
+    # If msg requests unmute, unmute thread and allow future responses
+    if is_unmute_command(message.content):
+        unmute_channel(message.channel.id)
+        try:
+            await message.channel.send("✅ Thanks! I’m back and ready to chat.")
+        except Exception:
+            pass
+        return
+
     # If this is a command invocation (starts with the command prefix), do not trigger LLM responses
     if message.content.startswith('$'):
         return
-    
+
+    # If current thread is muted, ignore
+    if is_channel_muted(message.channel.id):
+        return
+
     try:
         # Handle DMs with AI responses
         if isinstance(message.channel, discord.DMChannel):

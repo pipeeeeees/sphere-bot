@@ -9,13 +9,13 @@
     "enabled": false
   },
   {
-    "name": "friday_evening",
-    "message": "🎉 It's Friday! Have a great weekend!",
-    "channel_id": 0,
+    "name": "thursday_afternoon",
+    "message": "🎉 It's Thursday! Have a great day!",
+    "channel_id": 1489085355599724684,
     "type": "weekly",
-    "time": "17:00",
+    "time": "15:10",
     "weekdays": [5],
-    "enabled": false
+    "enabled": true
   },
   {
     "name": "new_year",

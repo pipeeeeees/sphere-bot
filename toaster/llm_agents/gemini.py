@@ -5,6 +5,8 @@ from typing import Optional
 from pathlib import Path
 import time
 
+from toaster.llm_agents.agent_utils import build_gemini_contents
+
 def get_gemini_response(history: str, message: str, api_key: str) -> Optional[str]:
     """
     Get a response from Google's Gemini AI model.
@@ -22,30 +24,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
     # Note: v1 is stable API endpoint vs v1beta
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={api_key}"
     
-    # Prepare the conversation history and current message
-    contents = []
-    
-    # Add history if provided
-    if history and history.strip():
-        # Split history into turns (assuming format like "User: message\nAI: response\n")
-        history_parts = history.strip().split('\n')
-        for part in history_parts:
-            if part.startswith('User: '):
-                contents.append({
-                    "role": "user",
-                    "parts": [{"text": part[6:]}]  # Remove "User: " prefix
-                })
-            elif part.startswith('AI: ') or part.startswith('Assistant: '):
-                contents.append({
-                    "role": "model", 
-                    "parts": [{"text": part[4:]}]  # Remove "AI: " prefix
-                })
-    
-    # Add current message
-    contents.append({
-        "role": "user",
-        "parts": [{"text": message}]
-    })
+    contents = build_gemini_contents(history, message)
     
     # Prepare the request payload
     payload = {
@@ -64,7 +43,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
             'Content-Type': 'application/json'
         }
         
-        max_retries = 3
+        max_retries = 1
         for attempt in range(max_retries):
             try:
                 response = requests.post(url, json=payload, headers=headers, timeout=30)

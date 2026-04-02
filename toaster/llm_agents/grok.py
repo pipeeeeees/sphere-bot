@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from typing import Optional
 
+from toaster.llm_agents.agent_utils import build_grok_messages
+
 
 def load_grok_key(config_path: str = "config") -> Optional[str]:
     """
@@ -27,39 +29,8 @@ def load_grok_key(config_path: str = "config") -> Optional[str]:
 
 
 def get_grok_response(history: str, message: str, api_key: str) -> Optional[str]:
-    system_prompt = (
-        "Hey, Grok. You're Sphere in this conversaion - just an alias."
-        "Be concise. Just reply with the message content in under 2000 chars. Ideally in a sentence or two. Be chill"
-    )
-
     max_length = 2000
-
-    # Split history into individual messages
-    history_lines = history.split("\n")
-
-    def build_messages(hist_lines):
-        return [
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": (
-                    "Here is the message history for context from oldest to newest:\n\n"
-                    + "\n".join(hist_lines)
-                    + f"\n\nReply to the following message in under 2000 characters:\n{message}"
-                )
-            }
-        ]
-
-    messages = build_messages(history_lines)
-
-    # Trim history if total prompt gets too long
-    def total_length(msgs):
-        return sum(len(m["content"]) for m in msgs)
-
-    while total_length(messages) > max_length and history_lines:
-        history_lines.pop(0)
-        messages = build_messages(history_lines)
-
+    messages = build_grok_messages(history, message, max_length)
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
