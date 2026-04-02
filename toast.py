@@ -368,7 +368,9 @@ def load_schedules_from_config() -> None:
                 weekdays=weekdays,
                 date=date,
                 enabled=enabled,
-                timezone=timezone
+                timezone=timezone,
+                months=schedule_config.get("months"),
+                every_other_day=schedule_config.get("every_other_day", False)
             )
             
             status = "✓" if enabled else "⊘"

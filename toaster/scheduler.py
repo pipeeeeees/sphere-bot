@@ -187,6 +187,45 @@ class ScheduleRegistry:
             return True
         return False
     
+    class ScheduleContext:
+        """Minimal context for running command handlers from scheduler."""
+
+        def __init__(self, channel, bot):
+            self.channel = channel
+            self.bot = bot
+
+        async def send(self, message: str):
+            return await self.channel.send(message)
+
+    async def _execute_scheduled_command(self, command_text: str, channel, bot):
+        """Execute command-like scheduled message using commands_impl functions."""
+        if not command_text.startswith('$'):
+            await channel.send(command_text)
+            return
+
+        from toaster.commands_impl import mlb_all_standings_command, mlb_division_standings_command
+
+        content = command_text.strip()
+        parts = content[1:].split()
+        if not parts:
+            await channel.send(command_text)
+            return
+
+        cmd = parts[0].lower()
+        args = parts[1:]
+
+        ctx = self.ScheduleContext(channel, bot)
+
+        try:
+            if cmd == 'mlb_standings':
+                await mlb_all_standings_command(ctx)
+            elif cmd == 'mlb_division' and args:
+                await mlb_division_standings_command(ctx, ' '.join(args))
+            else:
+                await channel.send(command_text)
+        except Exception as e:
+            await channel.send(f"Error executing scheduled command '{command_text}': {e}")
+
     async def start_scheduler(self, bot) -> None:
         """
         Start the scheduler background task.
@@ -256,7 +295,10 @@ class ScheduleRegistry:
                     try:
                         channel = bot.get_channel(schedule["channel_id"])
                         if channel:
-                            await channel.send(schedule["message"])
+                            if isinstance(schedule["message"], str) and schedule["message"].startswith('$'):
+                                await self._execute_scheduled_command(schedule["message"], channel, bot)
+                            else:
+                                await channel.send(schedule["message"])
                             schedule["last_sent"] = current_time
                     except Exception as e:
                         print(f"Error sending scheduled message '{schedule['name']}': {e}")
