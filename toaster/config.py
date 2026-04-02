@@ -23,7 +23,8 @@ def load_config(config_path: str = "config") -> Dict[str, Any]:
     result = {
         "token": None,
         "commands": [],
-        "schedules": []
+        "schedules": [],
+        "bot_config": {}
     }
     
     # Load token
@@ -44,6 +45,12 @@ def load_config(config_path: str = "config") -> Dict[str, Any]:
     if schedules_file.exists():
         with open(schedules_file, 'r') as f:
             result["schedules"] = json.load(f)
+    
+    # Load bot config
+    bot_config_file = config_dir / "bot_config.json"
+    if bot_config_file.exists():
+        with open(bot_config_file, 'r') as f:
+            result["bot_config"] = json.load(f)
     
     return result
 
