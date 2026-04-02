@@ -40,5 +40,17 @@
     "description": "Run git pull and print results",
     "module": "toaster.commands_impl",
     "function": "pull_command"
+  },
+  {
+    "name": "mlb_standings",
+    "description": "Show all MLB division standings",
+    "module": "toaster.commands_impl",
+    "function": "mlb_all_standings_command"
+  },
+  {
+    "name": "mlb_division",
+    "description": "Show standings for a specific MLB division",
+    "module": "toaster.commands_impl",
+    "function": "mlb_division_standings_command"
   }
 ]

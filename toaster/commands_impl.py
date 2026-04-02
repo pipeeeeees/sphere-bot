@@ -12,6 +12,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+from toaster.modules.mlb import get_standings
+
 
 async def hello_command(ctx: commands.Context) -> None:
     """
@@ -38,6 +40,8 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$toast", value="Toggle channel whitelist for Toast to speak in", inline=False)
     embed.add_field(name="$reboot", value="Restart the bot process", inline=False)
     embed.add_field(name="$pull", value="Run git pull and print results", inline=False)
+    embed.add_field(name="$mlb_standings", value="Show all MLB division standings", inline=False)
+    embed.add_field(name="$mlb_division <division>", value="Show standings for one division (nl-east, al-west, etc.)", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -154,6 +158,51 @@ async def pull_command(ctx: commands.Context) -> None:
         print(f"Git pull failed: {e}")
 
 
+async def mlb_all_standings_command(ctx: commands.Context) -> None:
+    """
+    Print standings for all MLB divisions.
+    """
+    divisions = [
+        (104, 204, "NL East"),
+        (104, 205, "NL Central"),
+        (104, 203, "NL West"),
+        (103, 201, "AL East"),
+        (103, 202, "AL Central"),
+        (103, 200, "AL West"),
+    ]
+
+    for league_id, division_id, title in divisions:
+        text = get_standings(league_id, division_id, f"{title} Standings")
+        await ctx.send(text)
+
+
+async def mlb_division_standings_command(ctx: commands.Context, division: str) -> None:
+    """
+    Print standings for a specific MLB division by name.
+    Usage: $mlb_division <division>
+    Examples: $mlb_division nl-east, $mlb_division AL West
+    """
+    normalized = division.lower().replace(" ", "").replace("_", "").replace("-", "")
+    mapping = {
+        "nleast": (104, 204, "NL East"),
+        "nlcentral": (104, 205, "NL Central"),
+        "nlwest": (104, 203, "NL West"),
+        "aleast": (103, 201, "AL East"),
+        "alcentral": (103, 202, "AL Central"),
+        "alwest": (103, 200, "AL West"),
+    }
+
+    if normalized not in mapping:
+        await ctx.send(
+            "⚠️ Division not recognized. Valid divisions are: NL East, NL Central, NL West, AL East, AL Central, AL West."
+        )
+        return
+
+    league_id, division_id, title = mapping[normalized]
+    text = get_standings(league_id, division_id, f"{title} Standings")
+    await ctx.send(text)
+
+
 # Export all command implementations
 __all__ = [
     "hello_command",
@@ -162,5 +211,7 @@ __all__ = [
     "uptime_command",
     "toast_command",
     "reboot_command",
-    "pull_command"
+    "pull_command",
+    "mlb_all_standings_command",
+    "mlb_division_standings_command"
 ]
