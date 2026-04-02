@@ -1,4 +1,5 @@
 import statsapi
+import datetime 
 
 def get_standings(league_id, division_id, title):
     standings = statsapi.standings_data(leagueId=league_id)
@@ -6,6 +7,11 @@ def get_standings(league_id, division_id, title):
 
     if not division:
         return f"{title} standings not found."
+
+    # add to the title the current date and time (new york time)
+    now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+    title += f" (as of {now.strftime('%Y-%m-%d %H:%M:%S %Z')})"
+
 
     lines = ["```", title, f"{'Team':<25} {'W':>2} {'L':>2}  {'GB':>4}"]
     for team in division['teams']:
