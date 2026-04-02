@@ -146,6 +146,24 @@ def update_conversation_history(key: str, user_message: str, ai_response: str) -
     conversation_history[key] = '\n'.join(combined_lines)
 
 
+def build_message_context(message: discord.Message) -> str:
+    """Serialize a message into text for LLM context, including embeds."""
+    text = (message.content or "").strip()
+    embed_texts = []
+    if getattr(message, "embeds", None):
+        for idx, embed in enumerate(message.embeds, start=1):
+            if embed.title:
+                embed_texts.append(f"[embed#{idx} title: {embed.title}]")
+            if embed.description:
+                embed_texts.append(f"[embed#{idx} description: {embed.description}]")
+    if embed_texts:
+        if text:
+            text += " " + " ".join(embed_texts)
+        else:
+            text = " ".join(embed_texts)
+    return text or ""
+
+
 async def handle_dm_response(message: discord.Message) -> None:
     """Handle AI responses to DM messages."""
     if message.author == bot.user:
@@ -225,8 +243,8 @@ async def should_respond_to_message(message: discord.Message) -> bool:
     # Build context string from recent messages
     context = ""
     for msg in history_messages:
-        context += f"{msg.author.display_name}: {msg.content}\n"
-    context += f"{message.author.display_name}: {message.content}\n"
+        context += f"{msg.author.display_name}: {build_message_context(msg)}\n"
+    context += f"{message.author.display_name}: {build_message_context(message)}\n"
     
     # Ask the LLM if this message is interesting
     #print(context)
@@ -284,8 +302,8 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     # Build context string from recent messages
     context = ""
     for msg in history_messages:
-        context += f"{msg.author.display_name}: {msg.content}\n"
-    context += f"{message.author.display_name}: {message.content}\n"
+        context += f"{msg.author.display_name}: {build_message_context(msg)}\n"
+    context += f"{message.author.display_name}: {build_message_context(message)}\n"
     
     history = context
     #print(history)
