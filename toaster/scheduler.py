@@ -216,15 +216,25 @@ class ScheduleRegistry:
 
         ctx = self.ScheduleContext(channel, bot)
 
+        owner_id = 326676188057567232
+
         try:
             if cmd == 'mlb_standings':
                 await mlb_all_standings_command(ctx)
             elif cmd == 'mlb_division' and args:
                 await mlb_division_standings_command(ctx, ' '.join(args))
             else:
-                await channel.send(command_text)
+                # Unknown scheduled command; do not echo raw command text
+                return
         except Exception as e:
-            await channel.send(f"Error executing scheduled command '{command_text}': {e}")
+            # DM owner with execution errors and do not send direct channel message
+            print(f"Error executing scheduled command '{command_text}': {e}")
+            try:
+                owner = await bot.fetch_user(owner_id)
+                if owner:
+                    await owner.send(f"⚠️ Scheduled command failed: '{command_text}' in channel {channel.id}: {e}")
+            except Exception as dm_err:
+                print(f"Failed to notify owner about scheduled command error: {dm_err}")
 
     async def start_scheduler(self, bot) -> None:
         """

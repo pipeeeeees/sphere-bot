@@ -34,7 +34,7 @@
     "message": "$mlb_division nl-east",
     "channel_id": 1489085355599724684,
     "type": "weekly",
-    "time": "17:11",
+    "time": "17:17",
     "weekdays": [2,3,4,5,6,7],
     "timezone": "America/New_York",
     "months": [4,5,6,7,8,9],
