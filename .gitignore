@@ -162,3 +162,4 @@ cython_debug/
 config/gemini_key.json
 config/grok_key.json
 config/toast_discord_bot_token.json
+/.vscode
