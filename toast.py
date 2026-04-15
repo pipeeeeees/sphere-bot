@@ -40,7 +40,7 @@ schedule_registry = ScheduleRegistry()
 
 # AI Provider Configuration
 # Options: "grok", "gemini"
-AI_PROVIDER = "grok"
+AI_PROVIDER = "gemini"
 
 
 async def get_ai_response(history: str, message: str) -> str:

@@ -1,15 +1,17 @@
-import os
 import json
-import requests
-from typing import Optional
 from pathlib import Path
-import time
+from typing import Optional
 
-from toaster.llm_agents.agent_utils import build_gemini_contents
+from google import genai
+from google.genai import types
+
+from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet
+
 
 def get_gemini_response(history: str, message: str, api_key: str) -> Optional[str]:
     """
-    Get a response from Google's Gemini AI model.
+    Get a response from Google's Gemini AI model with web grounding.
+    Uses gemini-2.5-flash for fast responses with up-to-date information.
     
     Args:
         history: Previous conversation history
@@ -19,78 +21,31 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
     Returns:
         AI response text or None if error
     """
-    
-    # Using v1 for gemini-2.0-flash (switching back after quota reset)
-    # Note: v1 is stable API endpoint vs v1beta
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={api_key}"
-    
-    contents = build_gemini_contents(history, message)
-    
-    # Prepare the request payload
-    payload = {
-        "contents": contents,
-        "generationConfig": {
-            "temperature": 0.7,
-            "topK": 40,
-            "topP": 0.95,
-            "maxOutputTokens": 1024,
-        }
-    }
-    
     try:
-        # Make the API request with retry logic for rate limits
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        client = genai.Client(api_key=api_key)
         
-        max_retries = 1
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(url, json=payload, headers=headers, timeout=30)
-                response.raise_for_status()  # Raise exception for bad status codes
-                break  # Success, exit retry loop
-                
-            except requests.exceptions.HTTPError as e:
-                error_code = e.response.status_code if hasattr(e.response, 'status_code') else None
-                error_body = e.response.text if hasattr(e.response, 'text') else ''
-                
-                if error_code == 429:
-                    # Rate limit exceeded
-                    if attempt < max_retries - 1:
-                        wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
-                        print(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 1}/{max_retries}")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        print(f"Rate limit persisted after {max_retries} attempts")
-                        return None
-                else:
-                    # Other HTTP error
-                    print(f"HTTP Error {error_code}: {error_body}")
-                    return None
-            except requests.exceptions.RequestException as e:
-                print(f"Request error: {e}")
-                return None
+        system_prompt = get_default_system_prompt()
+        max_total_chars = 3000
         
-        # Parse the response
-        data = response.json()
+        # Build conversation snippet with history and message
+        conversation = build_conversation_snippet(history, message, max_total_chars)
         
-        # Extract the generated text
-        if 'candidates' in data and len(data['candidates']) > 0:
-            candidate = data['candidates'][0]
-            if 'content' in candidate and 'parts' in candidate['content']:
-                parts = candidate['content']['parts']
-                if len(parts) > 0 and 'text' in parts[0]:
-                    return parts[0]['text'].strip()
+        # Combine system prompt with conversation
+        full_prompt = f"{system_prompt}\n\n{conversation}"
         
-        # If we can't extract text, return None
-        return None
+        # Make request with Google Search grounding for current information
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=full_prompt,
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())]
+            )
+        )
         
-    except json.JSONDecodeError as e:
-        print(f"Error parsing Gemini API response: {e}")
-        return None
+        return response.text.strip() if response.text else None
+        
     except Exception as e:
-        print(f"Unexpected error in Gemini API call: {e}")
+        print(f"Error in Gemini API call: {e}")
         return None
 
 
@@ -138,12 +93,12 @@ def get_gemini_response_with_key(history: str, message: str, config_path: str = 
 
 if __name__ == "__main__":
     """
-    Standalone test for Gemini API integration.
+    Standalone test for Gemini API integration with grounding.
     Run this file directly to test the API without running the full bot.
     """
     import sys
     
-    print("🤖 Gemini API Test")
+    print("🤖 Gemini API Test (with Web Grounding)")
     print("=" * 50)
     
     # Load API key
@@ -153,58 +108,23 @@ if __name__ == "__main__":
         sys.exit(1)
     
     print(f"✓ API key loaded (ends with: ...{api_key[-10:]})")
-    print(f"✓ Full key: {api_key}")
-    print(f"✓ Model: gemini-1.5-flash (on stable v1 API)\n")
+    print(f"✓ Model: gemini-2.5-flash (with Google Search grounding)\n")
     
-    # Test with simple message first
-    print("🧪 Test 1: Simple greeting")
+    # Test with a simple message
+    print("🧪 Test: Simple greeting")
     print("-" * 30)
     
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={api_key}"
-    print(f"API Endpoint: {url}\n")
+    test_message = "Hello! What's a recent tech news story?"
+    print(f"Sending: {test_message}")
+    print()
     
-    payload = {
-        "contents": [{
-            "role": "user",
-            "parts": [{"text": "Hello"}]
-        }],
-        "generationConfig": {
-            "temperature": 0.7,
-            "topK": 40,
-            "topP": 0.95,
-            "maxOutputTokens": 1024,
-        }
-    }
+    response = get_gemini_response_with_key("", test_message)
     
-    headers = {'Content-Type': 'application/json'}
-    
-    print("Sending request...")
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        print(f"Response Status: {response.status_code}")
-        print(f"Response Headers: {dict(response.headers)}")
-        print(f"Response Body:\n{response.text}\n")
-        
-        if response.status_code == 200:
-            data = response.json()
-            if 'candidates' in data:
-                print("✅ API is working!")
-                print(f"Response: {data['candidates'][0]['content']['parts'][0]['text']}")
-            else:
-                print("❌ Unexpected response format")
-        else:
-            print(f"❌ API returned error code {response.status_code}")
-            
-    except Exception as e:
-        print(f"❌ Request failed: {e}")
+    if response:
+        print("✅ API is working!")
+        print(f"Response:\n{response}")
+    else:
+        print("❌ API failed to return a response")
     
     print("\n" + "=" * 50)
-    print("🔍 Debugging Tips:")
-    print("- If you see 'Invalid API Key': Generate new key from Google AI Studio")
-    print("- If you see 'Resource not found': Enable Generative Language API")
-    print("- If you see quota exceeded: Your free tier limit has been reached")
-    print("  → Upgrade to paid plan at https://ai.google.dev/pricing")
-    print("  → Free tier limits: 15 RPM (requests/min), 1000 RPD (requests/day)")
-    print("- If key is empty: Check config/gemini_key.json exists and has 'key' field")
-    print("\nℹ️  Note: Gemini 2.0 Flash free tier quota is very limited.")
-    print("Consider using Gemini 1.5 Flash or upgrading to a paid plan.")
+    print("Note: Gemini 2.5 Flash with grounding provides up-to-date information.")
