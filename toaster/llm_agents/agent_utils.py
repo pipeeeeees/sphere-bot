@@ -8,7 +8,7 @@ from typing import List
 def get_default_system_prompt() -> str:
     """Default instruction for all Toast AI agents."""
     return (
-        "Hey, you are Toast in this conversation (alias for the bot). "
+        "Below is your prompt. You are Toast in this conversation (alias for the bot). "
         "Be concise and helpful. Keep answers under the character limit."
     )
 
