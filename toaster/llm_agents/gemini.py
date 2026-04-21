@@ -38,9 +38,9 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
             model="gemini-2.5-flash",
             contents=full_prompt,
             config=types.GenerateContentConfig(
-                tools=[types.Tool(google_search=types.GoogleSearch())]
-            ),
-            max_output_tokens=500
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                max_output_tokens=500
+            )
         )
         
         return response.text.strip() if response.text else None
