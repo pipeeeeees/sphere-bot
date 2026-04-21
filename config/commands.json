@@ -52,5 +52,11 @@
     "description": "Show standings for a specific MLB division",
     "module": "toaster.commands_impl",
     "function": "mlb_division_standings_command"
+  },
+  {
+    "name": "pollen",
+    "description": "Get the current pollen count in Atlanta",
+    "module": "toaster.commands_impl",
+    "function": "pollen_command"
   }
 ]

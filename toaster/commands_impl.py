@@ -13,6 +13,7 @@ import subprocess
 import sys
 
 from toaster.modules.mlb import get_standings
+from toaster.modules.pollen import result_handler
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -42,6 +43,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$pull", value="Run git pull and print results", inline=False)
     embed.add_field(name="$mlb_standings", value="Show all MLB division standings", inline=False)
     embed.add_field(name="$mlb_division <division>", value="Show standings for one division (nl-east, al-west, etc.)", inline=False)
+    embed.add_field(name="$pollen", value="Get the current pollen count in Atlanta", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -205,6 +207,13 @@ async def mlb_division_standings_command(ctx: commands.Context, division: str) -
     await ctx.send(text)
 
 
+async def pollen_command(ctx: commands.Context) -> None:
+    """
+    Get the current pollen count in Atlanta.
+    """
+    await ctx.send(result_handler())
+
+
 # Export all command implementations
 __all__ = [
     "hello_command",
@@ -215,5 +224,6 @@ __all__ = [
     "reboot_command",
     "pull_command",
     "mlb_all_standings_command",
-    "mlb_division_standings_command"
+    "mlb_division_standings_command",
+    "pollen_command"
 ]
