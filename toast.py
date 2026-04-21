@@ -37,6 +37,10 @@ AI_COOLDOWN_SECONDS = 5  # Minimum seconds between AI responses per conversation
 command_registry = CommandRegistry()
 schedule_registry = ScheduleRegistry()
 
+# Track loaded commands and schedules for boot notification
+loaded_commands = []  # List of (name, success, error_msg)
+loaded_schedules = []  # List of (name, success, error_msg)
+
 
 # AI Provider Configuration
 # Options: "grok", "gemini"
@@ -307,7 +311,9 @@ def load_commands_from_config() -> None:
     """
     Load commands from config/commands.json and register them with the bot.
     Each command entry specifies a module path and function name to import.
+    Tracks success/failure for boot notification.
     """
+    global loaded_commands
     config = load_config("config")
     
     for cmd_config in config["commands"]:
@@ -324,20 +330,30 @@ def load_commands_from_config() -> None:
             # Register with command registry
             command_registry.register(name, callback, description)
             
+            loaded_commands.append((name, True, None))
             print(f"✓ Loaded command: ${name}")
         except Exception as e:
-            print(f"✗ Failed to load command {cmd_config.get('name', 'unknown')}: {e}")
+            cmd_name = cmd_config.get('name', 'unknown')
+            loaded_commands.append((cmd_name, False, str(e)))
+            print(f"✗ Failed to load command {cmd_name}: {e}")
 
 
 def load_schedules_from_config() -> None:
     """
     Load schedules from config/schedule.json and register them with the scheduler.
+    Tracks success/failure for boot notification.
     """
+    global loaded_schedules
     config = load_config("config")
     
     for schedule_config in config["schedules"]:
         try:
             name = schedule_config["name"]
+            
+            # Skip if already registered
+            if schedule_registry.get_schedule(name):
+                continue
+            
             message = schedule_config["message"]
             channel_id = schedule_config["channel_id"]
             schedule_type = schedule_config["type"]
@@ -363,23 +379,32 @@ def load_schedules_from_config() -> None:
                 every_other_day=schedule_config.get("every_other_day", False)
             )
             
+            loaded_schedules.append((name, True, None))
             status = "✓" if enabled else "⊘"
             print(f"{status} Loaded schedule: {name}")
         except Exception as e:
-            print(f"✗ Failed to load schedule {schedule_config.get('name', 'unknown')}: {e}")
+            schedule_name = schedule_config.get('name', 'unknown')
+            loaded_schedules.append((schedule_name, False, str(e)))
+            print(f"✗ Failed to load schedule {schedule_name}: {e}")
 
 
 def register_commands_with_bot() -> None:
     """
     Register all commands from the registry with the Discord bot.
-    Creates @bot.command() decorators dynamically.
+    Creates bot commands dynamically from the registry.
     """
     for cmd_config in command_registry.get_all_commands():
         name = cmd_config["name"]
         callback = cmd_config["callback"]
         
-        # Create a bot command from the callback
-        bot.add_command(commands.Command(callback, name=name))
+        # Create a command and add it to the bot
+        cmd = commands.Command(callback, name=name)
+        bot.add_command(cmd)
+    
+    # Debug: print registered commands
+    print(f"✓ Registered {len(bot.commands)} commands with bot")
+    for cmd in bot.commands:
+        print(f"  - {cmd.name}")
 
 
 @bot.event
@@ -397,7 +422,7 @@ async def on_ready() -> None:
     else:
         print()
     
-    # Send boot notification DM to owner
+    # Send boot notification DM to owner with detailed command/schedule info
     config = load_config("config")
     bot_config = config.get("bot_config", {})
     if bot_config.get("notify_on_boot", False):
@@ -405,7 +430,26 @@ async def on_ready() -> None:
         if owner_id:
             try:
                 owner = await bot.fetch_user(owner_id)
-                await owner.send("🍞 Toast has booted successfully!!")
+                
+                # Build boot notification message
+                boot_msg = "🍞 **Toast Boot Report**\n\n"
+                
+                # Commands section
+                boot_msg += "**Commands:**\n"
+                for cmd_name, success, error in loaded_commands:
+                    if success:
+                        boot_msg += f"✓ Loaded command: ${cmd_name}\n"
+                    else:
+                        boot_msg += f"✗ Failed to load command ${cmd_name}: {error}\n"
+                
+                boot_msg += "\n**Schedules:**\n"
+                for sched_name, success, error in loaded_schedules:
+                    if success:
+                        boot_msg += f"✓ Loaded schedule: {sched_name}\n"
+                    else:
+                        boot_msg += f"✗ Failed to load schedule {sched_name}: {error}\n"
+                
+                await owner.send(boot_msg)
                 print(f'✓ Boot notification sent to owner ({owner_id})')
             except discord.NotFound:
                 print(f'✗ Failed to send boot notification: User ID {owner_id} not found. Please check your user ID in config/bot_config.json')
@@ -502,11 +546,8 @@ def main() -> None:
     bot.run(TOKEN)
 
 
-# Initialize on module load so registries are populated for testing/imports
-initialize_bot()
-
-
 if __name__ == "__main__":
-    # Re-initialize in case configuration changed, then run bot
+    # Initialize and run bot
+    initialize_bot()
     TOKEN = load_token("config")
     bot.run(TOKEN)
