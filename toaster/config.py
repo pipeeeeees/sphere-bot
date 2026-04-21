@@ -75,9 +75,9 @@ def load_token(config_path: str = "config") -> str:
     return config["token"]
 
 
-def load_channel_whitelist(config_path: str = "config") -> list:
+def load_channel_blacklist(config_path: str = "config") -> list:
     """
-    Load whitelisted channel definitions for random AI responses.
+    Load blacklisted channel definitions for random AI responses.
 
     Args:
         config_path: Path to config folder
@@ -86,9 +86,9 @@ def load_channel_whitelist(config_path: str = "config") -> list:
         List of channel entries with keys 'id' (int) and 'nickname' (str|None).
     """
     try:
-        whitelist_file = Path(config_path) / "channel_whitelist.json"
-        if whitelist_file.exists():
-            with open(whitelist_file, 'r') as f:
+        blacklist_file = Path(config_path) / "channel_blacklist.json"
+        if blacklist_file.exists():
+            with open(blacklist_file, 'r') as f:
                 data = json.load(f)
 
                 channels = data.get("channels", [])
@@ -107,12 +107,12 @@ def load_channel_whitelist(config_path: str = "config") -> list:
                 return result
         return []
     except Exception as e:
-        print(f"Error loading channel whitelist: {e}")
+        print(f"Error loading channel blacklist: {e}")
         return []
 
 
-def get_channel_whitelist_ids(config_path: str = "config") -> set:
+def get_channel_blacklist_ids(config_path: str = "config") -> set:
     """
-    Get a set of whitelisted channel IDs for quick membership checks.
+    Get a set of blacklisted channel IDs for quick membership checks.
     """
-    return {entry["id"] for entry in load_channel_whitelist(config_path)}
+    return {entry["id"] for entry in load_channel_blacklist(config_path)}

@@ -13,7 +13,7 @@ import random
 import time
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
-from toaster.config import load_config, load_channel_whitelist
+from toaster.config import load_config, load_channel_blacklist
 
 
 # Create bot instance
@@ -202,18 +202,18 @@ async def handle_dm_response(message: discord.Message) -> None:
 
 async def should_respond_to_message(message: discord.Message) -> bool:
     """
-    Use the LLM to intelligently decide if a message is interesting enough to respond to.
-    Checks basic heuristics first, then asks the LLM for its judgment with conversation context.
+    Use heuristics to decide if a message is interesting enough to respond to.
+    Checks basic heuristics: mentions bot, is question, or is reply to bot.
     
     Args:
         message: The Discord message to evaluate
         
     Returns:
-        True if the message is interesting enough to respond to, False otherwise
+        True if the message meets the criteria to respond to, False otherwise
     """
     message_lower = message.content.lower()
     
-    # Basic heuristics to pass to LLM for context
+    # Basic heuristics
     heuristics = {
         "mentions_bot": "toast" in message_lower,
         "is_question": message_lower.strip().endswith("?"),
@@ -228,42 +228,8 @@ async def should_respond_to_message(message: discord.Message) -> bool:
         except:
             pass
     
-    # If none of the heuristics are met, don't bother asking the LLM
-    if not any(heuristics.values()):
-        return False
-    
-    # Fetch recent message history (last 15 messages before this one)
-    history_messages = []
-    try:
-        async for msg in message.channel.history(limit=15, before=message):
-            history_messages.insert(0, msg)  # Insert at beginning to maintain order
-    except:
-        pass
-    
-    # Build context string from recent messages
-    context = ""
-    for msg in history_messages:
-        context += f"{msg.author.display_name}: {build_message_context(msg)}\n"
-    context += f"{message.author.display_name}: {build_message_context(message)}\n"
-    
-    # Ask the LLM if this message is interesting
-    #print(context)
-    prompt = f"""Decide if this Discord message thread is interesting enough to respond to. You are Toast in this conversation. Respond with ONLY "true" or "false" - nothing else.
-- Does it mention the bot (Toast) in the last message? if so, respond with "true"
-- Is the last message hint at an IRL question or gathering? If so, respond with "false". I don't want you to butt in on personal plans or real life arrangements.
-- Is the overall conversation engaging? Can you add something funny or valuable to it? If so, respond with "true"
-
-Recent conversation:
-{context}
-"""
-
-    response = await get_ai_response("", prompt)
-    
-    if not response:
-        return False
-    
-    # Parse the response to boolean
-    return response.strip().lower() == "true"
+    # If any of the heuristics are met, respond
+    return any(heuristics.values())
 
 
 async def handle_random_channel_response(message: discord.Message) -> None:
@@ -274,13 +240,19 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     if is_channel_muted(message.channel.id):
         return
     
-    # Check if channel is whitelisted
-    whitelist = load_channel_whitelist("config")
-    whitelist_ids = {entry["id"] for entry in whitelist}
-    if message.channel.id not in whitelist_ids:
+    # Check if channel is blacklisted
+    blacklist = load_channel_blacklist("config")
+    blacklist_ids = {entry["id"] for entry in blacklist}
+    if message.channel.id in blacklist_ids:
+        # If blacklisted and mentions toast, inform user
+        if "toast" in message.content.lower():
+            try:
+                await message.channel.send("🤐 I'm currently muted in this channel. Use `$toast` to unmute me!")
+            except Exception:
+                pass
         return
 
-    channel_meta = next((entry for entry in whitelist if entry["id"] == message.channel.id), None)
+    channel_meta = next((entry for entry in blacklist if entry["id"] == message.channel.id), None)
     if channel_meta and channel_meta.get("nickname"):
         # Optional: you can use this nickname for logging or future behavior.
         channel_nickname = channel_meta["nickname"]

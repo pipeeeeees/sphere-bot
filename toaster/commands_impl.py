@@ -37,7 +37,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$commands", value="Show this help message", inline=False)
     embed.add_field(name="$ping", value="Check bot latency", inline=False)
     embed.add_field(name="$uptime", value="Display bot uptime", inline=False)
-    embed.add_field(name="$toast", value="Toggle channel whitelist for Toast to speak in", inline=False)
+    embed.add_field(name="$toast", value="Toggle channel blacklist for Toast to speak in", inline=False)
     embed.add_field(name="$reboot", value="Restart the bot process", inline=False)
     embed.add_field(name="$pull", value="Run git pull and print results", inline=False)
     embed.add_field(name="$mlb_standings", value="Show all MLB division standings", inline=False)
@@ -82,25 +82,25 @@ async def uptime_command(ctx: commands.Context) -> None:
 
 async def toast_command(ctx: commands.Context) -> None:
     """
-    Toggle channel whitelist for Toast to speak in.
-    Adds or removes the current channel from the whitelist.
+    Toggle channel blacklist for Toast to speak in.
+    Adds or removes the current channel from the blacklist.
     """
     channel_id = ctx.channel.id
     channel_name = ctx.channel.name
     
-    whitelist_file = Path("config") / "channel_whitelist.json"
+    blacklist_file = Path("config") / "channel_blacklist.json"
     
     try:
-        # Load current whitelist
-        if whitelist_file.exists():
-            with open(whitelist_file, 'r') as f:
+        # Load current blacklist
+        if blacklist_file.exists():
+            with open(blacklist_file, 'r') as f:
                 data = json.load(f)
         else:
             data = {"channels": []}
         
         channels = data.get("channels", [])
         
-        # Check if channel is already whitelisted
+        # Check if channel is already blacklisted
         existing_entry = None
         for entry in channels:
             if entry.get("id") == channel_id:
@@ -108,23 +108,23 @@ async def toast_command(ctx: commands.Context) -> None:
                 break
         
         if existing_entry:
-            # Remove from whitelist
+            # Remove from blacklist
             channels.remove(existing_entry)
             data["channels"] = channels
-            with open(whitelist_file, 'w') as f:
+            with open(blacklist_file, 'w') as f:
                 json.dump(data, f, indent=2)
-            await ctx.send(f"Removed channel '{channel_name}' (ID: {channel_id}) from my list of channels to speak in. Use $toast again to add it back.")
+            await ctx.send(f"✅ Unmuted channel '{channel_name}' (ID: {channel_id})! I can now speak here again.")
         else:
-            # Add to whitelist
+            # Add to blacklist
             new_entry = {"id": channel_id, "nickname": channel_name}
             channels.append(new_entry)
             data["channels"] = channels
-            with open(whitelist_file, 'w') as f:
+            with open(blacklist_file, 'w') as f:
                 json.dump(data, f, indent=2)
-            await ctx.send(f"Added channel '{channel_name}' (ID: {channel_id}) to my list of channels to speak in! I can now respond with AI messages here.")
+            await ctx.send(f"🤐 Muted channel '{channel_name}' (ID: {channel_id}). I won't respond here unless mentioned. Use `$toast` again to unmute.")
     
     except Exception as e:
-        await ctx.send(f"Sorry, I encountered an error managing the channel whitelist: {str(e)}")
+        await ctx.send(f"Sorry, I encountered an error managing the channel blacklist: {str(e)}")
 
 
 async def reboot_command(ctx: commands.Context) -> None:
