@@ -123,7 +123,7 @@ class ScheduleRegistry:
             "time": time_str,
             "weekdays": weekdays or [],
             "date": date,
-            "months": months or [],
+            "months": months,
             "every_other_day": every_other_day,
             "enabled": enabled,
             "timezone": timezone,
@@ -266,7 +266,7 @@ class ScheduleRegistry:
                 current_month = schedule_now.month
 
                 # Skip if schedule has reduced month window
-                if schedule.get("months"):
+                if schedule.get("months") is not None:
                     if current_month not in schedule["months"]:
                         continue
 
