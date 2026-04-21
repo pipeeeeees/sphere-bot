@@ -429,12 +429,16 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError) 
 @bot.event
 async def on_message(message: discord.Message) -> None:
     """Handle all messages for AI responses."""
-    # Process commands first
-    await bot.process_commands(message)
-    
     # Skip if message is from bot
     if message.author == bot.user:
         return
+
+    # Skip messages that look like prices ($ followed by digit)
+    if message.content.startswith('$') and len(message.content) > 1 and message.content[1].isdigit():
+        return
+
+    # Process commands first
+    await bot.process_commands(message)
 
     # If msg requests silence, mute thread and skip responding
     if is_shutup_command(message.content) and not is_channel_muted(message.channel.id):
