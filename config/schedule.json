@@ -5,7 +5,9 @@
     "channel_id": 1489085355599724684,
     "type": "weekly",
     "time": "16:51",
-    "weekdays": [4],
+    "weekdays": [
+      4
+    ],
     "timezone": "America/New_York",
     "enabled": true
   },
@@ -25,7 +27,9 @@
     "channel_id": 1010706336905961593,
     "type": "weekly",
     "time": "08:00",
-    "weekdays": [1],
+    "weekdays": [
+      1
+    ],
     "timezone": "America/New_York",
     "enabled": true
   },
@@ -35,9 +39,39 @@
     "channel_id": 1010706336905961593,
     "type": "weekly",
     "time": "08:00",
-    "weekdays": [2,3,4,5,6,7],
+    "weekdays": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
     "timezone": "America/New_York",
-    "months": [4,5,6,7,8,9],
+    "months": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "enabled": true
+  },
+  {
+    "name": "pollen_weekdays_1130am",
+    "message": "$pollen",
+    "channel_id": 1079612189175988264,
+    "type": "weekly",
+    "time": "11:30",
+    "weekdays": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "timezone": "America/New_York",
     "enabled": true
   }
 ]
