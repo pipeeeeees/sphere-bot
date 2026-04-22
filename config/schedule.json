@@ -77,9 +77,9 @@
   {
     "name": "atlanta_morning_report",
     "message": "$gemini What's the latest news in Atlanta today?",
-    "channel_id": 1478557472959762494,
+    "channel_id": 1079612189175988264,
     "type": "weekly",
-    "time": "22:49",
+    "time": "09:00",
     "weekdays": [
       1,
       2,
@@ -88,6 +88,66 @@
       5,
       6,
       7
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "baseball_weekly_report",
+    "message": "$gemini What's the latest news in the MLB this week?",
+    "channel_id": 1010706336905961593,
+    "type": "weekly",
+    "time": "10:00",
+    "weekdays": [
+      1
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "tech_weekly_report",
+    "message": "$gemini What's the latest news in the tech industry this week?",
+    "channel_id": 1119463878250745887,
+    "type": "weekly",
+    "time": "10:00",
+    "weekdays": [
+      3
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "nfl_weekly_report",
+    "message": "$gemini What's the latest news in the NFL this week?",
+    "channel_id": 1010706949660221561,
+    "type": "weekly",
+    "time": "10:00",
+    "weekdays": [
+      2
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "cfb_weekly_report",
+    "message": "$gemini What's the latest news in college football this week?",
+    "channel_id": 1010706949660221561,
+    "type": "weekly",
+    "time": "10:00",
+    "weekdays": [
+      5
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "nba_weekly_report",
+    "message": "$gemini What's the latest news in the NBA this week?",
+    "channel_id": 924430124366045214,
+    "type": "weekly",
+    "time": "10:00",
+    "weekdays": [
+      4
     ],
     "timezone": "America/New_York",
     "enabled": true
