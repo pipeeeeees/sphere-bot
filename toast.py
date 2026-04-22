@@ -466,7 +466,17 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError) 
     if isinstance(error, commands.CommandNotFound):
         await ctx.send(f"❌ Command not found. Type `$commands` for available commands.")
     else:
-        await ctx.send(f"❌ An error occurred: {str(error)}")
+        await ctx.send(f"❌ An error occurred.")
+        
+        # Send follow-up message with error details
+        error_details = f"**Error Details:**\n```\n{type(error).__name__}: {str(error)}\n```"
+        try:
+            await ctx.send(error_details)
+        except Exception as e:
+            # If the error message is too long, send a truncated version
+            truncated = error_details[:2000]
+            await ctx.send(truncated)
+        
         print(f"Command error: {error}")
 
 
