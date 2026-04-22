@@ -73,5 +73,23 @@
     ],
     "timezone": "America/New_York",
     "enabled": true
+  },
+  {
+    "name": "atlanta_morning_report",
+    "message": "$gemini What's the latest news in Atlanta today?",
+    "channel_id": 1478557472959762494,
+    "type": "weekly",
+    "time": "20:47",
+    "weekdays": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
   }
 ]

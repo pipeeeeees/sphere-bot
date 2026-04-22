@@ -203,7 +203,7 @@ class ScheduleRegistry:
             await channel.send(command_text)
             return
 
-        from toaster.commands_impl import mlb_all_standings_command, mlb_division_standings_command, pollen_command
+        from toaster.commands_impl import mlb_all_standings_command, mlb_division_standings_command, pollen_command, gemini_command
 
         content = command_text.strip()
         parts = content[1:].split()
@@ -225,6 +225,8 @@ class ScheduleRegistry:
                 await mlb_division_standings_command(ctx, ' '.join(args))
             elif cmd == 'pollen':
                 await pollen_command(ctx)
+            elif cmd == 'gemini' and args:
+                await gemini_command(ctx, message=' '.join(args))
             else:
                 # Unknown scheduled command; do not echo raw command text
                 return

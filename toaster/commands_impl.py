@@ -14,6 +14,7 @@ import sys
 
 from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
+from toaster import get_gemini_response_with_key
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -44,6 +45,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$mlb_standings", value="Show all MLB division standings", inline=False)
     embed.add_field(name="$mlb_division <division>", value="Show standings for one division (nl-east, al-west, etc.)", inline=False)
     embed.add_field(name="$pollen", value="Get the current pollen count in Atlanta", inline=False)
+    embed.add_field(name="$gemini <message>", value="Get a response from Gemini AI", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -214,6 +216,18 @@ async def pollen_command(ctx: commands.Context) -> None:
     await ctx.send(result_handler())
 
 
+async def gemini_command(ctx: commands.Context, *, message: str) -> None:
+    """
+    Get a response from Gemini AI.
+    Usage: $gemini <message>
+    """
+    response = get_gemini_response_with_key("", message)
+    if response:
+        await ctx.send(response)
+    else:
+        await ctx.send("❌ Sorry, I couldn't get a response from Gemini right now.")
+
+
 # Export all command implementations
 __all__ = [
     "hello_command",
@@ -225,5 +239,6 @@ __all__ = [
     "pull_command",
     "mlb_all_standings_command",
     "mlb_division_standings_command",
-    "pollen_command"
+    "pollen_command",
+    "gemini_command"
 ]

@@ -58,5 +58,11 @@
     "description": "Get the current pollen count in Atlanta",
     "module": "toaster.commands_impl",
     "function": "pollen_command"
+  },
+  {
+    "name": "gemini",
+    "description": "Get a response from Gemini AI",
+    "module": "toaster.commands_impl",
+    "function": "gemini_command"
   }
 ]
