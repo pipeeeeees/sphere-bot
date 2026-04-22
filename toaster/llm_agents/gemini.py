@@ -43,7 +43,11 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
             )
         )
         
-        return response.text.strip() if response.text else None
+        # Return empty string for empty responses, None only for errors
+        if response.text:
+            return response.text.strip()
+        else:
+            return ""
         
     except Exception as e:
         print(f"Error in Gemini API call: {e}")

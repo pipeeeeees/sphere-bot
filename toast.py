@@ -188,8 +188,8 @@ async def handle_dm_response(message: discord.Message) -> None:
     except Exception as e:
         error_details = f"{type(e).__name__}: {str(e)}"
     
-    # If AI fails, DM the owner about the issue instead of sending to user
-    if not response:
+    # If AI fails (None response), DM the owner about the issue instead of sending to user
+    if response is None:
         config = load_config("config")
         bot_config = config.get("bot_config", {})
         owner_id = bot_config.get("owner_user_id")
@@ -205,6 +205,10 @@ async def handle_dm_response(message: discord.Message) -> None:
         
         error_msg = error_details if error_details else f"{AI_PROVIDER} returned None"
         print(f"AI response failed for DM from {message.author}: {error_msg}")
+        return
+    
+    # If AI returned empty string, don't send anything
+    if not response:
         return
     
     # Store conversation history and send response
@@ -300,8 +304,8 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     except Exception as e:
         error_details = f"{type(e).__name__}: {str(e)}"
     
-    # If AI fails, DM the owner about the issue instead of spamming the channel
-    if not response:
+    # If AI fails (None response), DM the owner about the issue instead of spamming the channel
+    if response is None:
         config = load_config("config")
         bot_config = config.get("bot_config", {})
         owner_id = bot_config.get("owner_user_id")
@@ -317,6 +321,10 @@ async def handle_random_channel_response(message: discord.Message) -> None:
         
         error_msg = error_details if error_details else f"{AI_PROVIDER} returned None"
         print(f"AI response failed for channel message: {error_msg}")
+        return
+    
+    # If AI returned empty string, don't send anything
+    if not response:
         return
     
     # Send response
