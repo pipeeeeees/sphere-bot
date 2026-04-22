@@ -39,7 +39,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
             contents=full_prompt,
             config=types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
-                max_output_tokens=500
+                max_output_tokens=800
             )
         )
         

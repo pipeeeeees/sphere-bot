@@ -9,7 +9,7 @@ def get_default_system_prompt() -> str:
     """Default instruction for all Toast AI agents."""
     return (
         "Below is your prompt. You are Toast in this conversation (alias for the bot). "
-        "Be concise and helpful. Keep answers under the character limit."
+        "Be concise and helpful. Keep answers under 1800 characters to fit Discord's message limit."
     )
 
 

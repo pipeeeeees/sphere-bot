@@ -211,8 +211,11 @@ async def handle_dm_response(message: discord.Message) -> None:
     if not response:
         return
     
-    # Store conversation history and send response
+    # Store conversation history and send response (truncate to Discord limit)
     update_conversation_history(key, message.content, response)
+    # Ensure response fits within Discord's 2000 character limit
+    if len(response) > 2000:
+        response = response[:1997] + "..."
     await message.channel.send(response)
 
 
@@ -327,7 +330,10 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     if not response:
         return
     
-    # Send response
+    # Send response (truncate to Discord limit)
+    # Ensure response fits within Discord's 2000 character limit
+    if len(response) > 2000:
+        response = response[:1997] + "..."
     await message.channel.send(response)
 
 
