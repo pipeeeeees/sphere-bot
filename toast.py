@@ -181,7 +181,12 @@ async def handle_dm_response(message: discord.Message) -> None:
     history = conversation_history.get(key, "")
     
     # Get AI response
-    response = await get_ai_response(history, message.content)
+    error_details = None
+    response = None
+    try:
+        response = await get_ai_response(history, message.content)
+    except Exception as e:
+        error_details = f"{type(e).__name__}: {str(e)}"
     
     # If AI fails, DM the owner about the issue instead of sending to user
     if not response:
@@ -192,11 +197,14 @@ async def handle_dm_response(message: discord.Message) -> None:
         if owner_id:
             try:
                 owner = await bot.fetch_user(owner_id)
+                error_msg = error_details if error_details else f"{AI_PROVIDER} returned None"
                 await owner.send(f"⚠️ AI response failed for DM from {message.author} ({message.author.id}):\nMessage: {message.content}")
+                await owner.send(f"**Error Details:**\n```\n{error_msg}\n```")
             except Exception as e:
                 print(f"Failed to notify owner about AI error: {e}")
         
-        print(f"AI response failed for DM from {message.author}: {AI_PROVIDER} returned None")
+        error_msg = error_details if error_details else f"{AI_PROVIDER} returned None"
+        print(f"AI response failed for DM from {message.author}: {error_msg}")
         return
     
     # Store conversation history and send response
@@ -285,7 +293,12 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     #print(history)
     
     # Get AI response
-    response = await get_ai_response(history, message.content)
+    error_details = None
+    response = None
+    try:
+        response = await get_ai_response(history, message.content)
+    except Exception as e:
+        error_details = f"{type(e).__name__}: {str(e)}"
     
     # If AI fails, DM the owner about the issue instead of spamming the channel
     if not response:
@@ -296,11 +309,14 @@ async def handle_random_channel_response(message: discord.Message) -> None:
         if owner_id:
             try:
                 owner = await bot.fetch_user(owner_id)
+                error_msg = error_details if error_details else f"{AI_PROVIDER} returned None"
                 await owner.send(f"⚠️ AI response failed for channel message from {message.author} ({message.author.id}) in {message.guild.name}:\nMessage: {message.content}")
+                await owner.send(f"**Error Details:**\n```\n{error_msg}\n```")
             except Exception as e:
                 print(f"Failed to notify owner about AI error: {e}")
         
-        print(f"AI response failed for channel message: {AI_PROVIDER} returned None")
+        error_msg = error_details if error_details else f"{AI_PROVIDER} returned None"
+        print(f"AI response failed for channel message: {error_msg}")
         return
     
     # Send response
