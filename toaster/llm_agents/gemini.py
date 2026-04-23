@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from google import genai
 from google.genai import types
@@ -8,7 +8,7 @@ from google.genai import types
 from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet
 
 
-def get_gemini_response(history: str, message: str, api_key: str) -> Optional[str]:
+def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Get a response from Google's Gemini AI model with web grounding.
     Uses gemini-2.5-flash for fast responses with up-to-date information.
@@ -19,7 +19,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
         api_key: Gemini API key
         
     Returns:
-        AI response text or None if error
+        Tuple of (response text, error message) - response is None on error, error contains details
     """
     try:
         client = genai.Client(api_key=api_key)
@@ -45,13 +45,13 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Optional[st
         
         # Return empty string for empty responses, None only for errors
         if response.text:
-            return response.text.strip()
+            return response.text.strip(), None
         else:
-            return ""
+            return "", None
         
     except Exception as e:
         print(f"Error in Gemini API call: {e}")
-        return None
+        return None, str(e)
 
 
 def load_gemini_key(config_path: str = "config") -> Optional[str]:
@@ -76,7 +76,7 @@ def load_gemini_key(config_path: str = "config") -> Optional[str]:
         return None
 
 
-def get_gemini_response_with_key(history: str, message: str, config_path: str = "config") -> Optional[str]:
+def get_gemini_response_with_key(history: str, message: str, config_path: str = "config") -> Tuple[Optional[str], Optional[str]]:
     """
     Convenience function that loads the API key and gets a Gemini response.
     
@@ -86,12 +86,11 @@ def get_gemini_response_with_key(history: str, message: str, config_path: str = 
         config_path: Path to config directory
         
     Returns:
-        AI response text or None if error
+        Tuple of (response text, error message)
     """
     api_key = load_gemini_key(config_path)
     if not api_key:
-        print("Gemini API key not found in config/gemini_key.json")
-        return None
+        return None, "Gemini API key not found in config/gemini_key.json"
     
     return get_gemini_response(history, message, api_key)
 
@@ -123,13 +122,15 @@ if __name__ == "__main__":
     print(f"Sending: {test_message}")
     print()
     
-    response = get_gemini_response_with_key("", test_message)
+    response, error = get_gemini_response_with_key("", test_message)
     
     if response:
         print("✅ API is working!")
         print(f"Response:\n{response}")
     else:
         print("❌ API failed to return a response")
+        if error:
+            print(f"Error: {error}")
     
     print("\n" + "=" * 50)
     print("Note: Gemini 2.5 Flash with grounding provides up-to-date information.")

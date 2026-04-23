@@ -62,7 +62,8 @@ async def get_ai_response(history: str, message: str) -> str:
     if AI_PROVIDER == "grok":
         return get_grok_response_with_key(history, message, "config")
     elif AI_PROVIDER == "gemini":
-        return get_gemini_response_with_key(history, message, "config")
+        response, _ = get_gemini_response_with_key(history, message, "config")
+        return response
     else:
         print(f"Unknown AI provider: {AI_PROVIDER}")
         return None

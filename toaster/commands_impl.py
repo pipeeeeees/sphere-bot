@@ -15,6 +15,7 @@ import sys
 from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
 from toaster import get_gemini_response_with_key
+from toaster.config import load_config
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -221,11 +222,21 @@ async def gemini_command(ctx: commands.Context, *, message: str) -> None:
     Get a response from Gemini AI.
     Usage: $gemini <message>
     """
-    response = get_gemini_response_with_key("", message)
+    response, error = get_gemini_response_with_key("", message)
     if response:
         await ctx.send(response)
     else:
-        await ctx.send("❌ Sorry, I couldn't get a response from Gemini right now.")
+        # Send error to owner instead of channel
+        config = load_config("config")
+        bot_config = config.get("bot_config", {})
+        owner_id = bot_config.get("owner_user_id")
+        if owner_id:
+            try:
+                owner = await ctx.bot.fetch_user(owner_id)
+                await owner.send(f"⚠️ Gemini command failed in channel {ctx.channel.id}: {error}")
+            except Exception as dm_err:
+                print(f"Failed to notify owner about Gemini command error: {dm_err}")
+        # Do not send error message to the channel
 
 
 # Export all command implementations
