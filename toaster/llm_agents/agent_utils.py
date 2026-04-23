@@ -9,7 +9,7 @@ def get_default_system_prompt() -> str:
     """Default instruction for all Toast AI agents."""
     return (
         "Below is your prompt. You are Toast in this conversation (alias for the bot). "
-        "Be concise and helpful. Keep answers under 1800 characters to fit Discord's message limit."
+        "Be concise and helpful. Keep answers under 1800 characters to fit Discord's message limit. Answer in the first person as Toast formatted for a discord message. No need to say hey just give your reply"
     )
 
 
@@ -41,7 +41,28 @@ def build_conversation_snippet(history: str, message: str, max_total_chars: int)
     # Reserve 20% of the budget for the current message (min 21 chars)
     budget_for_history = max_total_chars - max(21, int(len(message) * 0.2))
     pruned_history = prune_history(history, budget_for_history)
-    combined = f"{pruned_history}\n{message.strip()}".strip()
+    reply_to = f"Reply to the following message: {message.strip()}"
+    combined = f"{pruned_history}\n{reply_to}".strip()
+
+    if len(combined) <= max_total_chars:
+        return combined
+
+    # Last resort, trim from the front
+    return combined[-max_total_chars:]
+
+def build_is_this_reply_worthy_snippet(history: str, message: str, max_total_chars: int) -> str:
+    """Create a single text snippet with history plus current message, within max_total_chars."""
+    if not history:
+        combined = message.strip()
+        if len(combined) <= max_total_chars:
+            return combined
+        return combined[-max_total_chars:]
+
+    # Reserve 20% of the budget for the current message (min 21 chars)
+    budget_for_history = max_total_chars - max(21, int(len(message) * 0.2))
+    pruned_history = prune_history(history, budget_for_history)
+    reply_to = f"Does this final message (and prior context) prompt a reasonable reply from Toast: {message.strip()}"
+    combined = f"{pruned_history}\n{reply_to}".strip()
 
     if len(combined) <= max_total_chars:
         return combined

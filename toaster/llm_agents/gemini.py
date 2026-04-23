@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
 from typing import Optional, Tuple
+import asyncio
 
 from google import genai
 from google.genai import types
 
-from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet
+from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet, build_is_this_reply_worthy_snippet
 
 
 def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optional[str], Optional[str]]:
@@ -29,6 +30,8 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
         
         # Build conversation snippet with history and message
         conversation = build_conversation_snippet(history, message, max_total_chars)
+
+        #print(conversation)
         
         # Combine system prompt with conversation
         full_prompt = f"{system_prompt}\n\n{conversation}"
@@ -45,7 +48,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
         
         # Return empty string for empty responses, None only for errors
         if response.text:
-            return response.text.strip(), None
+            return response.text, None
         else:
             return "", None
         
@@ -94,43 +97,59 @@ def get_gemini_response_with_key(history: str, message: str, config_path: str = 
     
     return get_gemini_response(history, message, api_key)
 
+async def infer_if_reply_is_at_toast(history:str, message:str, api_key:str) -> bool:
+    """
+    Infer if the user's message is likely directed at Toast based on conversation history and message content.
+    Uses a simple heuristic approach with the Gemini model to analyze the context.
+    
+    Args:
+        history: Previous conversation history
+        message: Current user message
+        api_key: Gemini API key
+    Returns:
+        True if the message is likely directed at Toast, False otherwise
+    """
+    
+    # Retry logic: try up to 3 times with exponential backoff
+    for attempt in range(3):
+        try:
+            client = genai.Client(api_key=api_key)
+            
+            system_prompt = (
+                "You are an assistant that determines if a user's message in a conversation is directed at Toast, a helpful Discord bot. "
+                "Based on the conversation history and the final message, respond with 'Yes' if the final message (and prior context) prompt a reasonable reply from Toast, or 'No' if it is not."
+            )
+            
+            max_total_chars = 1500
+            conversation = build_is_this_reply_worthy_snippet(history, message, max_total_chars)
+            full_prompt = f"{system_prompt}\n\nConversation history:\n{conversation}"
+            
+            #print(full_prompt)
+
+            response = client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=50
+                )
+            )
+            
+            # Check if we got a valid response text
+            if response.text:
+                return response.text.strip().lower() == "yes"
+            else:
+                # No text in response, treat as failure
+                raise Exception("Gemini API returned empty response text")
+            
+        except Exception as e:
+            print(f"Error in Gemini API call for reply inference (attempt {attempt + 1}/3): {e}")
+            if attempt < 2:  # Don't wait after the last attempt
+                wait_time = 2 ** (attempt + 1)  # 2 seconds after first failure, 4 after second
+                print(f"Waiting {wait_time} seconds before retry...")
+                await asyncio.sleep(wait_time)
+    
+    # All attempts failed
+    return False
 
 if __name__ == "__main__":
-    """
-    Standalone test for Gemini API integration with grounding.
-    Run this file directly to test the API without running the full bot.
-    """
-    import sys
-    
-    print("🤖 Gemini API Test (with Web Grounding)")
-    print("=" * 50)
-    
-    # Load API key
-    api_key = load_gemini_key()
-    if not api_key:
-        print("❌ No API key found in config/gemini_key.json")
-        sys.exit(1)
-    
-    print(f"✓ API key loaded (ends with: ...{api_key[-10:]})")
-    print(f"✓ Model: gemini-2.5-flash (with Google Search grounding)\n")
-    
-    # Test with a simple message
-    print("🧪 Test: Simple greeting")
-    print("-" * 30)
-    
-    test_message = "Hello! What's a recent tech news story?"
-    print(f"Sending: {test_message}")
-    print()
-    
-    response, error = get_gemini_response_with_key("", test_message)
-    
-    if response:
-        print("✅ API is working!")
-        print(f"Response:\n{response}")
-    else:
-        print("❌ API failed to return a response")
-        if error:
-            print(f"Error: {error}")
-    
-    print("\n" + "=" * 50)
-    print("Note: Gemini 2.5 Flash with grounding provides up-to-date information.")
+    pass
