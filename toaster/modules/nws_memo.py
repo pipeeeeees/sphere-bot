@@ -199,9 +199,9 @@ def get_atl_key_messages():
 def get_atl_key_messages_formatted():
     key_messages = get_atl_key_messages()
     if not key_messages:
-        return "No key messages found in the latest AFD for Atlanta."
+        return "No key messages found in the latest AFD for the Atlanta metro."
     
-    formatted = "**Here are latest key messages from the National Weather Service for Atlanta:**"
+    formatted = "**Here are latest key messages from the National Weather Service for the Atlanta Metro:**"
     for msg in key_messages:
         formatted += f"\n- {msg}"
         if "smoke" in msg.lower():
