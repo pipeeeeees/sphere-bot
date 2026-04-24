@@ -61,7 +61,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
                 print(f"Waiting {wait_time} seconds before retry...")
                 time.sleep(wait_time)
             else:
-                print(f"Error in Gemini API call (final attempt): {e}")
+                print(f"Error in Gemini API call (final attempt: {attempt}): {e}")
                 return None, str(e)
 
 
