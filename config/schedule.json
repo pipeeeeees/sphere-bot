@@ -93,6 +93,24 @@
     "enabled": true
   },
   {
+    "name": "atlanta_morning_report",
+    "message": "$gemini What's the latest news in Atlanta today?",
+    "channel_id": 1489085355599724684,
+    "type": "weekly",
+    "time": "21:34",
+    "weekdays": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
     "name": "baseball_weekly_report",
     "message": "$gemini What's the latest news in the MLB this week?",
     "channel_id": 1010706336905961593,
