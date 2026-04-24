@@ -93,11 +93,11 @@
     "enabled": true
   },
   {
-    "name": "atlanta_morning_report",
+    "name": "atlanta_evening_report",
     "message": "$gemini What's the latest news in Atlanta today?",
     "channel_id": 1489085355599724684,
     "type": "weekly",
-    "time": "21:34",
+    "time": "22:00",
     "weekdays": [
       1,
       2,
