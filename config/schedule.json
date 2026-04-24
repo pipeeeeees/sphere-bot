@@ -76,7 +76,7 @@
   },
   {
     "name": "atlanta_morning_report",
-    "message": "$gemini What's the latest news in Atlanta today?",
+    "message": "$gemini What's the latest news in Atlanta today? Format it for us in discord with bullet points",
     "channel_id": 1079612189175988264,
     "type": "weekly",
     "time": "09:00",
@@ -94,7 +94,7 @@
   },
   {
     "name": "atlanta_evening_report",
-    "message": "$gemini What's the latest news in Atlanta today?",
+    "message": "$gemini What's the latest news in Atlanta today? Format it for us in discord with bullet points",
     "channel_id": 1489085355599724684,
     "type": "weekly",
     "time": "22:00",
@@ -166,6 +166,24 @@
     "time": "10:00",
     "weekdays": [
       4
+    ],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "nws_daily_report",
+    "message": "$weather",
+    "channel_id": 1079612189175988264,
+    "type": "weekly",
+    "time": "21:00",
+    "weekdays": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
     ],
     "timezone": "America/New_York",
     "enabled": true

@@ -201,9 +201,31 @@ def get_atl_key_messages_formatted():
     if not key_messages:
         return "No key messages found in the latest AFD for Atlanta."
     
-    formatted = "**Key Messages from the National Weather Service for Atlanta:**"
+    formatted = "**Here are latest key messages from the National Weather Service for Atlanta:**"
     for msg in key_messages:
         formatted += f"\n- {msg}"
+        if "smoke" in msg.lower():
+            formatted += " 😶‍🌫️"
+        elif "fire" in msg.lower():
+            formatted += " 🔥"
+        elif "flood" in msg.lower():
+            formatted += " 🌊"
+        elif "wind" in msg.lower():
+            formatted += " 💨"
+        elif "storm" in msg.lower():
+            formatted += " ⛈️"
+        elif "heat" in msg.lower():
+            formatted += " 🔥"
+        elif "cold" in msg.lower():
+            formatted += " 🥶"
+        elif "snow" in msg.lower():
+            formatted += " ❄️"
+        elif "rain" in msg.lower():
+            formatted += " 🌧️"
+        elif "tornado" in msg.lower():
+            formatted += " 🌪️"
+        elif "hurricane" in msg.lower():
+            formatted += " 🌀"
     return formatted
 
 if __name__ == "__main__":
