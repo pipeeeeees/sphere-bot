@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Optional, Tuple
 import asyncio
+import time
 
 from google import genai
 from google.genai import types
@@ -22,39 +23,46 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
     Returns:
         Tuple of (response text, error message) - response is None on error, error contains details
     """
-    try:
-        client = genai.Client(api_key=api_key)
-        
-        system_prompt = get_default_system_prompt()
-        max_total_chars = 3000
-        
-        # Build conversation snippet with history and message
-        conversation = build_conversation_snippet(history, message, max_total_chars)
+    for attempt in range(6):
+        try:
+            client = genai.Client(api_key=api_key)
+            
+            system_prompt = get_default_system_prompt()
+            max_total_chars = 3000
+            
+            # Build conversation snippet with history and message
+            conversation = build_conversation_snippet(history, message, max_total_chars)
 
-        #print(conversation)
-        
-        # Combine system prompt with conversation
-        full_prompt = f"{system_prompt}\n\n{conversation}"
-        
-        # Make request with Google Search grounding for current information
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=full_prompt,
-            config=types.GenerateContentConfig(
-                tools=[types.Tool(google_search=types.GoogleSearch())],
-                max_output_tokens=800
+            #print(conversation)
+            
+            # Combine system prompt with conversation
+            full_prompt = f"{system_prompt}\n\n{conversation}"
+            
+            # Make request with Google Search grounding for current information
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    max_output_tokens=800
+                )
             )
-        )
-        
-        # Return empty string for empty responses, None only for errors
-        if response.text:
-            return response.text, None
-        else:
-            return "", None
-        
-    except Exception as e:
-        print(f"Error in Gemini API call: {e}")
-        return None, str(e)
+            
+            # Return empty string for empty responses, None only for errors
+            if response.text:
+                return response.text, None
+            else:
+                return "", None
+            
+        except Exception as e:
+            if attempt < 5:
+                wait_time = 2 ** (attempt + 1)
+                print(f"Error in Gemini API call (attempt {attempt + 1}/5): {e}")
+                print(f"Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
+            else:
+                print(f"Error in Gemini API call (final attempt): {e}")
+                return None, str(e)
 
 
 def load_gemini_key(config_path: str = "config") -> Optional[str]:
@@ -77,7 +85,6 @@ def load_gemini_key(config_path: str = "config") -> Optional[str]:
     except Exception as e:
         print(f"Error loading Gemini key: {e}")
         return None
-
 
 def get_gemini_response_with_key(history: str, message: str, config_path: str = "config") -> Tuple[Optional[str], Optional[str]]:
     """
@@ -111,7 +118,7 @@ async def infer_if_reply_is_at_toast(history:str, message:str, api_key:str) -> b
     """
     
     # Retry logic: try up to 3 times with exponential backoff
-    for attempt in range(3):
+    for attempt in range(6):
         try:
             client = genai.Client(api_key=api_key)
             
