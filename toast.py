@@ -11,6 +11,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import random
 import time
+from collections import deque
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
 from toaster.config import load_config, load_channel_blacklist
@@ -93,7 +94,7 @@ def is_shutup_command(message: str) -> bool:
         return True
 
     # common forms: "shutup toast", "shut up toast", "toast shut up", "toast, shut up"
-    if "toast" in text and ("shutup" in text or "shut up" in text or "shut it" in text or "stfu" in text or "be quiet" in text or "shut the fuck up" in text):
+    if "toast" in text and ("shutup" in text or "shut up" in text or "shut it" in text or "stfu" in text or "be quiet" in text or "shut the fuck up" in text or "shut the hell up" in text):
         return True
 
     return False
@@ -220,37 +221,90 @@ async def handle_dm_response(message: discord.Message) -> None:
         response = response[:1997] + "..."
     await message.channel.send(response)
 
+# Track recent bot activity for rate limiting
+recent_bot_posts: deque = deque(maxlen=50)
+
+INVITATION_PHRASES = ["anyone know", "does anyone", "what does everyone", "thoughts?", "any ideas"]
+RECOMMENDATION_WORDS = ["recommend", "suggest", "should i", "worth it", "any good", "best way"]
+HOT_TAKE_PHRASES = ["unpopular opinion", "hot take", "fight me", "change my mind", "controversial"]
+FUN_TOPICS = ["movie", "game", "music", "anime", "food", "python", "ai"]  # customize for your server
+QUESTION_STARTERS = ("who ", "what ", "where ", "when ", "why ", "how ", "can someone", "is there", "does anyone")
+GREETINGS = ("hey", "hi ", "hello", "yo ", "sup", "howdy")
+
+REAL_LIFE_ACTIVITY_WORDS = [
+    "get food", "grab food", "get lunch", "grab lunch", "get dinner", "grab dinner",
+    "get drinks", "grab drinks", "get coffee", "grab coffee",
+    "hang out", "hang tonight", "come over", "meet up", "meetup",
+    "go out", "going out", "come through", "pull up",
+    "who's down", "whos down", "who wants to", "anyone down",
+    "anyone want to", "anyone wanna", "who's in", "whos in",
+    "irl", "in person", "in real life",
+]
+
+REAL_LIFE_VENUES = [
+    "restaurant", "bar", "club", "party", "concert", "show",
+    "the mall", "the gym", "the park", "the movies", "the game",
+]
+
+def is_real_life_plan(message_lower: str) -> bool:
+    has_activity = any(phrase in message_lower for phrase in REAL_LIFE_ACTIVITY_WORDS)
+    has_venue = any(place in message_lower for place in REAL_LIFE_VENUES)
+    return has_activity or has_venue
 
 async def should_respond_to_message(message: discord.Message) -> bool:
-    """
-    Use heuristics to decide if a message is interesting enough to respond to.
-    Checks basic heuristics: mentions bot, is question, or is reply to bot.
-    
-    Args:
-        message: The Discord message to evaluate
-        
-    Returns:
-        True if the message meets the criteria to respond to, False otherwise
-    """
-    message_lower = message.content.lower()
-    
-    # Basic heuristics
+    message_lower = message.content.lower().strip()
+    now = time.time()
+
+    # Hard veto — never butt into real life plans
+    if is_real_life_plan(message_lower):
+        return False
+
+    # --- Rate limiting: don't respond if bot spoke very recently ---
+    recent_in_channel = [t for t in recent_bot_posts if t["channel"] == message.channel.id and now - t["time"] < 30]
+    if len(recent_in_channel) >= 2:
+        # Still allow direct mentions to break through
+        if "toast" not in message_lower:
+            return False
+
     heuristics = {
+        # Original
         "mentions_bot": "toast" in message_lower,
-        "is_question": message_lower.strip().endswith("?"),
-        "is_reply_to_bot": False
+        "is_question": message_lower.endswith("?"),
+        "is_reply_to_bot": False,
+
+        # Better question detection
+        "implicit_question": message_lower.startswith(QUESTION_STARTERS),
+        "seeking_recommendation": any(w in message_lower for w in RECOMMENDATION_WORDS),
+
+        # Social triggers
+        "direct_address": message_lower.startswith("toast"),
+        "open_invitation": any(p in message_lower for p in INVITATION_PHRASES),
+        "hot_take_bait": any(p in message_lower for p in HOT_TAKE_PHRASES),
+        "greeting": any(message_lower.startswith(g) for g in GREETINGS) and len(message_lower) < 50,
+
+        # Topic interest
+        "fun_topic": any(t in message_lower for t in FUN_TOPICS) and len(message.content) > 40,
+
+        # Personality: small random chance for longer messages
+        "random_chime_in": len(message.content) > 80 and random.random() < 0.04,
+
+        # Deliberating between options
+        "tossup_question": message_lower.count(" or ") >= 1 and message_lower.endswith("?"),
     }
-    
-    # Check if message is a reply to the bot
+
+    # Check reply-to-bot (your original logic)
     if message.reference:
         try:
             replied_to = await message.channel.fetch_message(message.reference.message_id)
             heuristics["is_reply_to_bot"] = replied_to.author == bot.user
         except:
             pass
-    
-    # If any of the heuristics are met, respond
-    return any(heuristics.values())
+
+    if any(heuristics.values()):
+        recent_bot_posts.append({"channel": message.channel.id, "time": now})
+        return True
+
+    return False
 
 
 async def handle_random_channel_response(message: discord.Message) -> None:
