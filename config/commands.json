@@ -64,5 +64,11 @@
     "description": "Get a response from Gemini AI",
     "module": "toaster.commands_impl",
     "function": "gemini_command"
+  },
+  {
+    "name": "weather",
+    "description": "Get key weather messages for Atlanta from NWS",
+    "module": "toaster.commands_impl",
+    "function": "weather_command"
   }
 ]
