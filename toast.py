@@ -269,24 +269,24 @@ async def should_respond_to_message(message: discord.Message) -> bool:
     heuristics = {
         # Original
         "mentions_bot": "toast" in message_lower,
-        "is_question": message_lower.endswith("?"),
+        #"is_question": message_lower.endswith("?"),
         "is_reply_to_bot": False,
 
         # Better question detection
-        "implicit_question": message_lower.startswith(QUESTION_STARTERS),
-        "seeking_recommendation": any(w in message_lower for w in RECOMMENDATION_WORDS),
+        #"implicit_question": message_lower.startswith(QUESTION_STARTERS),
+        #"seeking_recommendation": any(w in message_lower for w in RECOMMENDATION_WORDS),
 
         # Social triggers
         "direct_address": message_lower.startswith("toast"),
-        "open_invitation": any(p in message_lower for p in INVITATION_PHRASES),
-        "hot_take_bait": any(p in message_lower for p in HOT_TAKE_PHRASES),
-        "greeting": any(message_lower.startswith(g) for g in GREETINGS) and len(message_lower) < 50,
+        #"open_invitation": any(p in message_lower for p in INVITATION_PHRASES),
+        #"hot_take_bait": any(p in message_lower for p in HOT_TAKE_PHRASES),
+        #"greeting": any(message_lower.startswith(g) for g in GREETINGS) and len(message_lower) < 50,
 
         # Topic interest
-        "fun_topic": any(t in message_lower for t in FUN_TOPICS) and len(message.content) > 40,
+        #"fun_topic": any(t in message_lower for t in FUN_TOPICS) and len(message.content) > 40,
 
         # Personality: small random chance for longer messages
-        "random_chime_in": len(message.content) > 80 and random.random() < 0.04,
+        "random_chime_in": len(message.content) > 80 and random.random() < 0.02,
 
         # Deliberating between options
         "tossup_question": message_lower.count(" or ") >= 1 and message_lower.endswith("?"),
