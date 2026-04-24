@@ -298,6 +298,7 @@ async def handle_random_channel_response(message: discord.Message) -> None:
 
     # Ask LLM if this message is interesting using Gemini inference helper.
     api_key = load_gemini_key("config")
+    api_key = None # turn off relevant inference for now. its annoying
     if api_key:
         try:
             if not await infer_if_reply_is_at_toast(history, message.content, api_key):
