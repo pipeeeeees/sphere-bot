@@ -71,6 +71,79 @@ async def get_ai_response(history: str, message: str) -> str:
         return None
 
 
+async def safe_send(channel, content: str) -> None:
+    """Send `content` to `channel` robustly.
+
+    - Splits content into Discord-safe chunks (<=2000 chars).
+    - Prefers splitting on double-newlines, then newlines, then sentence boundaries.
+    - Falls back to fixed-size slices if needed.
+    """
+    if not content:
+        return
+
+    MAX = 2000
+
+    async def _send_piece(piece: str):
+        try:
+            await channel.send(piece)
+        except Exception:
+            # Last-resort: try smaller slices
+            for i in range(0, len(piece), MAX - 10):
+                try:
+                    await channel.send(piece[i:i + (MAX - 10)])
+                except Exception as e:
+                    print(f"safe_send: failed to send slice: {e}")
+
+    # If already small, try sending directly
+    if len(content) <= MAX:
+        try:
+            await channel.send(content)
+            return
+        except Exception:
+            # fall through to chunking logic
+            pass
+
+    # Try splitting by double newlines for readability
+    parts = []
+    for para in content.split('\n\n'):
+        if not para:
+            continue
+        if len(para) <= MAX:
+            parts.append(para)
+        else:
+            # split by single newline
+            for line in para.split('\n'):
+                if not line:
+                    continue
+                if len(line) <= MAX:
+                    parts.append(line)
+                else:
+                    # try sentence-ish split
+                    import re
+                    sentences = re.split(r'(?<=[\.\!\?])\s+', line)
+                    buf = ''
+                    for sent in sentences:
+                        if len(buf) + len(sent) + 1 <= MAX:
+                            buf = (buf + ' ' + sent).strip()
+                        else:
+                            if buf:
+                                parts.append(buf)
+                            if len(sent) > MAX:
+                                # final fallback: slice
+                                for i in range(0, len(sent), MAX - 10):
+                                    parts.append(sent[i:i + (MAX - 10)])
+                                buf = ''
+                            else:
+                                buf = sent
+                    if buf:
+                        parts.append(buf)
+
+    # Send each piece sequentially
+    for piece in parts:
+        await _send_piece(piece)
+        await asyncio.sleep(0.1)
+
+
 def is_channel_muted(channel_id: int) -> bool:
     """Return True if channel/DM is currently muted."""
     unmute_time = muted_threads.get(channel_id)
@@ -219,7 +292,7 @@ async def handle_dm_response(message: discord.Message) -> None:
     # Ensure response fits within Discord's 2000 character limit
     if len(response) > 2000:
         response = response[:1997] + "..."
-    await message.channel.send(response)
+    await safe_send(message.channel, response)
 
 # Track recent bot activity for rate limiting
 recent_bot_posts: deque = deque(maxlen=50)
@@ -420,11 +493,11 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     if not response:
         return
     
-    # Send response (truncate to Discord limit)
-    # Ensure response fits within Discord's 2000 character limit
+    # Send response (robustly)
     if len(response) > 2000:
-        response = response[:1997] + "..."
-    await message.channel.send(response)
+        # Let safe_send handle splitting nicely
+        pass
+    await safe_send(message.channel, response)
 
 
 def load_commands_from_config() -> None:
