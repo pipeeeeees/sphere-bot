@@ -35,6 +35,8 @@ class ScheduleRegistry:
     def __init__(self):
         self.schedules: List[Dict[str, Any]] = []
         self.is_running = False
+        # Lock to prevent concurrent send checks/updates causing duplicate sends
+        self._send_lock = asyncio.Lock()
     
     def register(
         self,
@@ -297,8 +299,19 @@ class ScheduleRegistry:
                     if schedule_now.day % 2 == 0:
                         continue
 
-                # Skip if already sent in this minute
-                if schedule["last_sent"] == current_time:
+                # Build a minute-resolution key for de-duplication (ISO minute)
+                try:
+                    minute_key = schedule_now.isoformat(timespec='minutes')
+                except TypeError:
+                    # Older Python versions may not support timespec kw; fallback
+                    minute_key = schedule_now.strftime("%Y-%m-%dT%H:%M")
+
+                # Skip if already sent in this minute (use lock to avoid races)
+                already_sent = False
+                async with self._send_lock:
+                    if schedule.get("last_sent") == minute_key:
+                        already_sent = True
+                if already_sent:
                     continue
 
                 should_send = False
@@ -325,13 +338,20 @@ class ScheduleRegistry:
                 # Send message if conditions are met
                 if should_send:
                     try:
-                        channel = bot.get_channel(schedule["channel_id"])
+                        # Acquire lock and re-check/mark last_sent to avoid double-send races
+                        async with self._send_lock:
+                            if schedule.get("last_sent") == minute_key:
+                                # Another coroutine already sent this minute
+                                continue
+                            # mark as sent for this minute before sending
+                            schedule["last_sent"] = minute_key
+
+                        channel = bot.get_channel(schedule["channel_id"]) 
                         if channel:
                             if isinstance(schedule["message"], str) and schedule["message"].startswith('$'):
                                 await self._execute_scheduled_command(schedule["message"], channel, bot, schedule)
                             else:
                                 await channel.send(schedule["message"])
-                            schedule["last_sent"] = current_time
                     except Exception as e:
                         print(f"Error sending scheduled message '{schedule['name']}': {e}")
 
