@@ -125,6 +125,7 @@ class ScheduleRegistry:
             "date": date,
             "months": months,
             "every_other_day": every_other_day,
+            "allow_reboot": False,
             "enabled": enabled,
             "timezone": timezone,
             "last_sent": None  # Track last sent time to avoid duplicates
@@ -197,13 +198,23 @@ class ScheduleRegistry:
         async def send(self, message: str):
             return await self.channel.send(message)
 
-    async def _execute_scheduled_command(self, command_text: str, channel, bot):
-        """Execute command-like scheduled message using commands_impl functions."""
+    async def _execute_scheduled_command(self, command_text: str, channel, bot, schedule: Optional[Dict[str, Any]] = None):
+        """Execute command-like scheduled message using commands_impl functions.
+
+        `schedule` is the schedule dict that triggered this execution and may
+        contain flags such as `allow_reboot` to permit sensitive actions.
+        """
         if not command_text.startswith('$'):
             await channel.send(command_text)
             return
 
-        from toaster.commands_impl import mlb_all_standings_command, mlb_division_standings_command, pollen_command, gemini_command
+        from toaster.commands_impl import (
+            mlb_all_standings_command,
+            mlb_division_standings_command,
+            pollen_command,
+            gemini_command,
+            reboot_command,
+        )
 
         content = command_text.strip()
         parts = content[1:].split()
@@ -227,6 +238,13 @@ class ScheduleRegistry:
                 await pollen_command(ctx)
             elif cmd == 'gemini' and args:
                 await gemini_command(ctx, message=' '.join(args))
+            elif cmd == 'reboot':
+                # Only allow scheduled reboot when the schedule explicitly opts in
+                if schedule and schedule.get("allow_reboot"):
+                    await reboot_command(ctx)
+                else:
+                    # ignore silently to avoid accidental reboots
+                    return
             else:
                 # Unknown scheduled command; do not echo raw command text
                 return
@@ -310,7 +328,7 @@ class ScheduleRegistry:
                         channel = bot.get_channel(schedule["channel_id"])
                         if channel:
                             if isinstance(schedule["message"], str) and schedule["message"].startswith('$'):
-                                await self._execute_scheduled_command(schedule["message"], channel, bot)
+                                await self._execute_scheduled_command(schedule["message"], channel, bot, schedule)
                             else:
                                 await channel.send(schedule["message"])
                             schedule["last_sent"] = current_time
