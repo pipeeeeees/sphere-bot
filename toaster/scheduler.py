@@ -50,7 +50,8 @@ class ScheduleRegistry:
         enabled: bool = True,
         timezone: Optional[str] = None,
         months: Optional[List[int]] = None,
-        every_other_day: bool = False
+        every_other_day: bool = False,
+        allow_reboot: bool = False
     ) -> None:
         """
         Register a new scheduled message.
@@ -65,6 +66,7 @@ class ScheduleRegistry:
             date: YYYY-MM-DD for date-based schedules
             months: Optional list of months [1-12] when message can be sent
             every_other_day: If True, only send on alternating day-of-month in the months window
+            allow_reboot: If True, allows this schedule to trigger the $reboot command
             enabled: Whether the schedule is active
         """
         if self.get_schedule(name):
@@ -127,7 +129,7 @@ class ScheduleRegistry:
             "date": date,
             "months": months,
             "every_other_day": every_other_day,
-            "allow_reboot": False,
+            "allow_reboot": allow_reboot,
             "enabled": enabled,
             "timezone": timezone,
             "last_sent": None  # Track last sent time to avoid duplicates
