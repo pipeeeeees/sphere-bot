@@ -193,7 +193,7 @@
   {
     "name": "daily_reboot_midnight",
     "message": "$reboot",
-    "channel_id": 1079612189175988264,
+    "channel_id": 1489085355599724684,
     "type": "weekly",
     "time": "00:00",
     "weekdays": [1,2,3,4,5,6,7],
