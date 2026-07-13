@@ -7,8 +7,11 @@ import discord
 from discord.ext import commands
 import asyncio
 import importlib
+import json
+import re
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import Union
 import random
 import time
 from collections import deque
@@ -26,6 +29,9 @@ from toaster.state import set_start_time
 
 # Conversation history storage
 conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history string
+
+# Persistent person memory storage
+PERSON_MEMORY_FILE = "config/person_memory.json"
 
 # Mute state storage for channels/DMs
 muted_threads = {}  # Dict[int, datetime] -> unmute time
@@ -206,6 +212,142 @@ def get_conversation_key(message: discord.Message) -> str:
         return f"channel_{message.channel.id}"
 
 
+def get_person_memory_path(config_dir: Union[str, Path] = "config") -> Path:
+    """Return the path for the persistent person memory JSON file."""
+    config_path = Path(config_dir)
+    config_path.mkdir(parents=True, exist_ok=True)
+    return config_path / "person_memory.json"
+
+
+def load_person_memory(config_dir: Union[str, Path] = "config") -> dict:
+    """Load the persisted memory database from disk."""
+    memory_path = get_person_memory_path(config_dir)
+    if not memory_path.exists():
+        return {}
+    try:
+        with memory_path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+            return data if isinstance(data, dict) else {}
+    except Exception as exc:
+        print(f"Failed to load person memory: {exc}")
+        return {}
+
+
+def save_person_memory(memory: dict, config_dir: Union[str, Path] = "config") -> None:
+    """Persist person memory to disk."""
+    memory_path = get_person_memory_path(config_dir)
+    try:
+        with memory_path.open("w", encoding="utf-8") as handle:
+            json.dump(memory, handle, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        print(f"Failed to save person memory: {exc}")
+
+
+def extract_person_facts(text: str) -> list[str]:
+    """Extract a few simple personal facts from a message body."""
+    if not text:
+        return []
+
+    normalized = re.sub(r"\s+", " ", text).strip()
+    if not normalized:
+        return []
+
+    clauses = [clause.strip() for clause in re.split(r"\s+and\s+", normalized, flags=re.IGNORECASE) if clause.strip()]
+    patterns = [
+        (r"\bi love\s+(.+)", lambda match: f"loves {match.group(1).strip()}"),
+        (r"\bi like\s+(.+)", lambda match: f"likes {match.group(1).strip()}"),
+        (r"\bi hate\s+(.+)", lambda match: f"hates {match.group(1).strip()}"),
+        (r"\bi live in\s+(.+)", lambda match: f"lives in {match.group(1).strip()}"),
+        (r"\bi work(?: at| in)?\s+(.+)", lambda match: f"works {match.group(1).strip()}"),
+        (r"\bi play\s+(.+)", lambda match: f"plays {match.group(1).strip()}"),
+        (r"\bi study\s+(.+)", lambda match: f"studies {match.group(1).strip()}"),
+        (r"\bmy favorite (\w+)\s+is\s+(.+)", lambda match: f"favorite {match.group(1).strip()} is {match.group(2).strip()}"),
+        (r"\bmy name is\s+(.+)", lambda match: f"name is {match.group(1).strip()}"),
+        (r"\bi(?:'m| am)\s+(.+)", lambda match: f"is {match.group(1).strip()}"),
+    ]
+
+    facts = []
+    for clause in clauses:
+        for pattern, transform in patterns:
+            match = re.search(pattern, clause, flags=re.IGNORECASE)
+            if match:
+                fact = re.sub(r"\s+", " ", transform(match)).strip(" .")
+                if fact and fact.lower() not in {entry.lower() for entry in facts}:
+                    facts.append(fact)
+                break
+
+    return facts
+
+
+def update_person_memory(message: discord.Message, config_dir: Union[str, Path] = "config") -> dict:
+    """Store lightweight facts about a person from their messages."""
+    if not getattr(message.author, "id", None):
+        return {}
+
+    memory = load_person_memory(config_dir)
+    user_key = f"user_{message.author.id}"
+    entry = memory.get(user_key, {
+        "user_id": message.author.id,
+        "display_name": getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "",
+        "channels": [],
+        "facts": [],
+        "message_count": 0,
+        "last_seen": None,
+    })
+
+    display_name = getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or entry.get("display_name", "")
+    if display_name:
+        entry["display_name"] = display_name
+
+    channel_id = getattr(message.channel, "id", None)
+    channel_name = getattr(message.channel, "name", None)
+    if channel_id is not None:
+        channels = entry.setdefault("channels", [])
+        existing = next((channel for channel in channels if channel.get("id") == channel_id), None)
+        if existing is None:
+            channels.append({"id": channel_id, "name": channel_name})
+        elif channel_name and existing.get("name") != channel_name:
+            existing["name"] = channel_name
+
+    text = build_message_context(message)
+    new_facts = extract_person_facts(text)
+    if new_facts:
+        facts = entry.setdefault("facts", [])
+        for fact in new_facts:
+            if fact.lower() not in {existing_fact.lower() for existing_fact in facts}:
+                facts.append(fact)
+        if len(facts) > 12:
+            entry["facts"] = facts[-12:]
+
+    entry["message_count"] = entry.get("message_count", 0) + 1
+    entry["last_seen"] = datetime.utcnow().isoformat()
+    memory[user_key] = entry
+    save_person_memory(memory, config_dir)
+    return memory
+
+
+def build_person_memory_context(message: discord.Message, config_dir: Union[str, Path] = "config") -> str:
+    """Build a short memory snippet to attach to a reply prompt."""
+    if not getattr(message.author, "id", None):
+        return ""
+
+    memory = load_person_memory(config_dir)
+    user_key = f"user_{message.author.id}"
+    entry = memory.get(user_key, {})
+    facts = entry.get("facts", [])
+    if not facts:
+        return ""
+
+    display_name = entry.get("display_name") or getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "this person"
+    channel_names = [channel.get("name") for channel in entry.get("channels", []) if channel.get("name")]
+    lines = [f"Known about {display_name} from earlier messages:"]
+    for fact in facts[-5:]:
+        lines.append(f"- {fact}")
+    if channel_names:
+        lines.append(f"Seen in: {', '.join(channel_names[-3:])}")
+    return "\n".join(lines)
+
+
 def update_conversation_history(key: str, user_message: str, ai_response: str) -> None:
     """Update conversation history for a user/channel."""
     global conversation_history
@@ -255,6 +397,9 @@ async def handle_dm_response(message: discord.Message) -> None:
     # Get conversation history
     key = get_conversation_key(message)
     history = conversation_history.get(key, "")
+    memory_context = build_person_memory_context(message, config_dir="config")
+    if memory_context:
+        history = f"{memory_context}\n\n{history}" if history else memory_context
     
     # Get AI response
     error_details = None
@@ -421,6 +566,9 @@ async def handle_random_channel_response(message: discord.Message) -> None:
         context += f"{msg.author.display_name}: {build_message_context(msg)}\n"
     context += f"{message.author.display_name}: {build_message_context(message)}\n"
 
+    memory_context = build_person_memory_context(message, config_dir="config")
+    if memory_context:
+        context = f"{memory_context}\n\n{context}" if context else memory_context
     history = context
 
     # Ask LLM if this message is interesting using Gemini inference helper.
@@ -715,6 +863,8 @@ async def on_message(message: discord.Message) -> None:
         return
 
     try:
+        update_person_memory(message, config_dir="config")
+
         # Handle DMs with AI responses
         if isinstance(message.channel, discord.DMChannel):
             await handle_dm_response(message)

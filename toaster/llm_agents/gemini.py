@@ -4,8 +4,12 @@ from typing import Optional, Tuple
 import asyncio
 import time
 
-from google import genai
-from google.genai import types
+try:
+    from google import genai
+    from google.genai import types
+except Exception:  # pragma: no cover - optional dependency
+    genai = None
+    types = None
 
 from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet, build_is_this_reply_worthy_snippet
 
@@ -25,6 +29,8 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
     """
     for attempt in range(6):
         try:
+            if genai is None or types is None:
+                raise RuntimeError("google-generativeai is not installed")
             client = genai.Client(api_key=api_key)
             
             system_prompt = get_default_system_prompt()
@@ -120,6 +126,8 @@ async def infer_if_reply_is_at_toast(history:str, message:str, api_key:str) -> b
     # Retry logic: try up to 3 times with exponential backoff
     for attempt in range(6):
         try:
+            if genai is None or types is None:
+                raise RuntimeError("google-generativeai is not installed")
             client = genai.Client(api_key=api_key)
             
             system_prompt = (
