@@ -348,6 +348,14 @@ def build_person_memory_context(message: discord.Message, config_dir: Union[str,
     return "\n".join(lines)
 
 
+def format_history_line(prefix: str, content: str, timestamp: datetime | None = None) -> str:
+    """Format a message line with a readable timestamp for LLM context."""
+    if timestamp is None:
+        timestamp = datetime.utcnow()
+    stamp = timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+    return f"[{stamp}] {prefix}: {content}".strip()
+
+
 def update_conversation_history(key: str, user_message: str, ai_response: str) -> None:
     """Update conversation history for a user/channel."""
     global conversation_history
@@ -358,7 +366,8 @@ def update_conversation_history(key: str, user_message: str, ai_response: str) -
     
     # Add to history (keep last 10 exchanges to avoid token limits)
     history_lines = conversation_history[key].split('\n')
-    new_lines = [f"User: {user_message}", f"AI: {ai_response}"]
+    timestamp = datetime.utcnow()
+    new_lines = [format_history_line("User", user_message, timestamp), format_history_line("AI", ai_response, timestamp)]
     
     # Keep only last 10 exchanges (20 lines)
     combined_lines = history_lines + new_lines
@@ -371,6 +380,11 @@ def update_conversation_history(key: str, user_message: str, ai_response: str) -
 def build_message_context(message: discord.Message) -> str:
     """Serialize a message into text for LLM context, including embeds."""
     text = (message.content or "").strip()
+    timestamp = getattr(message, "created_at", None)
+    if timestamp is None:
+        timestamp = datetime.utcnow()
+    stamp = timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+    prefix = f"[{stamp}] {getattr(message.author, 'display_name', None) or getattr(message.author, 'name', None) or 'User'}"
     embed_texts = []
     if getattr(message, "embeds", None):
         for idx, embed in enumerate(message.embeds, start=1):
@@ -383,7 +397,9 @@ def build_message_context(message: discord.Message) -> str:
             text += " " + " ".join(embed_texts)
         else:
             text = " ".join(embed_texts)
-    return text or ""
+    if text:
+        return f"{prefix}: {text}"
+    return prefix
 
 
 async def handle_dm_response(message: discord.Message) -> None:
@@ -563,8 +579,8 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     # Build context string from recent messages
     context = ""
     for msg in history_messages:
-        context += f"{msg.author.display_name}: {build_message_context(msg)}\n"
-    context += f"{message.author.display_name}: {build_message_context(message)}\n"
+        context += f"{build_message_context(msg)}\n"
+    context += f"{build_message_context(message)}\n"
 
     memory_context = build_person_memory_context(message, config_dir="config")
     if memory_context:
@@ -604,8 +620,8 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     # Build context string from recent messages
     context = ""
     for msg in history_messages:
-        context += f"{msg.author.display_name}: {build_message_context(msg)}\n"
-    context += f"{message.author.display_name}: {build_message_context(message)}\n"
+        context += f"{build_message_context(msg)}\n"
+    context += f"{build_message_context(message)}\n"
     
     history = context
     #print(history)
