@@ -14,7 +14,22 @@ except Exception:  # pragma: no cover - optional dependency
 from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet, build_is_this_reply_worthy_snippet
 
 
-def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optional[str], Optional[str]]:
+def build_gemini_prompt(history: str, message: str, memory_context: Optional[str] = None, max_total_chars: int = 3000) -> str:
+    """Build the full prompt sent to Gemini, including personal memory context."""
+    system_prompt = get_default_system_prompt()
+    conversation = build_conversation_snippet(history, message, max_total_chars)
+
+    prompt_parts = [system_prompt]
+    if memory_context:
+        prompt_parts.append("Personal context about the person you are replying to:")
+        prompt_parts.append(memory_context)
+    prompt_parts.append(conversation)
+    prompt_parts.append(f"Reply to the following message: {message.strip()}")
+
+    return "\n\n".join(part for part in prompt_parts if part)
+
+
+def get_gemini_response(history: str, message: str, api_key: str, memory_context: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
     """
     Get a response from Google's Gemini AI model with web grounding.
     Uses gemini-2.5-flash for fast responses with up-to-date information.
@@ -23,6 +38,7 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
         history: Previous conversation history
         message: Current user message
         api_key: Gemini API key
+        memory_context: Personal facts collected about the person being replied to
         
     Returns:
         Tuple of (response text, error message) - response is None on error, error contains details
@@ -33,16 +49,8 @@ def get_gemini_response(history: str, message: str, api_key: str) -> Tuple[Optio
                 raise RuntimeError("google-generativeai is not installed")
             client = genai.Client(api_key=api_key)
             
-            system_prompt = get_default_system_prompt()
             max_total_chars = 3000
-            
-            # Build conversation snippet with history and message
-            conversation = build_conversation_snippet(history, message, max_total_chars)
-
-            #print(conversation)
-            
-            # Combine system prompt with conversation
-            full_prompt = f"{system_prompt}\n\n{conversation}"
+            full_prompt = build_gemini_prompt(history, message, memory_context=memory_context, max_total_chars=max_total_chars)
             
             # Make request with Google Search grounding for current information
             response = client.models.generate_content(
@@ -92,7 +100,7 @@ def load_gemini_key(config_path: str = "config") -> Optional[str]:
         print(f"Error loading Gemini key: {e}")
         return None
 
-def get_gemini_response_with_key(history: str, message: str, config_path: str = "config") -> Tuple[Optional[str], Optional[str]]:
+def get_gemini_response_with_key(history: str, message: str, config_path: str = "config", memory_context: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
     """
     Convenience function that loads the API key and gets a Gemini response.
     
@@ -100,6 +108,7 @@ def get_gemini_response_with_key(history: str, message: str, config_path: str = 
         history: Previous conversation history
         message: Current user message  
         config_path: Path to config directory
+        memory_context: Personal facts collected about the person being replied to
         
     Returns:
         Tuple of (response text, error message)
@@ -108,7 +117,7 @@ def get_gemini_response_with_key(history: str, message: str, config_path: str = 
     if not api_key:
         return None, "Gemini API key not found in config/gemini_key.json"
     
-    return get_gemini_response(history, message, api_key)
+    return get_gemini_response(history, message, api_key, memory_context=memory_context)
 
 async def infer_if_reply_is_at_toast(history:str, message:str, api_key:str) -> bool:
     """

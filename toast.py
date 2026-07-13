@@ -55,7 +55,7 @@ loaded_schedules = []  # List of (name, success, error_msg)
 AI_PROVIDER = "gemini"
 
 
-async def get_ai_response(history: str, message: str) -> str:
+async def get_ai_response(history: str, message: str, memory_context: str = "") -> str:
     """
     Get AI response using the configured provider.
     Can be easily swapped between "grok" and "gemini" by changing AI_PROVIDER.
@@ -63,6 +63,7 @@ async def get_ai_response(history: str, message: str) -> str:
     Args:
         history: Conversation history
         message: User message
+        memory_context: Personal facts collected about the person
         
     Returns:
         AI response text or None if all providers fail
@@ -70,7 +71,7 @@ async def get_ai_response(history: str, message: str) -> str:
     if AI_PROVIDER == "grok":
         return get_grok_response_with_key(history, message, "config")
     elif AI_PROVIDER == "gemini":
-        response, _ = get_gemini_response_with_key(history, message, "config")
+        response, _ = get_gemini_response_with_key(history, message, "config", memory_context=memory_context)
         return response
     else:
         print(f"Unknown AI provider: {AI_PROVIDER}")
@@ -279,6 +280,70 @@ def extract_person_facts(text: str) -> list[str]:
     return facts
 
 
+def extract_people_mentions(text: str) -> list[str]:
+    """Extract likely person names mentioned in text, excluding common bot words."""
+    if not text:
+        return []
+
+    cleaned = re.sub(r"[^a-zA-Z0-9\s'\-]", " ", text)
+    tokens = [token.strip() for token in cleaned.split() if token.strip()]
+    if not tokens:
+        return []
+
+    mentions = []
+    blocked = {"toast", "i", "me", "my", "you", "we", "they", "them", "he", "she", "it", "the", "a", "an", "and", "or", "but", "for", "to", "of", "in", "on", "at", "is", "are", "was", "were", "be", "been", "being", "this", "that", "these", "those"}
+    for token in tokens:
+        normalized = token.strip("'\-").lower()
+        if normalized and normalized not in blocked and len(normalized) > 2 and normalized[0].isalpha():
+            mentions.append(token.strip())
+
+    # De-duplicate while preserving order
+    seen = set()
+    unique_mentions = []
+    for mention in mentions:
+        key = mention.lower()
+        if key not in seen:
+            seen.add(key)
+            unique_mentions.append(mention)
+    return unique_mentions
+
+
+def extract_alias_candidates(text: str) -> list[tuple[str, str]]:
+    """Extract simple alias-style mentions like 'Milo = Miles' or 'call him X'."""
+    if not text:
+        return []
+
+    pairs = []
+    patterns = [
+        r"\b([A-Za-z][A-Za-z0-9_-]{2,})\s*(?:is|=|aka|also known as|nicknamed|called)\s*([A-Za-z][A-Za-z0-9_-]{2,})\b",
+        r"\b([A-Za-z][A-Za-z0-9_-]{2,})\s+is\s+([A-Za-z][A-Za-z0-9_-]{2,})\b",
+        r"\bcall\s+([A-Za-z][A-Za-z0-9_-]{2,})\s+([A-Za-z][A-Za-z0-9_-]{2,})\b",
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            left = match.group(1).strip()
+            right = match.group(2).strip()
+            if left.lower() != right.lower():
+                pairs.append((left, right))
+    return pairs
+
+
+def learn_aliases_from_text(message: discord.Message, memory: dict, config_dir: Union[str, Path] = "config") -> None:
+    """Learn nickname/alias relationships from a message when possible."""
+    text = build_message_context(message)
+    for left, right in extract_alias_candidates(text):
+        left_key = f"user_{left.lower()}"
+        right_key = f"user_{right.lower()}"
+        if left_key in memory and right_key in memory:
+            continue
+        if left_key not in memory:
+            memory[left_key] = {"user_id": None, "display_name": left, "channels": [], "facts": [], "message_count": 0, "last_seen": None}
+        if right_key not in memory:
+            memory[right_key] = {"user_id": None, "display_name": right, "channels": [], "facts": [], "message_count": 0, "last_seen": None}
+        memory[left_key].setdefault("aliases", []).append(right)
+        memory[right_key].setdefault("aliases", []).append(left)
+
+
 def update_person_memory(message: discord.Message, config_dir: Union[str, Path] = "config") -> dict:
     """Store lightweight facts about a person from their messages."""
     if not getattr(message.author, "id", None):
@@ -319,6 +384,24 @@ def update_person_memory(message: discord.Message, config_dir: Union[str, Path] 
         if len(facts) > 12:
             entry["facts"] = facts[-12:]
 
+    mentioned_people = extract_people_mentions(text)
+    for mention in mentioned_people:
+        if mention.lower() in {"toast", "i", "me", "my", "you", "we", "they", "them", "he", "she", "it"}:
+            continue
+        other_user_key = f"user_{mention.lower()}"
+        if other_user_key in memory:
+            continue
+        memory[other_user_key] = {
+            "user_id": None,
+            "display_name": mention,
+            "channels": [],
+            "facts": [],
+            "message_count": 0,
+            "last_seen": None,
+        }
+
+    learn_aliases_from_text(message, memory, config_dir=config_dir)
+
     entry["message_count"] = entry.get("message_count", 0) + 1
     entry["last_seen"] = datetime.utcnow().isoformat()
     memory[user_key] = entry
@@ -326,7 +409,7 @@ def update_person_memory(message: discord.Message, config_dir: Union[str, Path] 
     return memory
 
 
-def build_person_memory_context(message: discord.Message, config_dir: Union[str, Path] = "config") -> str:
+def build_person_memory_context(message: discord.Message, config_dir: Union[str, Path] = "config", history_context: str = "") -> str:
     """Build a short memory snippet to attach to a reply prompt."""
     if not getattr(message.author, "id", None):
         return ""
@@ -335,16 +418,48 @@ def build_person_memory_context(message: discord.Message, config_dir: Union[str,
     user_key = f"user_{message.author.id}"
     entry = memory.get(user_key, {})
     facts = entry.get("facts", [])
-    if not facts:
-        return ""
 
-    display_name = entry.get("display_name") or getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "this person"
-    channel_names = [channel.get("name") for channel in entry.get("channels", []) if channel.get("name")]
-    lines = [f"Known about {display_name} from earlier messages:"]
-    for fact in facts[-5:]:
-        lines.append(f"- {fact}")
-    if channel_names:
-        lines.append(f"Seen in: {', '.join(channel_names[-3:])}")
+    candidate_names = set()
+    if getattr(message.author, "display_name", None):
+        candidate_names.add(getattr(message.author, "display_name"))
+    if getattr(message.author, "name", None):
+        candidate_names.add(getattr(message.author, "name"))
+
+    context_text = "\n".join([build_message_context(message), history_context]).strip()
+    if context_text:
+        for mention in extract_people_mentions(context_text):
+            candidate_names.add(mention)
+
+    lines = []
+    if facts:
+        display_name = entry.get("display_name") or getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "this person"
+        channel_names = [channel.get("name") for channel in entry.get("channels", []) if channel.get("name")]
+        lines.append(f"Known about {display_name} from earlier messages:")
+        for fact in facts[-5:]:
+            lines.append(f"- {fact}")
+        if channel_names:
+            lines.append(f"Seen in: {', '.join(channel_names[-3:])}")
+
+    for other_key, other_entry in memory.items():
+        if other_key == user_key or not isinstance(other_entry, dict):
+            continue
+        other_facts = other_entry.get("facts", [])
+        if not other_facts:
+            continue
+        display_name = other_entry.get("display_name") or other_key
+        aliases = other_entry.get("aliases", []) or []
+        if display_name.lower() == "toast":
+            continue
+        if display_name not in candidate_names and display_name.lower() not in {name.lower() for name in candidate_names}:
+            if not any(alias.lower() in {name.lower() for name in candidate_names} for alias in aliases):
+                continue
+        if not any(line.startswith(f"Known about {display_name}") for line in lines):
+            lines.append(f"Known about {display_name} from earlier messages:")
+            for fact in other_facts[-3:]:
+                lines.append(f"- {fact}")
+            if aliases:
+                lines.append(f"Aliases: {', '.join(aliases[:3])}")
+
     return "\n".join(lines)
 
 
@@ -402,6 +517,26 @@ def build_message_context(message: discord.Message) -> str:
     return prefix
 
 
+async def maybe_request_clarification(message: discord.Message, memory_context: str, history: str) -> None:
+    """Post a short clarification prompt when the bot sees likely nickname ambiguity."""
+    if not getattr(message, "channel", None):
+        return
+
+    text = (message.content or "").lower()
+    ambiguous_tokens = ["nickname", "nick", "called", "inside joke", "alias", "who is", "who's", "who is that", "what do you mean", "what does that mean"]
+    if not any(token in text for token in ambiguous_tokens):
+        return
+
+    if not memory_context or not history:
+        return
+
+    try:
+        await asyncio.sleep(5)
+        await safe_send(message.channel, "📝 I’m trying to keep track of nicknames and inside jokes accurately — could someone quickly confirm who this refers to?")
+    except Exception:
+        pass
+
+
 async def handle_dm_response(message: discord.Message) -> None:
     """Handle AI responses to DM messages."""
     if message.author == bot.user:
@@ -421,10 +556,14 @@ async def handle_dm_response(message: discord.Message) -> None:
     error_details = None
     response = None
     try:
-        response = await get_ai_response(history, message.content)
+        response = await get_ai_response(
+            history,
+            message.content,
+            memory_context=build_person_memory_context(message, config_dir="config"),
+        )
     except Exception as e:
         error_details = f"{type(e).__name__}: {str(e)}"
-    
+
     # If AI fails (None response), DM the owner about the issue instead of sending to user
     if response is None:
         config = load_config("config")
@@ -450,6 +589,8 @@ async def handle_dm_response(message: discord.Message) -> None:
     
     # Store conversation history and send response (truncate to Discord limit)
     update_conversation_history(key, message.content, response)
+    if memory_context:
+        asyncio.create_task(maybe_request_clarification(message, memory_context, history))
     # Ensure response fits within Discord's 2000 character limit
     if len(response) > 2000:
         response = response[:1997] + "..."
@@ -630,7 +771,11 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     error_details = None
     response = None
     try:
-        response = await get_ai_response(history, message.content)
+        response = await get_ai_response(
+            history,
+            message.content,
+            memory_context=build_person_memory_context(message, config_dir="config"),
+        )
     except Exception as e:
         error_details = f"{type(e).__name__}: {str(e)}"
     
