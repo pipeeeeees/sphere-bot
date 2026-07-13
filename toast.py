@@ -18,7 +18,7 @@ from collections import deque
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
 from toaster.config import load_config, load_channel_blacklist
-from toaster.llm_agents.gemini import infer_if_reply_is_at_toast, load_gemini_key
+from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
 
 
 # Create bot instance
@@ -55,7 +55,7 @@ loaded_schedules = []  # List of (name, success, error_msg)
 AI_PROVIDER = "gemini"
 
 
-async def get_ai_response(history: str, message: str, memory_context: str = "") -> str:
+async def get_ai_response(history: str, message: str, memory_context: str = "", message_attachments=None) -> str:
     """
     Get AI response using the configured provider.
     Can be easily swapped between "grok" and "gemini" by changing AI_PROVIDER.
@@ -71,7 +71,13 @@ async def get_ai_response(history: str, message: str, memory_context: str = "") 
     if AI_PROVIDER == "grok":
         return get_grok_response_with_key(history, message, "config")
     elif AI_PROVIDER == "gemini":
-        response, _ = get_gemini_response_with_key(history, message, "config", memory_context=memory_context)
+        response, _ = get_gemini_response_with_key(
+            history,
+            message,
+            "config",
+            memory_context=memory_context,
+            message_attachments=message_attachments,
+        )
         return response
     else:
         print(f"Unknown AI provider: {AI_PROVIDER}")
@@ -463,7 +469,7 @@ def build_person_memory_context(message: discord.Message, config_dir: Union[str,
     return "\n".join(lines)
 
 
-def format_history_line(prefix: str, content: str, timestamp: datetime | None = None) -> str:
+def format_history_line(prefix: str, content: str, timestamp=None) -> str:
     """Format a message line with a readable timestamp for LLM context."""
     if timestamp is None:
         timestamp = datetime.utcnow()
@@ -501,6 +507,13 @@ def build_message_context(message: discord.Message) -> str:
     stamp = timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
     prefix = f"[{stamp}] {getattr(message.author, 'display_name', None) or getattr(message.author, 'name', None) or 'User'}"
     embed_texts = []
+    attachment_names = []
+    for attachment in getattr(message, "attachments", None) or []:
+        filename = getattr(attachment, "filename", None)
+        if filename:
+            attachment_names.append(filename)
+    if attachment_names:
+        embed_texts.append(f"[attachments: {', '.join(attachment_names)}]")
     if getattr(message, "embeds", None):
         for idx, embed in enumerate(message.embeds, start=1):
             if embed.title:
@@ -556,10 +569,12 @@ async def handle_dm_response(message: discord.Message) -> None:
     error_details = None
     response = None
     try:
+        message_attachments = await collect_message_attachments([message])
         response = await get_ai_response(
             history,
             message.content,
             memory_context=build_person_memory_context(message, config_dir="config"),
+            message_attachments=message_attachments,
         )
     except Exception as e:
         error_details = f"{type(e).__name__}: {str(e)}"
@@ -771,14 +786,16 @@ async def handle_random_channel_response(message: discord.Message) -> None:
     error_details = None
     response = None
     try:
+        message_attachments = await collect_message_attachments([message] + history_messages)
         response = await get_ai_response(
             history,
             message.content,
             memory_context=build_person_memory_context(message, config_dir="config"),
+            message_attachments=message_attachments,
         )
     except Exception as e:
         error_details = f"{type(e).__name__}: {str(e)}"
-    
+
     # If AI fails (None response), DM the owner about the issue instead of spamming the channel
     if response is None:
         config = load_config("config")

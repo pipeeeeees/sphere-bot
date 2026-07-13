@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import asyncio
 import time
 
@@ -12,6 +12,28 @@ except Exception:  # pragma: no cover - optional dependency
     types = None
 
 from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conversation_snippet, build_is_this_reply_worthy_snippet
+
+
+async def collect_message_attachments(messages: List[Any]) -> List[Dict[str, Any]]:
+    """Collect image attachment payloads from a list of Discord messages."""
+    payloads: List[Dict[str, Any]] = []
+    for message in messages:
+        attachments = getattr(message, "attachments", None) or []
+        for attachment in attachments:
+            filename = getattr(attachment, "filename", None) or "attachment"
+            content_type = getattr(attachment, "content_type", None) or "application/octet-stream"
+            if not content_type.startswith("image/"):
+                continue
+            try:
+                data = await attachment.read()
+            except Exception:
+                continue
+            payloads.append({
+                "filename": filename,
+                "mime_type": content_type,
+                "data": data,
+            })
+    return payloads
 
 
 def build_gemini_prompt(history: str, message: str, memory_context: Optional[str] = None, max_total_chars: int = 3000) -> str:
@@ -29,7 +51,13 @@ def build_gemini_prompt(history: str, message: str, memory_context: Optional[str
     return "\n\n".join(part for part in prompt_parts if part)
 
 
-def get_gemini_response(history: str, message: str, api_key: str, memory_context: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+def get_gemini_response(
+    history: str,
+    message: str,
+    api_key: str,
+    memory_context: Optional[str] = None,
+    message_attachments: Optional[List[Dict[str, Any]]] = None,
+) -> Tuple[Optional[str], Optional[str]]:
     """
     Get a response from Google's Gemini AI model with web grounding.
     Uses gemini-2.5-flash for fast responses with up-to-date information.
@@ -52,10 +80,23 @@ def get_gemini_response(history: str, message: str, api_key: str, memory_context
             max_total_chars = 3000
             full_prompt = build_gemini_prompt(history, message, memory_context=memory_context, max_total_chars=max_total_chars)
             
+            contents = [full_prompt]
+            if message_attachments:
+                parts = []
+                for payload in message_attachments:
+                    parts.append(
+                        types.Part.from_bytes(
+                            data=payload["data"],
+                            mime_type=payload["mime_type"],
+                        )
+                    )
+                if parts:
+                    contents = [full_prompt, *parts]
+
             # Make request with Google Search grounding for current information
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents=full_prompt,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
                     max_output_tokens=2000
@@ -100,7 +141,13 @@ def load_gemini_key(config_path: str = "config") -> Optional[str]:
         print(f"Error loading Gemini key: {e}")
         return None
 
-def get_gemini_response_with_key(history: str, message: str, config_path: str = "config", memory_context: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+def get_gemini_response_with_key(
+    history: str,
+    message: str,
+    config_path: str = "config",
+    memory_context: Optional[str] = None,
+    message_attachments: Optional[List[Dict[str, Any]]] = None,
+) -> Tuple[Optional[str], Optional[str]]:
     """
     Convenience function that loads the API key and gets a Gemini response.
     
@@ -117,7 +164,13 @@ def get_gemini_response_with_key(history: str, message: str, config_path: str = 
     if not api_key:
         return None, "Gemini API key not found in config/gemini_key.json"
     
-    return get_gemini_response(history, message, api_key, memory_context=memory_context)
+    return get_gemini_response(
+        history,
+        message,
+        api_key,
+        memory_context=memory_context,
+        message_attachments=message_attachments,
+    )
 
 async def infer_if_reply_is_at_toast(history:str, message:str, api_key:str) -> bool:
     """
