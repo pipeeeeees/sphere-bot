@@ -1,6 +1,6 @@
 import asyncio
 
-from toaster.llm_agents.gemini import collect_message_attachments
+from toaster.llm_agents.gemini import build_gemini_prompt, collect_message_attachments
 
 
 class DummyAttachment:
@@ -37,6 +37,17 @@ def test_collect_message_attachments_reads_image_payloads():
     assert payloads[0]["mime_type"] == "image/png"
     assert payloads[0]["data"] == b"fake-image-bytes"
     assert payloads[0]["filename"] == "cat.png"
+
+
+def test_build_gemini_prompt_enforces_consistent_discord_format_for_news_requests():
+    prompt = build_gemini_prompt(
+        history="",
+        message="What's the latest news in Atlanta today?",
+    )
+
+    assert "at most 2 emojis" in prompt.lower()
+    assert "bullet points" in prompt.lower()
+    assert "discord" in prompt.lower()
 
 
 def test_collect_message_attachments_reads_embedded_images(monkeypatch):

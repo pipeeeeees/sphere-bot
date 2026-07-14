@@ -65,6 +65,10 @@ def build_gemini_prompt(history: str, message: str, memory_context: Optional[str
     conversation = build_conversation_snippet(history, message, max_total_chars)
 
     prompt_parts = [system_prompt]
+    if "news" in message.lower() or "latest" in message.lower() or "report" in message.lower() or "week" in message.lower():
+        prompt_parts.append(
+            "Formatting rules for this reply: use a short title line, then 3-5 bullet points, keep each bullet concise, and use at most 2 emojis total."
+        )
     if memory_context:
         prompt_parts.append("Personal context about the person you are replying to:")
         prompt_parts.append(memory_context)
