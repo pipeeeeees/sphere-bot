@@ -21,12 +21,14 @@ from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
 from toaster.kalshi_game import (
     DEFAULT_STARTING_BALANCE,
+    clear_user_bets,
     format_balance,
     format_history,
     load_state,
     monitor_pending_bets,
     parse_kalshi_bet_message,
     place_bet,
+    reset_user_balance,
     save_state,
     transfer_funds,
 )
@@ -618,6 +620,48 @@ async def handle_kalshi_game_message(message: discord.Message) -> bool:
             await message.channel.send(f"🔁 Transferred ${amount:.2f} to {recipient}. Your balance is now {format_balance(state['users'][f'user_{message.author.id}'])}")
         else:
             await message.channel.send(f"⚠️ {result['reason']}")
+        return True
+
+    reset_match = re.search(r"reset\s+kalshi\s+balance(?:\s+for\s+(.+))?", text, flags=re.IGNORECASE)
+    if reset_match and str(message.author.id) == "326676188057567232":
+        target = reset_match.group(1)
+        state = load_state()
+        if target:
+            target_user_id = target.strip()
+            result = reset_user_balance(state, target_user_id, target_user_id)
+            if result["ok"]:
+                save_state(state)
+                await message.channel.send(f"🔄 Reset {target_user_id}'s Kalshi balance to {format_balance(state['users'][f'user_{target_user_id}'])}")
+            else:
+                await message.channel.send("⚠️ Could not reset that balance.")
+        else:
+            result = reset_user_balance(state, str(message.author.id), getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "you")
+            if result["ok"]:
+                save_state(state)
+                await message.channel.send(f"🔄 Reset your Kalshi balance to {format_balance(state['users'][f'user_{message.author.id}'])}")
+            else:
+                await message.channel.send("⚠️ Could not reset your balance.")
+        return True
+
+    clear_match = re.search(r"clear\s+my\s+bets|clear\s+(.+)\s+bets", text, flags=re.IGNORECASE)
+    if clear_match and str(message.author.id) == "326676188057567232":
+        target = clear_match.group(1)
+        state = load_state()
+        if target:
+            target_user_id = target.strip()
+            result = clear_user_bets(state, target_user_id, target_user_id)
+            if result["ok"]:
+                save_state(state)
+                await message.channel.send(f"🧹 Cleared {target_user_id}'s active Kalshi bets.")
+            else:
+                await message.channel.send("⚠️ Could not clear those bets.")
+        else:
+            result = clear_user_bets(state, str(message.author.id), getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "you")
+            if result["ok"]:
+                save_state(state)
+                await message.channel.send("🧹 Cleared your active Kalshi bets.")
+            else:
+                await message.channel.send("⚠️ Could not clear your bets.")
         return True
 
     return False

@@ -57,6 +57,13 @@ def _ensure_user(state: Dict[str, Any], user_id: str, display_name: str) -> Dict
     return users[key]
 
 
+def _normalize_outcome_label(label: str) -> str:
+    normalized = label.strip().lower()
+    normalized = normalized.replace("the ", "", 1).strip()
+    normalized = re.sub(r"[^a-z0-9]+", " ", normalized).strip()
+    return normalized.replace(" ", "")
+
+
 def parse_kalshi_bet_message(message: str) -> Optional[Dict[str, Any]]:
     match = re.search(r"https://kalshi\.com/markets/[^\s]+", message)
     if not match:
@@ -68,16 +75,58 @@ def parse_kalshi_bet_message(message: str) -> Optional[Dict[str, Any]]:
     if not amount_match:
         return None
 
-    outcome_match = re.search(r"(?:on|for)\s+([a-zA-Z0-9_\-]+)", message)
-    if not outcome_match:
+    text = message.lower()
+    outcome = None
+
+    for prefix in [" on ", " for "]:
+        idx = text.find(prefix)
+        if idx != -1:
+            remainder = text[idx + len(prefix):].strip()
+            if remainder:
+                end = len(remainder)
+                for stop_char in ["?", "!", ".", ",", ":", "\n"]:
+                    pos = remainder.find(stop_char)
+                    if pos != -1 and pos < end:
+                        end = pos
+                outcome = remainder[:end].strip()
+                break
+
+    if not outcome:
+        outcome_match = re.search(r"(?:on|for)\s+(?:the\s+)?([a-zA-Z0-9_\-]+)", message, flags=re.IGNORECASE)
+        if outcome_match:
+            outcome = outcome_match.group(1).strip().lower()
+
+    if not outcome:
+        return None
+
+    normalized = _normalize_outcome_label(outcome)
+    if not normalized:
+        return None
+
+    if not normalized:
         return None
 
     return {
         "url": url,
         "ticker": ticker,
         "amount": float(amount_match.group(1)),
-        "outcome": outcome_match.group(1).strip().lower(),
+        "outcome": normalized,
     }
+
+
+def reset_user_balance(state: Dict[str, Any], user_id: str, display_name: str) -> Dict[str, Any]:
+    user = _ensure_user(state, user_id, display_name)
+    user["balance"] = DEFAULT_STARTING_BALANCE
+    user["pending_bets"] = []
+    user["bet_history"] = []
+    user["transfers"] = []
+    return {"ok": True, "balance": user["balance"]}
+
+
+def clear_user_bets(state: Dict[str, Any], user_id: str, display_name: str) -> Dict[str, Any]:
+    user = _ensure_user(state, user_id, display_name)
+    user["pending_bets"] = []
+    return {"ok": True, "pending_bets": user["pending_bets"]}
 
 
 def place_bet(state: Dict[str, Any], user_id: str, display_name: str, channel_id: int, url: str, amount: float, outcome: str) -> Dict[str, Any]:

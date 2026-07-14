@@ -31,6 +31,14 @@ def test_parse_kalshi_bet_message_extracts_amount_outcome_and_ticker(tmp_path):
     assert parsed["outcome"] == "france"
 
 
+def test_parse_kalshi_bet_message_handles_optional_article_before_outcome():
+    message = "https://kalshi.com/markets/kxmlbgame/professional-baseball-game/kxmlbgame-26jul142000alnl give me $2000 on the AL"
+    parsed = parse_kalshi_bet_message(message)
+
+    assert parsed is not None
+    assert parsed["outcome"] == "al"
+
+
 def test_place_bet_and_transfer_update_balance(tmp_path):
     state = {"users": {}}
     user_a = place_bet(state, "u1", "Alice", 123, "https://kalshi.com/markets/x/y", 10.0, "france")
