@@ -19,6 +19,17 @@ from collections import deque
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
+from toaster.kalshi_game import (
+    DEFAULT_STARTING_BALANCE,
+    format_balance,
+    format_history,
+    load_state,
+    monitor_pending_bets,
+    parse_kalshi_bet_message,
+    place_bet,
+    save_state,
+    transfer_funds,
+)
 
 
 # Create bot instance
@@ -530,6 +541,85 @@ def build_message_context(message: discord.Message) -> str:
     return prefix
 
 
+async def handle_kalshi_game_message(message: discord.Message) -> None:
+    """Handle pretend Kalshi game interactions in Discord."""
+    if not getattr(message, "content", ""):
+        return
+
+    text = message.content.strip()
+    if not text:
+        return
+
+    lower_text = text.lower()
+    if lower_text.startswith("$kalshi"):
+        return
+
+    if "kalshi balance" in lower_text or "pretend kalshi account" in lower_text or "how much money" in lower_text:
+        state = load_state()
+        user = state.setdefault("users", {}).get(f"user_{message.author.id}")
+        if not user:
+            user = {
+                "user_id": str(message.author.id),
+                "display_name": getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "you",
+                "balance": DEFAULT_STARTING_BALANCE,
+                "pending_bets": [],
+                "bet_history": [],
+                "transfers": [],
+            }
+            state.setdefault("users", {})[f"user_{message.author.id}"] = user
+            save_state(state)
+        await message.channel.send(f"💸 Your pretend Kalshi balance is {format_balance(user)}")
+        return
+
+    if "betting history" in lower_text or "history" in lower_text and "bet" in lower_text:
+        state = load_state()
+        user = state.setdefault("users", {}).get(f"user_{message.author.id}")
+        if not user:
+            user = {
+                "user_id": str(message.author.id),
+                "display_name": getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "you",
+                "balance": DEFAULT_STARTING_BALANCE,
+                "pending_bets": [],
+                "bet_history": [],
+                "transfers": [],
+            }
+            state.setdefault("users", {})[f"user_{message.author.id}"] = user
+            save_state(state)
+        await message.channel.send(format_history(user))
+        return
+
+    parsed = parse_kalshi_bet_message(text)
+    if parsed:
+        state = load_state()
+        result = place_bet(
+            state,
+            str(message.author.id),
+            getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or "you",
+            getattr(message.channel, "id", 0),
+            parsed["url"],
+            parsed["amount"],
+            parsed["outcome"],
+        )
+        if result["ok"]:
+            save_state(state)
+            await message.channel.send(f"🎲 Bet placed! You put {parsed['amount']:.2f} on {parsed['outcome']} and your pretend Kalshi balance is now {format_balance(state['users'][f'user_{message.author.id}'])}")
+        else:
+            await message.channel.send(f"⚠️ {result['reason']}")
+        return
+
+    transfer_match = re.search(r"transfer\s+\$?(\d+(?:\.\d+)?)\s+to\s+([a-zA-Z0-9_\-]+)", text, flags=re.IGNORECASE)
+    if transfer_match:
+        amount = float(transfer_match.group(1))
+        recipient = transfer_match.group(2)
+        state = load_state()
+        result = transfer_funds(state, str(message.author.id), recipient, amount)
+        if result["ok"]:
+            save_state(state)
+            await message.channel.send(f"🔁 Transferred ${amount:.2f} to {recipient}. Your balance is now {format_balance(state['users'][f'user_{message.author.id}'])}")
+        else:
+            await message.channel.send(f"⚠️ {result['reason']}")
+
+
 async def maybe_request_clarification(message: discord.Message, memory_context: str, history: str) -> None:
     """Post a short clarification prompt when the bot sees likely nickname ambiguity."""
     if not getattr(message, "channel", None):
@@ -941,6 +1031,8 @@ async def on_ready() -> None:
         asyncio.create_task(schedule_registry.start_scheduler(bot))
     else:
         print()
+
+    asyncio.create_task(monitor_pending_bets(bot))
     
     # Send boot notification DM to owner with detailed command/schedule info
     config = load_config("config")
@@ -1049,6 +1141,7 @@ async def on_message(message: discord.Message) -> None:
         
         # Handle random channel responses (only in guilds, not DMs)
         elif message.guild:
+            await handle_kalshi_game_message(message)
             await handle_random_channel_response(message)
             
     except Exception as e:

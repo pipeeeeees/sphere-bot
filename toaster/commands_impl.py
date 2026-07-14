@@ -140,7 +140,8 @@ async def reboot_command(ctx: commands.Context) -> None:
     try:
         await ctx.send("🔄 **Rebooting...**")
         script_path = Path(__file__).resolve().parents[1] / "toast.py"
-        subprocess.Popen([sys.executable, str(script_path)])
+        executable = getattr(sys, "executable", None) or "python"
+        subprocess.Popen([executable, str(script_path)])
         sys.exit(0)
     except Exception as e:
         await ctx.send(f"⚠️ Failed to reboot bot: {str(e)}")
