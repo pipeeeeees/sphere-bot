@@ -541,18 +541,18 @@ def build_message_context(message: discord.Message) -> str:
     return prefix
 
 
-async def handle_kalshi_game_message(message: discord.Message) -> None:
+async def handle_kalshi_game_message(message: discord.Message) -> bool:
     """Handle pretend Kalshi game interactions in Discord."""
     if not getattr(message, "content", ""):
-        return
+        return False
 
     text = message.content.strip()
     if not text:
-        return
+        return False
 
     lower_text = text.lower()
     if lower_text.startswith("$kalshi"):
-        return
+        return False
 
     if "kalshi balance" in lower_text or "pretend kalshi account" in lower_text or "how much money" in lower_text:
         state = load_state()
@@ -569,7 +569,7 @@ async def handle_kalshi_game_message(message: discord.Message) -> None:
             state.setdefault("users", {})[f"user_{message.author.id}"] = user
             save_state(state)
         await message.channel.send(f"💸 Your pretend Kalshi balance is {format_balance(user)}")
-        return
+        return True
 
     if "betting history" in lower_text or "history" in lower_text and "bet" in lower_text:
         state = load_state()
@@ -586,7 +586,7 @@ async def handle_kalshi_game_message(message: discord.Message) -> None:
             state.setdefault("users", {})[f"user_{message.author.id}"] = user
             save_state(state)
         await message.channel.send(format_history(user))
-        return
+        return True
 
     parsed = parse_kalshi_bet_message(text)
     if parsed:
@@ -605,7 +605,7 @@ async def handle_kalshi_game_message(message: discord.Message) -> None:
             await message.channel.send(f"🎲 Bet placed! You put {parsed['amount']:.2f} on {parsed['outcome']} and your pretend Kalshi balance is now {format_balance(state['users'][f'user_{message.author.id}'])}")
         else:
             await message.channel.send(f"⚠️ {result['reason']}")
-        return
+        return True
 
     transfer_match = re.search(r"transfer\s+\$?(\d+(?:\.\d+)?)\s+to\s+([a-zA-Z0-9_\-]+)", text, flags=re.IGNORECASE)
     if transfer_match:
@@ -618,6 +618,9 @@ async def handle_kalshi_game_message(message: discord.Message) -> None:
             await message.channel.send(f"🔁 Transferred ${amount:.2f} to {recipient}. Your balance is now {format_balance(state['users'][f'user_{message.author.id}'])}")
         else:
             await message.channel.send(f"⚠️ {result['reason']}")
+        return True
+
+    return False
 
 
 async def maybe_request_clarification(message: discord.Message, memory_context: str, history: str) -> None:
@@ -1141,7 +1144,9 @@ async def on_message(message: discord.Message) -> None:
         
         # Handle random channel responses (only in guilds, not DMs)
         elif message.guild:
-            await handle_kalshi_game_message(message)
+            handled = await handle_kalshi_game_message(message)
+            if handled:
+                return
             await handle_random_channel_response(message)
             
     except Exception as e:
