@@ -14,9 +14,15 @@ class DummyAttachment:
 
 
 class DummyMessage:
-    def __init__(self, content="", attachments=None):
+    def __init__(self, content="", attachments=None, embeds=None):
         self.content = content
         self.attachments = attachments or []
+        self.embeds = embeds or []
+
+
+class DummyEmbed:
+    def __init__(self, url):
+        self.image = type("Image", (), {"url": url})()
 
 
 def test_collect_message_attachments_reads_image_payloads():
@@ -31,3 +37,27 @@ def test_collect_message_attachments_reads_image_payloads():
     assert payloads[0]["mime_type"] == "image/png"
     assert payloads[0]["data"] == b"fake-image-bytes"
     assert payloads[0]["filename"] == "cat.png"
+
+
+def test_collect_message_attachments_reads_embedded_images(monkeypatch):
+    class DummyResponse:
+        def __init__(self):
+            self.content = b"embedded-image-bytes"
+            self.headers = {"content-type": "image/png"}
+
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr("toaster.llm_agents.gemini.requests.get", lambda *args, **kwargs: DummyResponse())
+
+    message = DummyMessage(
+        content="Look at this",
+        embeds=[DummyEmbed("https://example.com/embed.png")],
+    )
+
+    payloads = asyncio.run(collect_message_attachments([message]))
+
+    assert len(payloads) == 1
+    assert payloads[0]["mime_type"] == "image/png"
+    assert payloads[0]["data"] == b"embedded-image-bytes"
+    assert payloads[0]["filename"].endswith("embed.png")

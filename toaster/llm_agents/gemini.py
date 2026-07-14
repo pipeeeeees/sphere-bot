@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import asyncio
 import time
+import requests
 
 try:
     from google import genai
@@ -15,7 +16,7 @@ from toaster.llm_agents.agent_utils import get_default_system_prompt, build_conv
 
 
 async def collect_message_attachments(messages: List[Any]) -> List[Dict[str, Any]]:
-    """Collect image attachment payloads from a list of Discord messages."""
+    """Collect image payloads from Discord message attachments and embeds."""
     payloads: List[Dict[str, Any]] = []
     for message in messages:
         attachments = getattr(message, "attachments", None) or []
@@ -33,6 +34,28 @@ async def collect_message_attachments(messages: List[Any]) -> List[Dict[str, Any
                 "mime_type": content_type,
                 "data": data,
             })
+
+        embeds = getattr(message, "embeds", None) or []
+        for embed in embeds:
+            image = getattr(embed, "image", None)
+            if image is None:
+                continue
+            image_url = getattr(image, "url", None)
+            if not image_url:
+                continue
+            try:
+                response = requests.get(image_url, timeout=10)
+                response.raise_for_status()
+                content_type = response.headers.get("content-type", "image/png")
+                if not content_type.startswith("image/"):
+                    continue
+                payloads.append({
+                    "filename": Path(image_url.split("/")[-1] or "embed-image").name,
+                    "mime_type": content_type,
+                    "data": response.content,
+                })
+            except Exception:
+                continue
     return payloads
 
 
