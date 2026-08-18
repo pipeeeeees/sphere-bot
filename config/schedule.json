@@ -14,7 +14,7 @@
   {
     "name": "new_year",
     "message": "🎆 Happy New Year! Let's make it a great one!",
-    "channel_id": 790804246806790168,
+    "channel_id": 1538751595091861628,
     "type": "annual",
     "time": "00:00",
     "date": "2027-01-01",
@@ -24,7 +24,7 @@
   {
     "name": "mlb_standings_monday_08am",
     "message": "$mlb_standings",
-    "channel_id": 1010706336905961593,
+    "channel_id": 1539082416629489734,
     "type": "weekly",
     "time": "08:00",
     "weekdays": [
@@ -37,7 +37,7 @@
   {
     "name": "mlb_division_nl_east_every_other",
     "message": "$mlb_division nl-east",
-    "channel_id": 1010706336905961593,
+    "channel_id": 1539082416629489734,
     "type": "weekly",
     "time": "08:00",
     "weekdays": [
@@ -61,7 +61,7 @@
   {
     "name": "pollen_weekdays_1130am",
     "message": "$pollen",
-    "channel_id": 1079612189175988264,
+    "channel_id": 1539087911721500742,
     "type": "weekly",
     "time": "11:30",
     "weekdays": [
@@ -77,7 +77,7 @@
   {
     "name": "atlanta_morning_report",
     "message": "$gemini What's the latest news in Atlanta today? Format it for us in discord with bullet points",
-    "channel_id": 1079612189175988264,
+    "channel_id": 1539087911721500742,
     "type": "weekly",
     "time": "09:15",
     "weekdays": [
@@ -95,7 +95,7 @@
   {
     "name": "atlanta_evening_report",
     "message": "$gemini What's the latest news in Atlanta today? Format it for us in discord with bullet points",
-    "channel_id": 1489085355599724684,
+    "channel_id": 1539087911721500742,
     "type": "weekly",
     "time": "22:00",
     "weekdays": [
@@ -113,7 +113,7 @@
   {
     "name": "baseball_weekly_report",
     "message": "$gemini What's the latest news in the MLB this week?",
-    "channel_id": 1010706336905961593,
+    "channel_id": 1539082416629489734,
     "type": "weekly",
     "time": "10:00",
     "weekdays": [
@@ -126,7 +126,7 @@
   {
     "name": "tech_weekly_report",
     "message": "$gemini What's the latest news in the tech industry this week?",
-    "channel_id": 1119463878250745887,
+    "channel_id": 1539093111576334407,
     "type": "weekly",
     "time": "10:00",
     "weekdays": [
@@ -138,7 +138,7 @@
   {
     "name": "nfl_weekly_report",
     "message": "$gemini What's the latest news in the NFL this week?",
-    "channel_id": 1010706949660221561,
+    "channel_id": 1539093803649073272,
     "type": "weekly",
     "time": "10:00",
     "weekdays": [
@@ -150,7 +150,7 @@
   {
     "name": "cfb_weekly_report",
     "message": "$gemini What's the latest news in college football this week?",
-    "channel_id": 1010706949660221561,
+    "channel_id": 1539093669448257586,
     "type": "weekly",
     "time": "10:00",
     "weekdays": [
@@ -169,12 +169,12 @@
       4
     ],
     "timezone": "America/New_York",
-    "enabled": true
+    "enabled": false
   },
   {
     "name": "nws_daily_report",
     "message": "$weather",
-    "channel_id": 1079612189175988264,
+    "channel_id": 1539087911721500742,
     "type": "weekly",
     "time": "21:00",
     "weekdays": [
