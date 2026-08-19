@@ -17,6 +17,7 @@ import time
 from collections import deque
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
+from toaster.tweet_watcher import start_tweet_watcher
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
 from toaster.kalshi_game import (
@@ -1078,6 +1079,13 @@ async def on_ready() -> None:
         asyncio.create_task(schedule_registry.start_scheduler(bot))
     else:
         print()
+
+    # Start tweet watcher (polls configured accounts and posts new tweets)
+    try:
+        asyncio.create_task(start_tweet_watcher(bot))
+        print('✓ Started tweet watcher')
+    except Exception:
+        print('✗ Failed to start tweet watcher')
 
     asyncio.create_task(monitor_pending_bets(bot))
     
