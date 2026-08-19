@@ -50,4 +50,13 @@
     "enabled": true,
     "require_word": "Grand Theft Auto VI"
    }
+   ,
+  {
+    "name": "nfl_tweets",
+    "username": "NFL",
+    "channel_id": 1539093803649073272,
+    "enabled": true,
+    "require_video": true,
+    "provider": "fxtwitter"
+  }
 ]
