@@ -14,4 +14,26 @@
     "require_video": true,
     "provider": "fxtwitter"
   }
+  ,
+  {
+    "name": "motor_trend",
+    "username": "MotorTrend",
+    "channel_id": 1539108566009643048,
+    "enabled": true
+  }
+   ,
+   {
+     "name": "on3_tweets",
+     "username": "On3sports",
+     "channel_id": 1539108566009643048,
+     "enabled": true,
+     "require_word": "football",
+     "provider": "fxtwitter"
+   },
+   {
+    "name": "realDonaldTrump",
+    "username": "realDonaldTrump",
+    "channel_id": 1539108566009643048,
+    "enabled": true
+   }
 ]

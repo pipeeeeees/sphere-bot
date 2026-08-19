@@ -38,6 +38,29 @@ def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
         return False
 
 
+def _fixvx_has_word(url: str, word: str, timeout: int = 10) -> bool:
+    """Check if the provider page contains `word` in tweet text or meta tags."""
+    if not word:
+        return False
+    try:
+        headers = {"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"}
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+        html = resp.text.lower()
+        w = word.lower()
+        # Check meta description / og:description first
+        if f"og:description" in html:
+            # quick substring search
+            if w in html:
+                return True
+        # Fallback: simple text search of page
+        if w in html:
+            return True
+        return False
+    except Exception:
+        return False
+
+
 CONFIG_FILE = Path("config") / "twitter_watch.json"
 STATE_FILE = Path("config") / "twitter_watch_state.json"
 
