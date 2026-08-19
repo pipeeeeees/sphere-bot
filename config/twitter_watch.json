@@ -9,7 +9,7 @@
   {
     "name": "mlb_tweets",
     "username": "MLB",
-    "channel_id": 1539082416629489734,
+    "channel_id": 1539108566009643048,
     "enabled": true,
     "require_video": true,
     "provider": "fxtwitter"
