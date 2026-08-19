@@ -12,6 +12,30 @@ from typing import Dict
 
 from toaster.config import load_config
 from toaster.modules.tweet_puller import get_latest_tweet_link, get_fixvx_equivalent
+import requests
+
+
+def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
+    """Best-effort check if the given fixvx/front-end URL embeds a video.
+
+    Checks for <video> tags, common og:video meta tags, or player hints in HTML.
+    """
+    try:
+        headers = {"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"}
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+        html = resp.text.lower()
+        if "<video" in html:
+            return True
+        # OpenGraph video tags
+        if "og:video" in html or "property=\"og:video\"" in html:
+            return True
+        # common player hints
+        if "data-video-id" in html or "player" in html and "video" in html:
+            return True
+        return False
+    except Exception:
+        return False
 
 
 CONFIG_FILE = Path("config") / "twitter_watch.json"
@@ -101,10 +125,25 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                             except Exception:
                                 channel = None
                         if channel is not None:
-                            # Use fxtwitter link by default for nicer embeds
-                            alt = get_fixvx_equivalent(link, provider="fxtwitter") or link
-                            msg = f"New tweet from @{username}: {alt}"
-                            await channel.send(msg)
+                            # Determine provider (per-entry override) and produce alternative link
+                            provider = entry.get("provider", "fxtwitter")
+                            alt = get_fixvx_equivalent(link, provider=provider) or link
+
+                            # If this watch entry requires a video embed, verify before posting
+                            require_video = bool(entry.get("require_video", False))
+                            can_post = True
+                            if require_video:
+                                # run blocking check in thread
+                                try:
+                                    has_video = await asyncio.to_thread(_fixvx_has_video, alt)
+                                except Exception:
+                                    has_video = False
+                                if not has_video:
+                                    can_post = False
+
+                            if can_post:
+                                msg = f"New tweet from @{username}: {alt}"
+                                await channel.send(msg)
                     except Exception:
                         # ignore failures and continue
                         pass
