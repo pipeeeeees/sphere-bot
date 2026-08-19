@@ -58,5 +58,11 @@
     "enabled": true,
     "require_video": true,
     "provider": "fxtwitter"
+  },
+  {
+    "name": "gafollowers",
+    "username": "GAFollowers",
+    "channel_id": 1539087911721500742,
+    "enabled": true
   }
 ]
