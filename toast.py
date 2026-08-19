@@ -17,7 +17,8 @@ import time
 from collections import deque
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
-from toaster.tweet_watcher import start_tweet_watcher
+from toaster.tweet_watcher import start_tweet_watcher, get_watch_list, get_saved_state
+from toaster.modules.tweet_puller import get_fixvx_equivalent
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
 from toaster.kalshi_game import (
@@ -43,6 +44,47 @@ from toaster.state import set_start_time
 
 # Conversation history storage
 conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history string
+
+
+@bot.command(name='latest_tweets')
+async def latest_tweets(ctx: commands.Context):
+    """Post the saved latest tweet links for each watched account.
+
+    Sends one link per watched account (uses per-account provider if configured).
+    """
+    try:
+        watch_list = get_watch_list()
+        state = get_saved_state()
+    except Exception:
+        await ctx.send("Failed to load watch list or state.")
+        return
+
+    lines = []
+    for entry in watch_list:
+        username = entry.get('username')
+        if not username:
+            continue
+        last_id = state.get(username)
+        if last_id:
+            link = f"https://x.com/{username}/status/{last_id}"
+            provider = entry.get('provider', 'fxtwitter')
+            alt = get_fixvx_equivalent(link, provider=provider) or link
+            lines.append(alt)
+        else:
+            lines.append(f"{username}: (no stored tweet)")
+
+    if not lines:
+        await ctx.send("No watched accounts configured.")
+        return
+
+    # Send as a single message (truncate if needed)
+    msg = "\n".join(lines)
+    if len(msg) > 1900:
+        # chunk
+        for i in range(0, len(msg), 1900):
+            await ctx.send(msg[i:i+1900])
+    else:
+        await ctx.send(msg)
 
 # Persistent person memory storage
 PERSON_MEMORY_FILE = "config/person_memory.json"

@@ -75,6 +75,11 @@ def _load_watch_list():
         return []
 
 
+def get_watch_list():
+    """Public accessor for the configured watch list."""
+    return _load_watch_list()
+
+
 def _load_state() -> Dict[str, str]:
     if not STATE_FILE.exists():
         return {}
@@ -83,6 +88,11 @@ def _load_state() -> Dict[str, str]:
             return json.load(f)
     except Exception:
         return {}
+
+
+def get_saved_state() -> Dict[str, str]:
+    """Public accessor for persisted watch state."""
+    return _load_state()
 
 
 def _save_state(state: Dict[str, str]) -> None:
