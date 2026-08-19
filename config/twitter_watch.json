@@ -2,14 +2,14 @@
   {
     "name": "braves_tweets",
     "username": "Braves",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539082416629489734,
     "enabled": true
   }
   ,
   {
     "name": "mlb_tweets",
     "username": "MLB",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539082416629489734,
     "enabled": true,
     "require_video": true,
     "provider": "fxtwitter"
@@ -19,13 +19,13 @@
     "name": "motor_trend",
     "username": "MotorTrend",
     "channel_id": 1539108566009643048,
-    "enabled": true
+    "enabled": false
   }
    ,
    {
      "name": "on3_tweets",
      "username": "On3",
-     "channel_id": 1539108566009643048,
+     "channel_id": 1539093669448257586,
      "enabled": true,
      "require_word": "football",
      "provider": "fxtwitter"
@@ -33,20 +33,20 @@
    {
     "name": "realDonaldTrump",
     "username": "realDonaldTrump",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539087596569764042,
     "enabled": true
    }
    ,
    {
     "name": "kanyewest",
     "username": "kanyewest",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539096050378211470,
     "enabled": true
    },
    {
     "name": "rockstar games",
     "username": "RockstarGames",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539106607261159524,
     "enabled": true,
     "require_word": "Grand Theft Auto VI"
    }
