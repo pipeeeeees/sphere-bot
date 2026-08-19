@@ -24,7 +24,7 @@
    ,
    {
      "name": "on3_tweets",
-     "username": "On3sports",
+     "username": "On3",
      "channel_id": 1539108566009643048,
      "enabled": true,
      "require_word": "football",
