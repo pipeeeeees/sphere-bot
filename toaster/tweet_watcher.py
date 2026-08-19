@@ -164,9 +164,35 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                 if not has_video:
                                     can_post = False
 
+                            # If this watch entry requires a specific word, verify before posting
+                            require_word = entry.get("require_word")
+                            if require_word and can_post:
+                                # support list or single string
+                                try:
+                                    if isinstance(require_word, list):
+                                        found = False
+                                        for w in require_word:
+                                            try:
+                                                ok = await asyncio.to_thread(_fixvx_has_word, alt, w)
+                                            except Exception:
+                                                ok = False
+                                            if ok:
+                                                found = True
+                                                break
+                                        if not found:
+                                            can_post = False
+                                    else:
+                                        try:
+                                            ok = await asyncio.to_thread(_fixvx_has_word, alt, require_word)
+                                        except Exception:
+                                            ok = False
+                                        if not ok:
+                                            can_post = False
+                                except Exception:
+                                    can_post = False
+
                             if can_post:
-                                msg = f"New tweet from @{username}: {alt}"
-                                await channel.send(msg)
+                                await channel.send(alt)
                     except Exception:
                         # ignore failures and continue
                         pass

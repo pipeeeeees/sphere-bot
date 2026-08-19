@@ -42,5 +42,12 @@
     "username": "kanyewest",
     "channel_id": 1539108566009643048,
     "enabled": true
+   },
+   {
+    "name": "rockstar games",
+    "username": "RockstarGames",
+    "channel_id": 1539108566009643048,
+    "enabled": true,
+    "require_word": "Grand Theft Auto VI"
    }
 ]
