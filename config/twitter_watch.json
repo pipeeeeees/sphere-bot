@@ -78,5 +78,14 @@
     "enabled": true,
     "require_video": true,
     "provider": "fxtwitter"
+  },
+  {
+     "name": "nws",
+     "username": "NWS",
+     "channel_id": 1539087911721500742,
+     "enabled": true,
+     "require_word": "Georgia",
+     "provider": "fxtwitter"
+   }
   
 ]
