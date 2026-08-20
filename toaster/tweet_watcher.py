@@ -8,7 +8,7 @@ import asyncio
 import json
 import re
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from toaster.config import load_config
 from toaster.modules.tweet_puller import get_latest_tweet_link, get_fixvx_equivalent
@@ -113,11 +113,45 @@ def _extract_status_id(link: str):
     return None
 
 
+async def _tweet_already_posted(channel, tweet_url: str, lookback: int = 10) -> bool:
+    """Check if the tweet URL has already been posted in the channel's recent history.
+    
+    Args:
+        channel: Discord channel object
+        tweet_url: The tweet URL to check for
+        lookback: Number of recent messages to check (default 10)
+    
+    Returns:
+        True if the tweet URL is found in recent messages, False otherwise
+    """
+    if not channel or not tweet_url:
+        return False
+    
+    try:
+        # Fetch recent messages from the channel
+        async for message in channel.history(limit=lookback):
+            # Check if this message contains the tweet URL (or a normalized version)
+            if tweet_url in message.content:
+                return True
+            # Also check for x.com version if we have a fixvx link
+            if "x.com" in tweet_url or "twitter.com" in tweet_url:
+                # Extract status ID and check for it in any URL format
+                status_id = _extract_status_id(tweet_url)
+                if status_id and f"/status/{status_id}" in message.content:
+                    return True
+    except Exception:
+        # If we can't fetch history, assume it's safe to post
+        pass
+    
+    return False
+
+
 async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
     """Run indefinitely, polling accounts and posting new tweets.
 
     - On first observation of an account (no stored state) do NOT post; just store.
     - When status id changes, post message to configured channel and update state.
+    - Before posting, check recent channel history to avoid duplicate posts.
     """
     await bot.wait_until_ready()
     watch_list = _load_watch_list()
@@ -161,6 +195,14 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                             # Determine provider (per-entry override) and produce alternative link
                             provider = entry.get("provider", "fxtwitter")
                             alt = get_fixvx_equivalent(link, provider=provider) or link
+
+                            # Check if this tweet has already been posted in recent history
+                            already_posted = await _tweet_already_posted(channel, alt, lookback=10)
+                            if already_posted:
+                                # Skip posting, but still update state so we don't check again
+                                state[username] = status_id
+                                _save_state(state)
+                                continue
 
                             # If this watch entry requires a video embed, verify before posting
                             require_video = bool(entry.get("require_video", False))
