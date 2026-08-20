@@ -70,5 +70,13 @@
     "username": "GTAVI_Countdown",
     "channel_id": 1539106607261159524,
     "enabled": true
-  }
+  },
+  {
+    "name": "fortnite",
+    "username": "Fortnite",
+    "channel_id": 1539090032709603358,
+    "enabled": true,
+    "require_video": true,
+    "provider": "fxtwitter"
+  
 ]
