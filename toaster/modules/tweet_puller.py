@@ -16,7 +16,17 @@ HEADERS = {
 }
 
 
-def _search_for_status_links(text: str, username: str) -> Optional[str]:
+def _search_for_status_links(text: str, username: str, skip_pinned: bool = True) -> Optional[str]:
+    """Find tweet status links, optionally skipping pinned tweets.
+    
+    Args:
+        text: HTML content to search
+        username: Twitter username to filter links
+        skip_pinned: If True, attempts to skip pinned tweets
+    
+    Returns:
+        The first (non-pinned if skip_pinned=True) tweet URL found, or None
+    """
     # Try to find absolute x.com links first
     patterns = [
         rf"https?://(?:www\.)?x\.com/{re.escape(username)}/status/\d+",
@@ -25,22 +35,59 @@ def _search_for_status_links(text: str, username: str) -> Optional[str]:
         rf"https?://nitter\.net/{re.escape(username)}/status/\d+",
         rf"https?://vxtwitter\.com/{re.escape(username)}/status/\d+",
     ]
+    
+    # Find all matches instead of just the first
+    all_matches = []
     for pat in patterns:
-        m = re.search(pat, text, flags=re.IGNORECASE)
-        if m:
+        for m in re.finditer(pat, text, flags=re.IGNORECASE):
             link = m.group(0)
             # If relative path like "/username/status/123" make it absolute to x.com
             if link.startswith("/"):
-                return f"https://x.com{link}"
-            return link
-    return None
+                link = f"https://x.com{link}"
+            all_matches.append((m.start(), link))
+    
+    if not all_matches:
+        return None
+    
+    # Sort by position in text (earlier = earlier in page)
+    all_matches.sort(key=lambda x: x[0])
+    
+    if not skip_pinned:
+        return all_matches[0][1]
+    
+    # Look for pinned tweet indicators and skip the first match if it's pinned
+    # Common patterns for pinned tweets in HTML
+    pinned_indicators = [
+        r"pinned",
+        r"pin.*?post",
+        r"post.*?pin",
+        r"📌",
+    ]
+    
+    # Check if the text around the first link contains a pinned indicator
+    first_link = all_matches[0][1]
+    first_pos = all_matches[0][0]
+    
+    # Look at a window of text around the first link
+    window_start = max(0, first_pos - 500)
+    window_end = min(len(text), first_pos + 500)
+    window = text[window_start:window_end].lower()
+    
+    is_pinned = any(re.search(indicator, window, re.IGNORECASE) for indicator in pinned_indicators)
+    
+    # If first link is pinned, return the second one if available
+    if is_pinned and len(all_matches) > 1:
+        return all_matches[1][1]
+    
+    # Otherwise return the first link (either it's not pinned, or there's only one)
+    return first_link
 
 
 def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = True) -> Optional[str]:
     """Return the URL of the latest tweet for `username`, or None if not found.
 
     This attempts to fetch `https://x.com/{username}` and parse the HTML for
-    the first status URL. If that fails and `try_nitter` is True, it falls back
+    the first non-pinned status URL. If that fails and `try_nitter` is True, it falls back
     to `https://nitter.net/{username}`.
     """
     if not username or not username.strip():
@@ -53,7 +100,7 @@ def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = T
         try:
             resp = requests.get(url, headers=HEADERS, timeout=timeout)
             resp.raise_for_status()
-            link = _search_for_status_links(resp.text, username)
+            link = _search_for_status_links(resp.text, username, skip_pinned=True)
             if link:
                 return link
         except Exception:
@@ -66,7 +113,7 @@ def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = T
             nitter_url = f"https://nitter.net/{username}"
             resp = requests.get(nitter_url, headers=HEADERS, timeout=timeout)
             resp.raise_for_status()
-            link = _search_for_status_links(resp.text, username)
+            link = _search_for_status_links(resp.text, username, skip_pinned=True)
             if link:
                 return link
         except Exception:
