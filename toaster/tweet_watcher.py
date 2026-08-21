@@ -61,6 +61,80 @@ def _fixvx_has_word(url: str, word: str, timeout: int = 10) -> bool:
         return False
 
 
+def _extract_tweet_text(url: str, timeout: int = 10) -> Optional[str]:
+    """Extract tweet text from a fixvx/frontend URL.
+    
+    Attempts to parse og:description meta tag or fallback to text content.
+    """
+    if not url:
+        return None
+    try:
+        headers = {"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"}
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+        html = resp.text
+        
+        # Try to extract og:description (most reliable for tweet text)
+        m = re.search(r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']', html)
+        if m:
+            return m.group(1).strip()
+        
+        # Fallback: look for content attribute
+        m = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]*property=["\']og:description["\']', html)
+        if m:
+            return m.group(1).strip()
+        
+        return None
+    except Exception:
+        return None
+
+
+def _is_college_football_related(tweet_text: str, timeout: int = 15) -> bool:
+    """Use Gemini AI to classify if a tweet is college football related.
+    
+    Args:
+        tweet_text: The tweet text to classify
+        timeout: Request timeout in seconds
+    
+    Returns:
+        True if Gemini determines it's college football related, False otherwise
+    """
+    if not tweet_text or not tweet_text.strip():
+        return False
+    
+    try:
+        from toaster.llm_agents.gemini import get_gemini_response_with_key
+        
+        # Create a focused prompt for classification
+        classification_prompt = f"""Determine if the following tweet is about COLLEGE FOOTBALL. 
+        
+College football includes: NCAA Division I (FBS/FCS) football, recruiting news, transfer portal updates, 
+bowl games, playoff discussions, conference news, college football players, coaches, teams, games, and scores.
+
+Do NOT count: Professional NFL, high school football, Canadian football, or non-football sports.
+
+Tweet: "{tweet_text}"
+
+Respond with ONLY "yes" or "no" (lowercase, no other text)."""
+        
+        response, error = get_gemini_response_with_key(
+            history="",
+            message=classification_prompt,
+            config_path="config"
+        )
+        
+        if error or not response:
+            # On error, default to False (don't post) to avoid false positives
+            return False
+        
+        # Check if response starts with "yes"
+        return response.strip().lower().startswith("yes")
+    
+    except Exception:
+        # If Gemini is not available or errors occur, default to False
+        return False
+
+
 CONFIG_FILE = Path("config") / "twitter_watch.json"
 STATE_FILE = Path("config") / "twitter_watch_state.json"
 
@@ -240,6 +314,22 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                             ok = False
                                         if not ok:
                                             can_post = False
+                                except Exception:
+                                    can_post = False
+
+                            # If this watch entry requires AI classification, verify before posting
+                            require_ai_classification = entry.get("require_ai_classification")
+                            if require_ai_classification and can_post:
+                                # Extract tweet text and run AI classification in thread
+                                try:
+                                    tweet_text = await asyncio.to_thread(_extract_tweet_text, alt)
+                                    if tweet_text:
+                                        classification_ok = await asyncio.to_thread(_is_college_football_related, tweet_text)
+                                        if not classification_ok:
+                                            can_post = False
+                                    else:
+                                        # If we can't extract text, don't post to be safe
+                                        can_post = False
                                 except Exception:
                                     can_post = False
 
