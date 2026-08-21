@@ -16,18 +16,17 @@ HEADERS = {
 }
 
 
-def _search_for_status_links(text: str, username: str, skip_pinned: bool = True) -> Optional[str]:
-    """Find tweet status links, optionally skipping pinned tweets.
+def _get_all_tweet_links(text: str, username: str, max_tweets: int = 10) -> list:
+    """Extract all tweet status links from HTML content.
     
     Args:
         text: HTML content to search
         username: Twitter username to filter links
-        skip_pinned: If True, attempts to skip pinned tweets
+        max_tweets: Maximum number of tweets to extract
     
     Returns:
-        The first (non-pinned if skip_pinned=True) tweet URL found, or None
+        List of tweet URLs sorted by position in text (earliest = first in feed)
     """
-    # Try to find absolute x.com links first
     patterns = [
         rf"https?://(?:www\.)?x\.com/{re.escape(username)}/status/\d+",
         rf"https?://(?:mobile\.)?twitter\.com/{re.escape(username)}/status/\d+",
@@ -36,51 +35,59 @@ def _search_for_status_links(text: str, username: str, skip_pinned: bool = True)
         rf"https?://vxtwitter\.com/{re.escape(username)}/status/\d+",
     ]
     
-    # Find all matches instead of just the first
     all_matches = []
+    seen_links = set()  # Avoid duplicates
+    
     for pat in patterns:
         for m in re.finditer(pat, text, flags=re.IGNORECASE):
             link = m.group(0)
             # If relative path like "/username/status/123" make it absolute to x.com
             if link.startswith("/"):
                 link = f"https://x.com{link}"
-            all_matches.append((m.start(), link))
+            # Deduplicate by normalizing to x.com format
+            if link not in seen_links:
+                all_matches.append((m.start(), link))
+                seen_links.add(link)
     
-    if not all_matches:
-        return None
-    
-    # Sort by position in text (earlier = earlier in page)
+    # Sort by position in text (earlier = earlier in page/timeline)
     all_matches.sort(key=lambda x: x[0])
     
+    # Return only links, limited to max_tweets
+    return [link for _, link in all_matches[:max_tweets]]
+
+
+def _search_for_status_links(text: str, username: str, skip_pinned: bool = True) -> Optional[str]:
+    """Find tweet status links, optionally skipping pinned tweets.
+    
+    Robust approach: when skip_pinned=True, assumes the first tweet in DOM order
+    is likely pinned and returns the second tweet (the most recent visible one).
+    This heuristic is more reliable than trying to detect HTML "pinned" indicators
+    which may not be present or may be unreliable across different Twitter frontends.
+    
+    Args:
+        text: HTML content to search
+        username: Twitter username to filter links
+        skip_pinned: If True, skips the first tweet (assumed pinned) and returns the second
+    
+    Returns:
+        The most recent (non-pinned if skip_pinned=True) tweet URL found, or None
+    """
+    links = _get_all_tweet_links(text, username, max_tweets=5)
+    
+    if not links:
+        return None
+    
     if not skip_pinned:
-        return all_matches[0][1]
+        return links[0]
     
-    # Look for pinned tweet indicators and skip the first match if it's pinned
-    # Common patterns for pinned tweets in HTML
-    pinned_indicators = [
-        r"pinned",
-        r"pin.*?post",
-        r"post.*?pin",
-        r"📌",
-    ]
+    # Robust pinned detection: when skip_pinned=True, the first tweet in page order
+    # is almost always the pinned tweet, and the second is the most recent.
+    # This avoids relying on inconsistent HTML "pinned" indicators.
+    if len(links) > 1:
+        return links[1]
     
-    # Check if the text around the first link contains a pinned indicator
-    first_link = all_matches[0][1]
-    first_pos = all_matches[0][0]
-    
-    # Look at a window of text around the first link
-    window_start = max(0, first_pos - 500)
-    window_end = min(len(text), first_pos + 500)
-    window = text[window_start:window_end].lower()
-    
-    is_pinned = any(re.search(indicator, window, re.IGNORECASE) for indicator in pinned_indicators)
-    
-    # If first link is pinned, return the second one if available
-    if is_pinned and len(all_matches) > 1:
-        return all_matches[1][1]
-    
-    # Otherwise return the first link (either it's not pinned, or there's only one)
-    return first_link
+    # If only one tweet found, return it (better than nothing)
+    return links[0]
 
 
 def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = True) -> Optional[str]:
