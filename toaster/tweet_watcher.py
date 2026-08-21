@@ -92,6 +92,10 @@ def _extract_tweet_text(url: str, timeout: int = 10) -> Optional[str]:
 def _is_college_football_related(tweet_text: str, timeout: int = 15) -> bool:
     """Use Gemini AI to classify if a tweet is college football related.
     
+    Uses a two-layer approach:
+    1. Quick keyword filter to reject obvious non-football content
+    2. Gemini AI for nuanced cases
+    
     Args:
         tweet_text: The tweet text to classify
         timeout: Request timeout in seconds
@@ -102,20 +106,61 @@ def _is_college_football_related(tweet_text: str, timeout: int = 15) -> bool:
     if not tweet_text or not tweet_text.strip():
         return False
     
+    text_lower = tweet_text.lower()
+    
+    # Layer 1: Quick keyword filters to reject obvious non-football sports
+    # These are terms that indicate basketball, baseball, hockey, etc.
+    non_football_keywords = [
+        # Basketball
+        "basketball", "nba", "nit", "ncaa tournament", "march madness", "hoops", "three-pointer", "dunk", "slam dunk",
+        "jazz", "lakers", "celtics", "warriors", "nets", "76ers", "bucks", "heat", "mavericks", "nuggets",
+        "suns", "grizzlies", "kings", "pelicans", "spurs", "raptors", "bulls", "cavaliers", "pistons", "pacers",
+        "hawks", "hornets", "magic", "knicks", "rockets", "blazers", "clippers", "timberwolves",
+        # Baseball
+        "baseball", "mlb", "pitcher", "batter", "home run", "strikeout", "world series", "dugout",
+        # Hockey
+        "hockey", "nhl", "ice hockey", "puck", "goalie", "boarding", "hat trick", "zamboni",
+        # Other sports
+        "nfl pro", "professional football", "nba draft", "mlb draft", "nhl draft",
+        "nfl game", "nfl team", "nfl player", "nfl draft",
+        "soccer", "cricket", "rugby", "tennis", "golf", "boxing", "ufc", "mma",
+    ]
+    
+    # Check if any non-football keyword appears in the tweet
+    for keyword in non_football_keywords:
+        if keyword in text_lower:
+            return False
+    
+    # Layer 2: Use Gemini for final classification
     try:
         from toaster.llm_agents.gemini import get_gemini_response_with_key
         
-        # Create a focused prompt for classification
-        classification_prompt = f"""Determine if the following tweet is about COLLEGE FOOTBALL. 
-        
-College football includes: NCAA Division I (FBS/FCS) football, recruiting news, transfer portal updates, 
-bowl games, playoff discussions, conference news, college football players, coaches, teams, games, and scores.
+        # Create a very explicit prompt for college football classification
+        classification_prompt = f"""You are a college sports expert. Determine if the following tweet is EXCLUSIVELY about COLLEGE FOOTBALL.
 
-Do NOT count: Professional NFL, high school football, Canadian football, or non-football sports.
+COLLEGE FOOTBALL ONLY includes:
+- NCAA Division I FBS (Football Bowl Subdivision) and FCS (Football Championship Subdivision) football
+- College football recruiting (players committing to college football programs)
+- College football transfer portal and portal updates
+- College football games, scores, and results
+- Bowl games (January bowl season, etc.)
+- College football playoffs (College Football Playoff)
+- College football coaches, teams, conferences
+- College football strategy and analysis
+
+EXPLICITLY EXCLUDE (return "no" for these):
+- NBA (basketball), NCAA basketball, March Madness - any basketball at any level
+- MLB (baseball), minor league baseball, college baseball
+- Hockey (NHL, college hockey, any level)
+- NFL (professional football) or NFL draft
+- Soccer, cricket, rugby, tennis, golf, boxing, MMA, UFC
+- Any sport OTHER than college football
 
 Tweet: "{tweet_text}"
 
-Respond with ONLY "yes" or "no" (lowercase, no other text)."""
+You must respond with ONLY "yes" or "no" (lowercase, no other text).
+If the tweet mentions basketball, baseball, hockey, or any non-football sport, respond "no".
+If unsure, respond "no" (be conservative)."""
         
         response, error = get_gemini_response_with_key(
             history="",
