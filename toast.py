@@ -15,6 +15,7 @@ from typing import Union
 import random
 import time
 from collections import deque
+import requests
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
 from toaster.tweet_watcher import start_tweet_watcher, get_watch_list, get_saved_state
@@ -584,6 +585,111 @@ def build_message_context(message: discord.Message) -> str:
     if text:
         return f"{prefix}: {text}"
     return prefix
+
+
+def _extract_tweet_author_from_url(url: str, timeout: int = 10) -> str:
+    """Extract the Twitter username of the tweet author from a tweet URL.
+    
+    Parses the URL structure and attempts to extract the author from the page.
+    Works with x.com, twitter.com, fixvx.com, fxtwitter.com, vxtwitter.com, nitter.net URLs.
+    
+    Args:
+        url: The tweet URL (can be x.com, fixvx.com, etc.)
+        timeout: Request timeout in seconds
+    
+    Returns:
+        The Twitter username (without @) if found, empty string otherwise
+    """
+    if not url or not url.strip():
+        return ""
+    
+    url = url.strip()
+    
+    # Try to extract username and status ID from the URL directly
+    m = re.search(r"https?://(?:www\.)?(?:x\.com|twitter\.com|mobile\.twitter\.com|fxtwitter\.com|fixvx\.com|vxtwitter\.com|nitter\.net)/([^/]+)/status(?:es)?/(\d+)", url, re.IGNORECASE)
+    if m:
+        # URL structure /username/status/id - return the username
+        return m.group(1)
+    
+    # Try embed URL format like fixvx.com/i/status/123
+    m = re.search(r"https?://(?:www\.)?(?:fixvx|fxtwitter|vxtwitter)\.com/i/status/(\d+)", url, re.IGNORECASE)
+    if m:
+        # For embed URLs, we need to fetch and parse the page to get author
+        status_id = m.group(1)
+        try:
+            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+            
+            # Try fetching from x.com using the status ID
+            x_urls = [
+                f"https://x.com/i/web/status/{status_id}",
+                f"https://twitter.com/i/web/status/{status_id}",
+            ]
+            
+            for attempt_url in x_urls:
+                try:
+                    resp = requests.get(attempt_url, headers=headers, timeout=timeout, allow_redirects=True)
+                    resp.raise_for_status()
+                    html = resp.text
+                    
+                    # Try to extract author from data-screen-name or href="/username/status"
+                    m = re.search(r'data-screen-name="([^"]+)"', html)
+                    if m:
+                        return m.group(1)
+                    
+                    # Try extracting from href="/author/status/id"
+                    m = re.search(rf'href="/([\w-]+)/status/{status_id}"', html)
+                    if m:
+                        return m.group(1)
+                    
+                    # Try extracting from og:url which often has the author
+                    m = re.search(r'<meta[^>]*property=["\']og:url["\'][^>]*content=["\']https://(?:x\.com|twitter\.com)/([^/]+)/status', html, re.IGNORECASE)
+                    if m:
+                        return m.group(1)
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    
+    return ""
+
+
+async def check_rayford_tweet_from_malbon(message: discord.Message) -> bool:
+    """Check if mal-bon posted a tweet authored by rayfordyoung and reply if so.
+    
+    Returns:
+        True if a reply was sent, False otherwise
+    """
+    if not message.author or not message.content:
+        return False
+    
+    # Check if the message author is mal-bon (case-insensitive)
+    author_name = getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or ""
+    if author_name.lower() != "mal-bon":
+        return False
+    
+    # Find tweet URLs in the message
+    tweet_patterns = [
+        r"https?://(?:www\.)?(?:x\.com|twitter\.com|mobile\.twitter\.com|fxtwitter\.com|fixvx\.com|vxtwitter\.com|nitter\.net)/[^/\s]+/status(?:es)?/\d+",
+        r"https?://(?:www\.)?(?:fixvx|fxtwitter|vxtwitter)\.com/i/status/\d+",
+    ]
+    
+    for pattern in tweet_patterns:
+        for url_match in re.finditer(pattern, message.content, re.IGNORECASE):
+            url = url_match.group(0)
+            try:
+                # Extract author in a thread to avoid blocking
+                author = await asyncio.to_thread(_extract_tweet_author_from_url, url)
+                if author and author.lower() == "rayfordyoung":
+                    # Found a tweet by rayfordyoung posted by mal-bon!
+                    try:
+                        await message.channel.send("mal-bon has shared yet another tweet by Ray Young. Thank you, mal-bon")
+                        return True
+                    except Exception:
+                        return False
+            except Exception:
+                continue
+    
+    return False
 
 
 async def handle_kalshi_game_message(message: discord.Message) -> bool:
@@ -1230,6 +1336,11 @@ async def on_message(message: discord.Message) -> None:
         return
 
     try:
+        # Check if mal-bon is sharing a ray young tweet
+        rayford_handled = await check_rayford_tweet_from_malbon(message)
+        if rayford_handled:
+            return
+
         update_person_memory(message, config_dir="config")
 
         # Handle DMs with AI responses

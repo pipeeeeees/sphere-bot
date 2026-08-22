@@ -2,14 +2,14 @@
   {
     "name": "braves_tweets",
     "username": "Braves",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539082416629489734,
     "enabled": true
   }
   ,
   {
     "name": "mlb_tweets",
     "username": "MLB",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539082416629489734,
     "enabled": true,
     "require_video": false,
     "provider": "fxtwitter"
@@ -19,35 +19,73 @@
     "name": "motor_trend",
     "username": "MotorTrend",
     "channel_id": 1539108566009643048,
-    "enabled": true
+    "enabled": false
   }
    ,
    {
      "name": "on3_tweets",
-     "username": "On3sports",
-     "channel_id": 1539108566009643048,
+     "username": "On3",
+     "channel_id": 1539093669448257586,
      "enabled": true,
-     "require_word": "football",
+     "require_ai_classification": true,
      "provider": "fxtwitter"
    },
    {
     "name": "realDonaldTrump",
     "username": "realDonaldTrump",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539087596569764042,
     "enabled": true
    }
    ,
    {
     "name": "kanyewest",
     "username": "kanyewest",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539096050378211470,
     "enabled": true
    },
    {
     "name": "rockstar games",
     "username": "RockstarGames",
-    "channel_id": 1539108566009643048,
+    "channel_id": 1539106607261159524,
     "enabled": true,
     "require_word": "Grand Theft Auto VI"
    }
+   ,
+  {
+    "name": "nfl_tweets",
+    "username": "NFL",
+    "channel_id": 1539093803649073272,
+    "enabled": true,
+    "require_video": true,
+    "provider": "fxtwitter"
+  },
+  {
+    "name": "gafollowers",
+    "username": "GAFollowers",
+    "channel_id": 1539087911721500742,
+    "enabled": true
+  },
+  {
+    "name": "gta6",
+    "username": "GTAVI_Countdown",
+    "channel_id": 1539106607261159524,
+    "enabled": true
+  },
+  {
+    "name": "fortnite",
+    "username": "Fortnite",
+    "channel_id": 1539090032709603358,
+    "enabled": true,
+    "require_video": true,
+    "provider": "fxtwitter"
+  },
+  {
+     "name": "nws",
+     "username": "NWS",
+     "channel_id": 1539087911721500742,
+     "enabled": true,
+     "require_word": "Georgia",
+     "provider": "fxtwitter"
+   }
+  
 ]

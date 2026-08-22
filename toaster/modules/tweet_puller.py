@@ -16,8 +16,17 @@ HEADERS = {
 }
 
 
-def _search_for_status_links(text: str, username: str) -> Optional[str]:
-    # Try to find absolute x.com links first
+def _get_all_tweet_links(text: str, username: str, max_tweets: int = 10) -> list:
+    """Extract all tweet status links from HTML content.
+    
+    Args:
+        text: HTML content to search
+        username: Twitter username to filter links
+        max_tweets: Maximum number of tweets to extract
+    
+    Returns:
+        List of tweet URLs sorted by position in text (earliest = first in feed)
+    """
     patterns = [
         rf"https?://(?:www\.)?x\.com/{re.escape(username)}/status/\d+",
         rf"https?://(?:mobile\.)?twitter\.com/{re.escape(username)}/status/\d+",
@@ -25,22 +34,67 @@ def _search_for_status_links(text: str, username: str) -> Optional[str]:
         rf"https?://nitter\.net/{re.escape(username)}/status/\d+",
         rf"https?://vxtwitter\.com/{re.escape(username)}/status/\d+",
     ]
+    
+    all_matches = []
+    seen_links = set()  # Avoid duplicates
+    
     for pat in patterns:
-        m = re.search(pat, text, flags=re.IGNORECASE)
-        if m:
+        for m in re.finditer(pat, text, flags=re.IGNORECASE):
             link = m.group(0)
             # If relative path like "/username/status/123" make it absolute to x.com
             if link.startswith("/"):
-                return f"https://x.com{link}"
-            return link
-    return None
+                link = f"https://x.com{link}"
+            # Deduplicate by normalizing to x.com format
+            if link not in seen_links:
+                all_matches.append((m.start(), link))
+                seen_links.add(link)
+    
+    # Sort by position in text (earlier = earlier in page/timeline)
+    all_matches.sort(key=lambda x: x[0])
+    
+    # Return only links, limited to max_tweets
+    return [link for _, link in all_matches[:max_tweets]]
+
+
+def _search_for_status_links(text: str, username: str, skip_pinned: bool = True) -> Optional[str]:
+    """Find tweet status links, optionally skipping pinned tweets.
+    
+    Robust approach: when skip_pinned=True, assumes the first tweet in DOM order
+    is likely pinned and returns the second tweet (the most recent visible one).
+    This heuristic is more reliable than trying to detect HTML "pinned" indicators
+    which may not be present or may be unreliable across different Twitter frontends.
+    
+    Args:
+        text: HTML content to search
+        username: Twitter username to filter links
+        skip_pinned: If True, skips the first tweet (assumed pinned) and returns the second
+    
+    Returns:
+        The most recent (non-pinned if skip_pinned=True) tweet URL found, or None
+    """
+    links = _get_all_tweet_links(text, username, max_tweets=5)
+    
+    if not links:
+        return None
+    
+    if not skip_pinned:
+        return links[0]
+    
+    # Robust pinned detection: when skip_pinned=True, the first tweet in page order
+    # is almost always the pinned tweet, and the second is the most recent.
+    # This avoids relying on inconsistent HTML "pinned" indicators.
+    if len(links) > 1:
+        return links[1]
+    
+    # If only one tweet found, return it (better than nothing)
+    return links[0]
 
 
 def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = True) -> Optional[str]:
     """Return the URL of the latest tweet for `username`, or None if not found.
 
     This attempts to fetch `https://x.com/{username}` and parse the HTML for
-    the first status URL. If that fails and `try_nitter` is True, it falls back
+    the first non-pinned status URL. If that fails and `try_nitter` is True, it falls back
     to `https://nitter.net/{username}`.
     """
     if not username or not username.strip():
@@ -53,7 +107,7 @@ def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = T
         try:
             resp = requests.get(url, headers=HEADERS, timeout=timeout)
             resp.raise_for_status()
-            link = _search_for_status_links(resp.text, username)
+            link = _search_for_status_links(resp.text, username, skip_pinned=True)
             if link:
                 return link
         except Exception:
@@ -66,7 +120,7 @@ def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = T
             nitter_url = f"https://nitter.net/{username}"
             resp = requests.get(nitter_url, headers=HEADERS, timeout=timeout)
             resp.raise_for_status()
-            link = _search_for_status_links(resp.text, username)
+            link = _search_for_status_links(resp.text, username, skip_pinned=True)
             if link:
                 return link
         except Exception:
