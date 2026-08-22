@@ -25,14 +25,23 @@ def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
         resp = requests.get(url, headers=headers, timeout=timeout)
         resp.raise_for_status()
         html = resp.text.lower()
+        # Strict checks: presence of an actual <video> tag or explicit video metadata
         if "<video" in html:
             return True
-        # OpenGraph video tags
-        if "og:video" in html or "property=\"og:video\"" in html:
+        # OpenGraph video tags (explicit)
+        if "property=\"og:video\"" in html or "name=\"og:video\"" in html or "og:video" in html:
             return True
-        # common player hints
-        if "data-video-id" in html or "player" in html and "video" in html:
+        # Twitter player meta
+        if "name=\"twitter:player\"" in html or "twitter:player" in html:
             return True
+        # JSON-LD VideoObject
+        if '"@type":"videoobject"' in html or '"@type": "videoobject"' in html:
+            return True
+        # explicit video URL hints (mp4, m3u8) in the page
+        if ".mp4" in html or ".m3u8" in html or "video_url" in html:
+            return True
+
+        # If none of the above explicit markers are present, treat as no video
         return False
     except Exception:
         return False
