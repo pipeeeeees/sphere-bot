@@ -55,9 +55,16 @@
     "name": "nfl_tweets",
     "username": "NFL",
     "channel_id": 1539093803649073272,
-    "enabled": true,
+    "enabled": false,
     "require_video": true,
     "provider": "fxtwitter"
+  },
+  {
+    "name": "falcons",
+    "username": "AtlantaFalcons",
+    "channel_id": 1539093803649073272,
+    "enabled": true,
+    "require_video": true
   },
   {
     "name": "gafollowers",
