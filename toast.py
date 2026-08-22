@@ -1257,12 +1257,22 @@ async def on_ready() -> None:
                     else:
                         boot_msg += f"✗ Failed to load command ${cmd_name}: {error}\n"
                 
-                boot_msg += "\n**Schedules:**\n"
-                for sched_name, success, error in loaded_schedules:
-                    if success:
-                        boot_msg += f"✓ Loaded schedule: {sched_name}\n"
-                    else:
-                        boot_msg += f"✗ Failed to load schedule {sched_name}: {error}\n"
+                # Summarize schedules as counts instead of listing each one
+                total_schedules = len(loaded_schedules)
+                successful_schedules = sum(1 for _n, success, _e in loaded_schedules if success)
+                boot_msg += f"\n**Schedules:**\n{successful_schedules}/{total_schedules} scheduled messages loaded\n"
+
+                # Tweets: report how many enabled watch accounts and how many stored last-tweet ids exist
+                try:
+                    from toaster.tweet_watcher import get_watch_list, get_saved_state
+                    watch_list = get_watch_list() or []
+                    enabled_watch = [w for w in watch_list if w.get("enabled", True)]
+                    enabled_usernames = {w.get("username") for w in enabled_watch if w.get("username")}
+                    state = get_saved_state() or {}
+                    stored_count = sum(1 for u in enabled_usernames if u in state and state.get(u))
+                    boot_msg += f"\n**Tweets:** {stored_count}/{len(enabled_watch)} watched accounts have stored tweets ready for change detection\n"
+                except Exception:
+                    boot_msg += "\n**Tweets:** (unable to load twitter watch summary)\n"
                 
                 await owner.send(boot_msg)
                 print(f'✓ Boot notification sent to owner ({owner_id})')
