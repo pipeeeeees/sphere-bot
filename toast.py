@@ -1335,6 +1335,19 @@ async def on_message(message: discord.Message) -> None:
     if is_channel_muted(message.channel.id):
         return
 
+    # Special-case: if user 'mal-bon' asks for a translation, refuse with canned reply
+    try:
+        author_name = getattr(message.author, 'display_name', None) or getattr(message.author, 'name', None) or ''
+        if author_name and author_name.strip().lower() == 'mal-bon':
+            if re.search(r"\btranslate\b|\btranslation\b", message.content, flags=re.IGNORECASE):
+                try:
+                    await message.channel.send("Nah. I don't feel like it")
+                except Exception:
+                    pass
+                return
+    except Exception:
+        pass
+
     try:
         # Check if mal-bon is sharing a ray young tweet
         rayford_handled = await check_rayford_tweet_from_malbon(message)
