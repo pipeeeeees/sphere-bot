@@ -55,7 +55,7 @@
     "name": "nfl_tweets",
     "username": "NFL",
     "channel_id": 1539093803649073272,
-    "enabled": false,
+    "enabled": true,
     "require_video": true,
     "provider": "fxtwitter"
   },
