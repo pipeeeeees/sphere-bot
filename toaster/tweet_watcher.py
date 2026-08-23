@@ -1,6 +1,7 @@
 """Background tweet watcher: polls configured X accounts and posts new tweets to channels.
 
-Config: `config/twitter_watch.json` — list of {name, username, channel_id, enabled}
+Config: `config/twitter_watch.json` — {quiet_hours, watches}, where each watch has
+{name, username, channel_id, enabled}
 State persisted to: `config/twitter_watch_state.json` mapping username -> last_status_id
 """
 
@@ -8,6 +9,7 @@ import asyncio
 import json
 import re
 from pathlib import Path
+from datetime import datetime, time
 from typing import Dict, Optional
 
 from toaster.config import load_config
@@ -191,16 +193,52 @@ If unsure, respond "no" (be conservative)."""
 
 CONFIG_FILE = Path("config") / "twitter_watch.json"
 STATE_FILE = Path("config") / "twitter_watch_state.json"
+DEFAULT_WEEKDAY_QUIET_START = time(0, 0)
+DEFAULT_WEEKDAY_QUIET_END = time(6, 0)
+
+
+def _load_watch_config():
+    if not CONFIG_FILE.exists():
+        return {}, []
+    try:
+        with CONFIG_FILE.open("r", encoding="utf-8") as f:
+            config = json.load(f)
+        if isinstance(config, list):
+            return {}, config
+        if isinstance(config, dict):
+            watches = config.get("watches", [])
+            quiet_hours = config.get("quiet_hours", {})
+            if not isinstance(quiet_hours, dict):
+                quiet_hours = {}
+            return quiet_hours, watches if isinstance(watches, list) else []
+    except Exception:
+        pass
+    return {}, []
+
+
+def _parse_config_time(value, default: time) -> time:
+    try:
+        return time.fromisoformat(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def is_tweet_watch_quiet_hours(now: Optional[datetime] = None) -> bool:
+    """Return whether weekday tweet posting is currently suppressed."""
+    current_time = now or datetime.now()
+    if current_time.weekday() >= 5:
+        return False
+    quiet_hours, _ = _load_watch_config()
+    quiet_start = _parse_config_time(quiet_hours.get("weekday_start"), DEFAULT_WEEKDAY_QUIET_START)
+    quiet_end = _parse_config_time(quiet_hours.get("weekday_end"), DEFAULT_WEEKDAY_QUIET_END)
+    if quiet_start <= quiet_end:
+        return quiet_start <= current_time.time() < quiet_end
+    return current_time.time() >= quiet_start or current_time.time() < quiet_end
 
 
 def _load_watch_list():
-    if not CONFIG_FILE.exists():
-        return []
-    try:
-        with CONFIG_FILE.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    _, watches = _load_watch_config()
+    return watches
 
 
 def get_watch_list():
@@ -329,6 +367,9 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                     continue
 
                 if status_id and status_id != last_id:
+                    if is_tweet_watch_quiet_hours():
+                        continue
+
                     # New tweet — post to channel
                     try:
                         channel = bot.get_channel(channel_id)
