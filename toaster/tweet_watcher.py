@@ -116,6 +116,22 @@ def _extract_tweet_text(url: str, timeout: int = 10) -> Optional[str]:
     if not url:
         return None
     try:
+        status_id = _extract_status_id(url)
+        if status_id:
+            try:
+                api_response = requests.get(
+                    f"https://api.fxtwitter.com/status/{status_id}",
+                    headers={"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"},
+                    timeout=timeout,
+                )
+                api_response.raise_for_status()
+                tweet = api_response.json().get("tweet", {})
+                api_text = tweet.get("text")
+                if api_text:
+                    return api_text.strip()
+            except Exception:
+                pass
+
         headers = {"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"}
         resp = requests.get(url, headers=headers, timeout=timeout)
         resp.raise_for_status()
