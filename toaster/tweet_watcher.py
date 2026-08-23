@@ -223,6 +223,25 @@ def get_saved_state() -> Dict[str, str]:
     return _load_state()
 
 
+async def check_latest_tweets():
+    """Fetch the latest tweet for each enabled watch and return success counts."""
+    watch_list = _load_watch_list()
+    enabled_entries = [
+        entry for entry in watch_list
+        if entry.get("enabled", True) and entry.get("username")
+    ]
+
+    results = await asyncio.gather(*[
+        asyncio.to_thread(get_latest_tweet_link, entry["username"])
+        for entry in enabled_entries
+    ], return_exceptions=True)
+    successful = sum(
+        isinstance(link, str) and bool(_extract_status_id(link))
+        for link in results
+    )
+    return successful, len(enabled_entries)
+
+
 def _save_state(state: Dict[str, str]) -> None:
     try:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)

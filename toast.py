@@ -18,7 +18,7 @@ from collections import deque
 import requests
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
-from toaster.tweet_watcher import start_tweet_watcher, get_watch_list, get_saved_state
+from toaster.tweet_watcher import check_latest_tweets, start_tweet_watcher, get_watch_list, get_saved_state
 from toaster.modules.tweet_puller import get_fixvx_equivalent
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
@@ -1229,7 +1229,9 @@ async def on_ready() -> None:
         print()
 
     # Start tweet watcher (polls configured accounts and posts new tweets)
+    tweet_watch_successful, tweet_watch_total = 0, 0
     try:
+        tweet_watch_successful, tweet_watch_total = await check_latest_tweets()
         asyncio.create_task(start_tweet_watcher(bot))
         print('✓ Started tweet watcher')
     except Exception:
@@ -1249,20 +1251,11 @@ async def on_ready() -> None:
                 # Build boot notification message
                 boot_msg = "🍞 **Toast Boot Report**\n\n"
                 
-                # Commands section
-                boot_msg += "**Commands:**\n"
-                for cmd_name, success, error in loaded_commands:
-                    if success:
-                        boot_msg += f"✓ Loaded command: ${cmd_name}\n"
-                    else:
-                        boot_msg += f"✗ Failed to load command ${cmd_name}: {error}\n"
-                
-                boot_msg += "\n**Schedules:**\n"
-                for sched_name, success, error in loaded_schedules:
-                    if success:
-                        boot_msg += f"✓ Loaded schedule: {sched_name}\n"
-                    else:
-                        boot_msg += f"✗ Failed to load schedule {sched_name}: {error}\n"
+                loaded_command_count = sum(success for _, success, _ in loaded_commands)
+                loaded_schedule_count = sum(success for _, success, _ in loaded_schedules)
+                boot_msg += f"Commands: {loaded_command_count}/{len(loaded_commands)} loaded\n"
+                boot_msg += f"Schedules: {loaded_schedule_count}/{len(loaded_schedules)} loaded\n"
+                boot_msg += f"Tweet watch: {tweet_watch_successful}/{tweet_watch_total} enabled accounts pulled\n"
                 
                 await owner.send(boot_msg)
                 print(f'✓ Boot notification sent to owner ({owner_id})')
