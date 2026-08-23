@@ -49,6 +49,42 @@ def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
         return False
 
 
+def _get_fxtwitter_view_count(url: str, timeout: int = 10) -> Optional[int]:
+    """Return the view count for a tweet from the fxtwitter status API."""
+    status_id = _extract_status_id(url)
+    if not status_id:
+        return None
+    try:
+        response = requests.get(
+            f"https://api.fxtwitter.com/status/{status_id}",
+            headers={"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        views = response.json().get("tweet", {}).get("views")
+        return int(views) if views is not None else None
+    except (TypeError, ValueError, requests.RequestException, AttributeError):
+        return None
+
+
+def _fxtwitter_has_media_type(url: str, media_type: str, timeout: int = 10) -> bool:
+    """Return whether the tweet has media of the requested fxtwitter type."""
+    status_id = _extract_status_id(url)
+    if not status_id:
+        return False
+    try:
+        response = requests.get(
+            f"https://api.fxtwitter.com/status/{status_id}",
+            headers={"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        media = response.json().get("tweet", {}).get("media", {}).get("all", [])
+        return any(item.get("type") == media_type for item in media if isinstance(item, dict))
+    except (TypeError, ValueError, requests.RequestException, AttributeError):
+        return False
+
+
 def _fixvx_has_word(url: str, word: str, timeout: int = 10) -> bool:
     """Check if the provider page contains `word` in tweet text or meta tags."""
     if not word:
@@ -344,6 +380,11 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
         return
 
     state = _load_state()
+    username_counts = {}
+    for entry in watch_list:
+        username = entry.get("username")
+        if username:
+            username_counts[username] = username_counts.get(username, 0) + 1
 
     while True:
         for entry in watch_list:
@@ -354,15 +395,18 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                 channel_id = int(entry.get("channel_id"))
                 if not username:
                     continue
+                state_key = username
+                if username_counts.get(username, 0) > 1:
+                    state_key = entry.get("name") or username
 
                 link = get_latest_tweet_link(username)
                 status_id = _extract_status_id(link) if link else None
 
-                last_id = state.get(username)
+                last_id = state.get(state_key)
                 if last_id is None:
                     # First time seeing this account — record but don't post
                     if status_id:
-                        state[username] = status_id
+                        state[state_key] = status_id
                         _save_state(state)
                     continue
 
@@ -388,13 +432,14 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                             already_posted = await _tweet_already_posted(channel, alt, lookback=10)
                             if already_posted:
                                 # Skip posting, but still update state so we don't check again
-                                state[username] = status_id
+                                state[state_key] = status_id
                                 _save_state(state)
                                 continue
 
                             # If this watch entry requires a video embed, verify before posting
                             require_video = bool(entry.get("require_video", False))
                             can_post = True
+                            defer_state_update = False
                             if require_video:
                                 # run blocking check in thread
                                 try:
@@ -402,6 +447,22 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                 except Exception:
                                     has_video = False
                                 if not has_video:
+                                    can_post = False
+
+                            if entry.get("require_photo") and can_post:
+                                has_photo = await asyncio.to_thread(
+                                    _fxtwitter_has_media_type, alt, "photo"
+                                )
+                                if not has_photo:
+                                    can_post = False
+
+                            min_views = entry.get("min_views")
+                            if min_views is not None and can_post:
+                                try:
+                                    view_count = await asyncio.to_thread(_get_fxtwitter_view_count, alt)
+                                    can_post = view_count is not None and view_count >= int(min_views)
+                                    defer_state_update = not can_post
+                                except (TypeError, ValueError):
                                     can_post = False
 
                             # If this watch entry requires a specific word, verify before posting
@@ -453,9 +514,9 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                         # ignore failures and continue
                         pass
 
-                    # update state
-                    state[username] = status_id
-                    _save_state(state)
+                    if not defer_state_update:
+                        state[state_key] = status_id
+                        _save_state(state)
 
             except Exception:
                 continue
