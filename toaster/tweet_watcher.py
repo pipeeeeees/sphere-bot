@@ -17,6 +17,10 @@ from toaster.modules.tweet_puller import get_latest_tweet_link, get_fixvx_equiva
 import requests
 
 
+# Feedback channel for filtered tweets
+FEEDBACK_CHANNEL_ID = 1539108566009643048
+
+
 def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
     """Best-effort check if the given fixvx/front-end URL embeds a video.
 
@@ -383,12 +387,33 @@ async def _tweet_already_posted(channel, tweet_url: str, lookback: int = 10) -> 
     return False
 
 
+async def _send_filter_feedback(bot, tweet_url: str, reason: str) -> None:
+    """Send feedback about a filtered tweet to the feedback channel.
+    
+    Args:
+        bot: Discord bot instance
+        tweet_url: The URL of the tweet that was filtered
+        reason: The reason why the tweet was filtered
+    """
+    try:
+        feedback_channel = bot.get_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel is None:
+            feedback_channel = await bot.fetch_channel(FEEDBACK_CHANNEL_ID)
+        
+        if feedback_channel:
+            await feedback_channel.send(f"🚫 **Filtered Tweet**\n**Reason:** {reason}\n**URL:** {tweet_url}")
+    except Exception:
+        # Silently fail if we can't send the feedback
+        pass
+
+
 async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
     """Run indefinitely, polling accounts and posting new tweets.
 
     - On first observation of an account (no stored state) do NOT post; just store.
     - When status id changes, post message to configured channel and update state.
     - Before posting, check recent channel history to avoid duplicate posts.
+    - Send feedback for filtered tweets to the feedback channel.
     """
     await bot.wait_until_ready()
     watch_list = _load_watch_list()
@@ -428,6 +453,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
 
                 if status_id and status_id != last_id:
                     if is_tweet_watch_quiet_hours():
+                        await _send_filter_feedback(bot, link, "Quiet hours active")
                         continue
 
                     # New tweet — post to channel
@@ -448,6 +474,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                             already_posted = await _tweet_already_posted(channel, alt, lookback=10)
                             if already_posted:
                                 # Skip posting, but still update state so we don't check again
+                                await _send_filter_feedback(bot, alt, "Already posted in channel")
                                 state[state_key] = status_id
                                 _save_state(state)
                                 continue
@@ -456,6 +483,8 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                             require_video = bool(entry.get("require_video", False))
                             can_post = True
                             defer_state_update = False
+                            filter_reason = None
+                            
                             if require_video:
                                 # run blocking check in thread
                                 try:
@@ -464,6 +493,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                     has_video = False
                                 if not has_video:
                                     can_post = False
+                                    filter_reason = "Missing required video"
 
                             if entry.get("require_photo") and can_post:
                                 has_photo = await asyncio.to_thread(
@@ -471,15 +501,19 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                 )
                                 if not has_photo:
                                     can_post = False
+                                    filter_reason = "Missing required photo"
 
                             min_views = entry.get("min_views")
                             if min_views is not None and can_post:
                                 try:
                                     view_count = await asyncio.to_thread(_get_fxtwitter_view_count, alt)
-                                    can_post = view_count is not None and view_count >= int(min_views)
-                                    defer_state_update = not can_post
+                                    if view_count is None or view_count < int(min_views):
+                                        can_post = False
+                                        defer_state_update = not can_post
+                                        filter_reason = f"Insufficient views (got {view_count or 0}, need {min_views})"
                                 except (TypeError, ValueError):
                                     can_post = False
+                                    filter_reason = "Error checking view count"
 
                             # If this watch entry requires a specific word, verify before posting
                             require_word = entry.get("require_word")
@@ -498,6 +532,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                                 break
                                         if not found:
                                             can_post = False
+                                            filter_reason = f"Missing required words: {', '.join(require_word)}"
                                     else:
                                         try:
                                             ok = await asyncio.to_thread(_fixvx_has_word, alt, require_word)
@@ -505,8 +540,10 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                             ok = False
                                         if not ok:
                                             can_post = False
+                                            filter_reason = f"Missing required word: '{require_word}'"
                                 except Exception:
                                     can_post = False
+                                    filter_reason = "Error checking for required words"
 
                             # If this watch entry requires AI classification, verify before posting
                             require_ai_classification = entry.get("require_ai_classification")
@@ -518,14 +555,20 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                         classification_ok = await asyncio.to_thread(_is_college_football_related, tweet_text)
                                         if not classification_ok:
                                             can_post = False
+                                            filter_reason = "Not classified as college football related"
                                     else:
                                         # If we can't extract text, don't post to be safe
                                         can_post = False
+                                        filter_reason = "Could not extract tweet text"
                                 except Exception:
                                     can_post = False
+                                    filter_reason = "Error during AI classification"
 
                             if can_post:
                                 await channel.send(alt)
+                            elif filter_reason:
+                                # Send feedback about why the tweet was filtered
+                                await _send_filter_feedback(bot, alt, filter_reason)
                     except Exception:
                         # ignore failures and continue
                         pass
