@@ -18,8 +18,8 @@ from collections import deque
 import requests
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
-from toaster.tweet_watcher import check_latest_tweets, start_tweet_watcher, get_watch_list, get_saved_state
-from toaster.modules.tweet_puller import get_fixvx_equivalent
+from toaster.tweet_watcher import check_latest_tweets, start_tweet_watcher, get_watch_list
+from toaster.modules.tweet_puller import get_fixvx_equivalent, get_latest_tweet_link
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
 from toaster.kalshi_game import (
@@ -49,15 +49,14 @@ conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history stri
 
 @bot.command(name='latest_tweets')
 async def latest_tweets(ctx: commands.Context):
-    """Post the saved latest tweet links for each watched account.
+    """Post the current latest tweet links for each enabled watched account.
 
     Sends one link per watched account (uses per-account provider if configured).
     """
     try:
         watch_list = get_watch_list()
-        state = get_saved_state()
     except Exception:
-        await ctx.send("Failed to load watch list or state.")
+        await ctx.send("Failed to load watch list.")
         return
 
     lines = []
@@ -67,14 +66,13 @@ async def latest_tweets(ctx: commands.Context):
         username = entry.get('username')
         if not username:
             continue
-        last_id = state.get(username)
-        if last_id:
-            link = f"https://x.com/{username}/status/{last_id}"
+        link = await asyncio.to_thread(get_latest_tweet_link, username)
+        if link:
             provider = entry.get('provider', 'fxtwitter')
             alt = get_fixvx_equivalent(link, provider=provider) or link
             lines.append(alt)
         else:
-            lines.append(f"{username}: (no stored tweet)")
+            lines.append(f"{username}: (latest tweet unavailable)")
 
     if not lines:
         await ctx.send("No watched accounts configured.")
