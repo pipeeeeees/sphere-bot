@@ -59,15 +59,10 @@ def _get_all_tweet_links(text: str, username: str, max_tweets: int = 10) -> list
 def _search_for_status_links(text: str, username: str, skip_pinned: bool = True) -> Optional[str]:
     """Find tweet status links, optionally skipping pinned tweets.
     
-    Robust approach: when skip_pinned=True, assumes the first tweet in DOM order
-    is likely pinned and returns the second tweet (the most recent visible one).
-    This heuristic is more reliable than trying to detect HTML "pinned" indicators
-    which may not be present or may be unreliable across different Twitter frontends.
-    
     Args:
         text: HTML content to search
         username: Twitter username to filter links
-        skip_pinned: If True, skips the first tweet (assumed pinned) and returns the second
+        skip_pinned: If True, skips a tweet only when nearby HTML marks it as pinned
     
     Returns:
         The most recent (non-pinned if skip_pinned=True) tweet URL found, or None
@@ -80,14 +75,21 @@ def _search_for_status_links(text: str, username: str, skip_pinned: bool = True)
     if not skip_pinned:
         return links[0]
     
-    # Robust pinned detection: when skip_pinned=True, the first tweet in page order
-    # is almost always the pinned tweet, and the second is the most recent.
-    # This avoids relying on inconsistent HTML "pinned" indicators.
-    if len(links) > 1:
-        return links[1]
-    
-    # If only one tweet found, return it (better than nothing)
-    return links[0]
+    for link in links:
+        status_path = link.split(".com", 1)[-1]
+        link_position = text.lower().find(status_path.lower())
+        if link_position < 0:
+            return link
+
+        # X and compatible frontends put the pinned marker near the status link.
+        article_start = text.lower().rfind("<article", 0, link_position)
+        context_start = max(article_start, link_position - 500)
+        context_end = min(len(text), link_position + len(status_path) + 500)
+        context = text[context_start:context_end]
+        if not re.search(r"\bpinned\b", context, flags=re.IGNORECASE):
+            return link
+
+    return None
 
 
 def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = True) -> Optional[str]:

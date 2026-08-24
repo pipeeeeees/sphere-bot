@@ -62,6 +62,8 @@ async def latest_tweets(ctx: commands.Context):
 
     lines = []
     for entry in watch_list:
+        if not entry.get('enabled', True):
+            continue
         username = entry.get('username')
         if not username:
             continue
