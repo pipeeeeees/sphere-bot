@@ -1,4 +1,8 @@
 {
+  "quiet_hours": {
+    "weekday_start": "00:00",
+    "weekday_end": "00:00"
+  },
   "watches": [
   {
     "name": "braves_tweets",
