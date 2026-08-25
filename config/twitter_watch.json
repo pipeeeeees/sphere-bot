@@ -144,6 +144,12 @@
       "username": "AP",
       "channel_id": 1539093111576334407,
       "enabled": true
+    },
+    {
+      "name": "BradNitzWSB",
+      "username": "BradNitzWSB",
+      "channel_id": 1539087911721500742,
+      "enabled": true
     }
   ]
 }
