@@ -16,8 +16,7 @@
     "username": "MLB",
     "channel_id": 1539082416629489734,
     "enabled": false,
-    "require_video": true,
-    "provider": "fxtwitter"
+    "require_video": true
   }
   ,
   {
@@ -61,8 +60,7 @@
     "channel_id": 1539093803649073272,
     "enabled": true,
     "require_video": true,
-    "min_views": 20000,
-    "provider": "fxtwitter"
+    "min_views": 20000
   },
   {
     "name": "nfl_photo_tweets",
@@ -70,8 +68,7 @@
     "channel_id": 1539093803649073272,
     "enabled": true,
     "require_photo": true,
-    "min_views": 300000,
-    "provider": "fxtwitter"
+    "min_views": 300000
   },
   {
     "name": "falcons",
@@ -97,17 +94,38 @@
     "username": "Fortnite",
     "channel_id": 1539090032709603358,
     "enabled": true,
-    "require_video": true,
-    "provider": "fxtwitter"
+    "require_video": true
   },
   {
      "name": "nws",
      "username": "NWS",
      "channel_id": 1539087911721500742,
      "enabled": true,
-     "require_word": "Georgia",
-     "provider": "fxtwitter"
-   }
-  
+     "require_word": "Georgia"
+   },
+   {
+     "name": "mac rumors",
+     "username": "MacRumors",
+     "channel_id": 1541183362083987548,
+     "enabled": true
+   },
+   {
+     "name": "wsj markets",
+     "username": "WSJmarkets",
+     "channel_id": 1541183079484362804,
+     "enabled": true
+    },
+    {
+      "name": "KobeissiLetter",
+      "username": "KobeissiLetter",
+      "channel_id": 1541183079484362804,
+      "enabled": true
+    },
+    {
+      "name": "charliebilello",
+      "username": "charliebilello",
+      "channel_id": 1541183079484362804,
+      "enabled": true
+    }
   ]
 }
