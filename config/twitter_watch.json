@@ -126,6 +126,24 @@
       "username": "charliebilello",
       "channel_id": 1541183079484362804,
       "enabled": true
+    },
+    {
+      "name": "BobEUnlimited",
+      "username": "BobEUnlimited",
+      "channel_id": 1541183079484362804,
+      "enabled": true
+    },
+    {
+      "name": "ESPNCFB",
+      "username": "ESPNCFB",
+      "channel_id": 1539093669448257586,
+      "enabled": true
+    },
+    {
+      "name": "AP",
+      "username": "AP",
+      "channel_id": 1539093111576334407,
+      "enabled": true
     }
   ]
 }
