@@ -113,7 +113,7 @@
      "name": "wsj markets",
      "username": "WSJmarkets",
      "channel_id": 1541183079484362804,
-     "enabled": true
+     "enabled": false
     },
     {
       "name": "KobeissiLetter",
