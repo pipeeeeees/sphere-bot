@@ -1,6 +1,7 @@
 """Simple utility to fetch the latest tweet link for an X (twitter) username.
 
 Functions:
+ - `get_latest_tweet_links(username)` -> list[str]
  - `get_latest_tweet_link(username)` -> str | None
 
 CLI usage:
@@ -76,20 +77,52 @@ def _search_for_status_links(text: str, username: str, skip_pinned: bool = True)
         return links[0]
     
     for link in links:
-        status_path = link.split(".com", 1)[-1]
-        link_position = text.lower().find(status_path.lower())
-        if link_position < 0:
-            return link
-
-        # X and compatible frontends put the pinned marker near the status link.
-        article_start = text.lower().rfind("<article", 0, link_position)
-        context_start = max(article_start, link_position - 500)
-        context_end = min(len(text), link_position + len(status_path) + 500)
-        context = text[context_start:context_end]
-        if not re.search(r"\bpinned\b", context, flags=re.IGNORECASE):
+        if not _is_pinned_link(text, link):
             return link
 
     return None
+
+
+def _is_pinned_link(text: str, link: str, context_size: int = 5000) -> bool:
+    """Return whether feed markup identifies a status URL as pinned."""
+    status_path = link.split(".com", 1)[-1]
+    text_lower = text.lower()
+    link_position = text_lower.find(status_path.lower())
+    if link_position < 0:
+        return False
+
+    # X may render the Pinned label well before the status URL in the same
+    # feed item, rather than inside the article containing the link.
+    context_start = max(0, link_position - context_size)
+    context_end = min(len(text), link_position + len(status_path) + 500)
+    context = text[context_start:context_end]
+    return bool(re.search(r"\bpinned\b", context, flags=re.IGNORECASE))
+
+
+def get_latest_tweet_links(
+    username: str, max_tweets: int = 5, timeout: int = 10, try_nitter: bool = True
+) -> list:
+    """Return up to ``max_tweets`` recent non-pinned status URLs for a user."""
+    if not username or not username.strip():
+        raise ValueError("username must be a non-empty string")
+    username = username.strip().lstrip("@")
+
+    urls_to_try = [f"https://x.com/{username}", f"https://mobile.twitter.com/{username}"]
+    if try_nitter:
+        urls_to_try.append(f"https://nitter.net/{username}")
+
+    for url in urls_to_try:
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=timeout)
+            resp.raise_for_status()
+            links = _get_all_tweet_links(resp.text, username, max_tweets=max_tweets)
+            links = [link for link in links if not _is_pinned_link(resp.text, link)]
+            if links:
+                return links
+        except Exception:
+            continue
+
+    return []
 
 
 def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = True) -> Optional[str]:
@@ -99,36 +132,8 @@ def get_latest_tweet_link(username: str, timeout: int = 10, try_nitter: bool = T
     the first non-pinned status URL. If that fails and `try_nitter` is True, it falls back
     to `https://nitter.net/{username}`.
     """
-    if not username or not username.strip():
-        raise ValueError("username must be a non-empty string")
-    username = username.strip().lstrip("@")
-
-    # Try X (x.com)
-    urls_to_try = [f"https://x.com/{username}", f"https://mobile.twitter.com/{username}"]
-    for url in urls_to_try:
-        try:
-            resp = requests.get(url, headers=HEADERS, timeout=timeout)
-            resp.raise_for_status()
-            link = _search_for_status_links(resp.text, username, skip_pinned=True)
-            if link:
-                return link
-        except Exception:
-            # ignore and try next
-            continue
-
-    # Fallback to nitter if available
-    if try_nitter:
-        try:
-            nitter_url = f"https://nitter.net/{username}"
-            resp = requests.get(nitter_url, headers=HEADERS, timeout=timeout)
-            resp.raise_for_status()
-            link = _search_for_status_links(resp.text, username, skip_pinned=True)
-            if link:
-                return link
-        except Exception:
-            pass
-
-    return None
+    links = get_latest_tweet_links(username, max_tweets=5, timeout=timeout, try_nitter=try_nitter)
+    return links[0] if links else None
 
 
 def get_fixvx_equivalent(x_link: str, provider: str = "fxtwitter") -> Optional[str]:
