@@ -13,7 +13,7 @@ from datetime import datetime, time
 from typing import Dict, Optional
 
 from toaster.config import load_config
-from toaster.modules.tweet_puller import get_latest_tweet_link, get_fixvx_equivalent
+from toaster.modules.tweet_puller import get_latest_tweet_links, get_fixvx_equivalent
 import requests
 
 
@@ -302,7 +302,7 @@ def get_watch_list():
     return _load_watch_list()
 
 
-def _load_state() -> Dict[str, str]:
+def _load_state() -> Dict[str, object]:
     if not STATE_FILE.exists():
         return {}
     try:
@@ -312,7 +312,7 @@ def _load_state() -> Dict[str, str]:
         return {}
 
 
-def get_saved_state() -> Dict[str, str]:
+def get_saved_state() -> Dict[str, object]:
     """Public accessor for persisted watch state."""
     return _load_state()
 
@@ -326,23 +326,42 @@ async def check_latest_tweets():
     ]
 
     results = await asyncio.gather(*[
-        asyncio.to_thread(get_latest_tweet_link, entry["username"])
+        asyncio.to_thread(get_latest_tweet_links, entry["username"], 5)
         for entry in enabled_entries
     ], return_exceptions=True)
     successful = sum(
-        isinstance(link, str) and bool(_extract_status_id(link))
-        for link in results
+        isinstance(links, list) and any(_extract_status_id(link) for link in links)
+        for links in results
     )
     return successful, len(enabled_entries)
 
 
-def _save_state(state: Dict[str, str]) -> None:
+def _save_state(state: Dict[str, object]) -> None:
     try:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         with STATE_FILE.open("w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
     except Exception:
         pass
+
+
+def _get_seen_status_ids(state: Dict[str, object], state_key: str) -> set[str]:
+    """Read seen IDs, including the legacy single-ID state format."""
+    value = state.get(state_key)
+    if isinstance(value, str):
+        return {value}
+    if isinstance(value, list):
+        return {str(status_id) for status_id in value}
+    return set()
+
+
+def _record_seen_status_id(
+    state: Dict[str, object], state_key: str, seen_ids: set[str], status_id: str
+) -> None:
+    """Record a status ID while bounding persisted history."""
+    seen_ids.add(status_id)
+    state[state_key] = list(seen_ids)[-1000:]
+    _save_state(state)
 
 
 def _extract_status_id(link: str):
@@ -411,7 +430,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
     """Run indefinitely, polling accounts and posting new tweets.
 
     - On first observation of an account (no stored state) do NOT post; just store.
-    - When status id changes, post message to configured channel and update state.
+    - When an unseen status appears in the latest five, post or filter it and update state.
     - Before posting, check recent channel history to avoid duplicate posts.
     - Send feedback for filtered tweets to the feedback channel.
     """
@@ -440,20 +459,27 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                 if username_counts.get(username, 0) > 1:
                     state_key = entry.get("name") or username
 
-                link = get_latest_tweet_link(username)
-                status_id = _extract_status_id(link) if link else None
-
-                last_id = state.get(state_key)
-                if last_id is None:
-                    # First time seeing this account — record but don't post
-                    if status_id:
-                        state[state_key] = status_id
+                links = await asyncio.to_thread(get_latest_tweet_links, username, 5)
+                seen_ids = _get_seen_status_ids(state, state_key)
+                if state_key not in state:
+                    # First time seeing an account — establish a baseline without posting.
+                    current_ids = {
+                        status_id for status_id in (_extract_status_id(link) for link in links)
+                        if status_id
+                    }
+                    if current_ids:
+                        state[state_key] = list(current_ids)
                         _save_state(state)
                     continue
 
-                if status_id and status_id != last_id:
+                for link in links:
+                    status_id = _extract_status_id(link)
+                    if not status_id or status_id in seen_ids:
+                        continue
+
                     if is_tweet_watch_quiet_hours():
                         await _send_filter_feedback(bot, link, "Quiet hours active")
+                        _record_seen_status_id(state, state_key, seen_ids, status_id)
                         continue
 
                     # New tweet — post to channel
@@ -473,16 +499,14 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                             # Check if this tweet has already been posted in recent history
                             already_posted = await _tweet_already_posted(channel, alt, lookback=10)
                             if already_posted:
-                                # Skip posting, but still update state so we don't check again
+                                # Skip posting, but still record it so we don't check again.
                                 await _send_filter_feedback(bot, alt, "Already posted in channel")
-                                state[state_key] = status_id
-                                _save_state(state)
+                                _record_seen_status_id(state, state_key, seen_ids, status_id)
                                 continue
 
                             # If this watch entry requires a video embed, verify before posting
                             require_video = bool(entry.get("require_video", False))
                             can_post = True
-                            defer_state_update = False
                             filter_reason = None
                             
                             if require_video:
@@ -509,7 +533,6 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                                     view_count = await asyncio.to_thread(_get_fxtwitter_view_count, alt)
                                     if view_count is None or view_count < int(min_views):
                                         can_post = False
-                                        defer_state_update = not can_post
                                         filter_reason = f"Insufficient views (got {view_count or 0}, need {min_views})"
                                 except (TypeError, ValueError):
                                     can_post = False
@@ -573,9 +596,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                         # ignore failures and continue
                         pass
 
-                    if not defer_state_update:
-                        state[state_key] = status_id
-                        _save_state(state)
+                    _record_seen_status_id(state, state_key, seen_ids, status_id)
 
             except Exception:
                 continue
