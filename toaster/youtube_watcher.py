@@ -105,7 +105,10 @@ def _get_channel_id(handle: str, timeout: int = 15) -> Optional[str]:
         timeout=timeout,
     )
     response.raise_for_status()
-    match = re.search(r'"channelId":"(UC[a-zA-Z0-9_-]+)"', response.text)
+    match = re.search(
+        r'"(?:channelId|externalId|browseId)":"(UC[a-zA-Z0-9_-]+)"',
+        response.text,
+    )
     return match.group(1) if match else None
 
 
