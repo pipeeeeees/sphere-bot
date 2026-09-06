@@ -51,6 +51,8 @@ from toaster.state import set_start_time
 
 # Conversation history storage
 conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history string
+TRAE_YOUNG_PHOTO_CHANNEL_ID = 1479540478591635478
+TRAE_YOUNG_ALERT = "ANOTHER TRAE YOUNG POST ‼️‼️‼️"
 
 
 @bot.command(name='latest_tweets')
@@ -106,6 +108,34 @@ async def latest_videos(ctx: commands.Context):
     msg = "\n".join(lines)
     for start in range(0, len(msg), 1900):
         await ctx.send(msg[start:start + 1900])
+
+
+async def check_trae_young_photo(message: discord.Message) -> None:
+    """Alert in the target channel when an image contains Trae Young."""
+    if message.channel.id != TRAE_YOUNG_PHOTO_CHANNEL_ID:
+        return
+    if not any(
+        (getattr(attachment, "content_type", None) or "").startswith("image/")
+        for attachment in (message.attachments or [])
+    ):
+        return
+
+    try:
+        image_payloads = await collect_message_attachments([message])
+        if not image_payloads:
+            return
+        response, _ = await asyncio.to_thread(
+            get_gemini_response_with_key,
+            "",
+            "Does any image show Trae Young, the basketball player? Reply with exactly YES or NO.",
+            "config",
+            None,
+            image_payloads,
+        )
+        if response and response.strip().upper().startswith("YES"):
+            await message.channel.send(TRAE_YOUNG_ALERT)
+    except Exception as error:
+        print(f"Trae Young photo check failed: {error}")
 
 # Persistent person memory storage
 PERSON_MEMORY_FILE = "config/person_memory.json"
@@ -638,6 +668,19 @@ def _extract_tweet_author_from_url(url: str, timeout: int = 10) -> str:
         status_id = m.group(1)
         try:
             headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+
+            try:
+                metadata = requests.get(
+                    f"https://api.fxtwitter.com/status/{status_id}",
+                    headers=headers,
+                    timeout=timeout,
+                )
+                metadata.raise_for_status()
+                author = metadata.json().get("tweet", {}).get("author", {}).get("screen_name")
+                if author:
+                    return author
+            except Exception:
+                pass
             
             # Try fetching from x.com using the status ID
             x_urls = [
@@ -673,18 +716,13 @@ def _extract_tweet_author_from_url(url: str, timeout: int = 10) -> str:
     return ""
 
 
-async def check_rayford_tweet_from_malbon(message: discord.Message) -> bool:
-    """Check if mal-bon posted a tweet authored by rayfordyoung and reply if so.
+async def check_rayford_tweet(message: discord.Message) -> bool:
+    """Check whether any message contains a tweet authored by rayfordyoung.
     
     Returns:
         True if a reply was sent, False otherwise
     """
     if not message.author or not message.content:
-        return False
-    
-    # Check if the message author is mal-bon (case-insensitive)
-    author_name = getattr(message.author, "display_name", None) or getattr(message.author, "name", None) or ""
-    if author_name.lower() != "mal-bon":
         return False
     
     # Find tweet URLs in the message
@@ -700,9 +738,8 @@ async def check_rayford_tweet_from_malbon(message: discord.Message) -> bool:
                 # Extract author in a thread to avoid blocking
                 author = await asyncio.to_thread(_extract_tweet_author_from_url, url)
                 if author and author.lower() == "rayfordyoung":
-                    # Found a tweet by rayfordyoung posted by mal-bon!
                     try:
-                        await message.channel.send("mal-bon has shared yet another tweet by Ray Young. Thank you, mal-bon")
+                        await message.channel.send("🗣️🗣️ HEY EVERYONE, ANOTHER RAY YOUNG TWEET 🗣️🗣️")
                         return True
                     except Exception:
                         return False
@@ -1354,6 +1391,11 @@ async def on_message(message: discord.Message) -> None:
     if message.author == bot.user:
         return
 
+    await check_trae_young_photo(message)
+
+    if await check_rayford_tweet(message):
+        return
+
     # Skip messages that look like prices ($ followed by digit)
     if message.content.startswith('$') and len(message.content) > 1 and message.content[1].isdigit():
         return
@@ -1401,11 +1443,6 @@ async def on_message(message: discord.Message) -> None:
         pass
 
     try:
-        # Check if mal-bon is sharing a ray young tweet
-        rayford_handled = await check_rayford_tweet_from_malbon(message)
-        if rayford_handled:
-            return
-
         update_person_memory(message, config_dir="config")
 
         # Handle DMs with AI responses
