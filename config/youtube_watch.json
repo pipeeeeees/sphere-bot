@@ -1,6 +1,6 @@
 {
   "poll_interval_seconds": 3600,
-  "post_interval_seconds": 120,
+  "post_interval_seconds": 60,
   "watches": [
     {
       "name": "channel5_youtube",
@@ -25,6 +25,42 @@
       "username": "theneedledrop",
       "channel_id": 1542372246902022144,
       "enabled": true
+    },
+    {
+        "name": "ajcvideo",
+        "username": "ajcvideo",
+        "channel_id": 1542372246902022144,
+        "enabled": true
+    },
+    {
+        "name": "morning-brew",
+        "username": "morning-brew",
+        "channel_id": 1542372246902022144,
+        "enabled": true
+    },
+    {
+        "name": "thedealguy",
+        "username": "thedealguy",
+        "channel_id": 1542372246902022144,
+        "enabled": true
+    },
+    {
+        "name": "CityNerd",
+        "username": "CityNerd",
+        "channel_id": 1542372246902022144,
+        "enabled": true
+    },
+    {
+        "name": "GolfonCBS",
+        "username": "GolfonCBS",
+        "channel_id": 1542372246902022144,
+        "enabled": true
+    },
+    {
+        "name": "betterwatchtv",
+        "username": "betterwatchtv",
+        "channel_id": 1542372246902022144,
+        "enabled": true
     }
   ]
 }
