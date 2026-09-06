@@ -19,7 +19,11 @@ import requests
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
 from toaster.tweet_watcher import check_latest_tweets, start_tweet_watcher, get_watch_list
-from toaster.youtube_watcher import start_youtube_watcher
+from toaster.youtube_watcher import (
+    check_latest_youtube,
+    get_stored_latest_videos,
+    start_youtube_watcher,
+)
 from toaster.modules.tweet_puller import get_fixvx_equivalent, get_latest_tweet_link
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
@@ -87,6 +91,20 @@ async def latest_tweets(ctx: commands.Context):
             await ctx.send(msg[i:i+1900])
     else:
         await ctx.send(msg)
+
+
+@bot.command(name='latest_videos')
+async def latest_videos(ctx: commands.Context):
+    """Show the latest YouTube videos currently stored by Toast."""
+    videos = get_stored_latest_videos()
+    if not videos:
+        await ctx.send("No stored YouTube videos are available yet.")
+        return
+
+    lines = [f"{video['name']}: {video['url']}" for video in videos]
+    msg = "\n".join(lines)
+    for start in range(0, len(msg), 1900):
+        await ctx.send(msg[start:start + 1900])
 
 # Persistent person memory storage
 PERSON_MEMORY_FILE = "config/person_memory.json"
@@ -1238,7 +1256,9 @@ async def on_ready() -> None:
     except Exception:
         print('✗ Failed to start tweet watcher')
 
+    youtube_watch_successful, youtube_watch_total = 0, 0
     try:
+        youtube_watch_successful, youtube_watch_total = await check_latest_youtube()
         asyncio.create_task(start_youtube_watcher(bot))
         print('✓ Started YouTube watcher')
     except Exception:
@@ -1263,6 +1283,7 @@ async def on_ready() -> None:
                 boot_msg += f"Commands: {loaded_command_count}/{len(loaded_commands)} loaded\n"
                 boot_msg += f"Schedules: {loaded_schedule_count}/{len(loaded_schedules)} loaded\n"
                 boot_msg += f"Tweet watch: {tweet_watch_successful}/{tweet_watch_total} enabled accounts pulled\n"
+                boot_msg += f"YouTube watch: {youtube_watch_successful}/{youtube_watch_total} enabled channels pulled\n"
                 
                 await owner.send(boot_msg)
                 print(f'✓ Boot notification sent to owner ({owner_id})')

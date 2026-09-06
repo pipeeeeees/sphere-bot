@@ -37,6 +37,11 @@ def _load_watch_config() -> tuple[list[dict], int, int]:
         return [], POLL_INTERVAL_SECONDS, POST_INTERVAL_SECONDS
 
 
+def get_watch_list() -> list[dict]:
+    """Return configured YouTube watches."""
+    return _load_watch_config()[0]
+
+
 def _load_state() -> Dict[str, str]:
     try:
         with STATE_FILE.open("r", encoding="utf-8") as state_file:
@@ -44,6 +49,44 @@ def _load_state() -> Dict[str, str]:
         return state if isinstance(state, dict) else {}
     except (FileNotFoundError, OSError, json.JSONDecodeError):
         return {}
+
+
+def get_stored_latest_videos() -> list[dict[str, str]]:
+    """Return the latest video links currently persisted by the watcher."""
+    state = _load_state()
+    videos = []
+    for entry in get_watch_list():
+        if not isinstance(entry, dict) or not entry.get("enabled", True):
+            continue
+        handle = str(entry.get("username", "")).strip().lstrip("@")
+        state_key = entry.get("name") or handle
+        video_id = state.get(state_key)
+        if isinstance(video_id, dict):
+            video_id = video_id.get("id")
+        if not handle or not video_id:
+            continue
+        videos.append({
+            "name": str(entry.get("name") or handle),
+            "username": handle,
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+        })
+    return videos
+
+
+async def check_latest_youtube() -> tuple[int, int]:
+    """Fetch each enabled YouTube watch and return successful and total counts."""
+    watches = [
+        entry for entry in get_watch_list()
+        if isinstance(entry, dict)
+        and entry.get("enabled", True)
+        and entry.get("username")
+    ]
+    results = await asyncio.gather(*[
+        asyncio.to_thread(get_latest_video, entry["username"].strip().lstrip("@"))
+        for entry in watches
+    ], return_exceptions=True)
+    successful = sum(isinstance(video, dict) and bool(video.get("id")) for video in results)
+    return successful, len(watches)
 
 
 def _save_state(state: Dict[str, str]) -> None:
