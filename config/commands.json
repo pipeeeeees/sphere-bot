@@ -60,6 +60,12 @@
     "function": "pollen_command"
   },
   {
+    "name": "aqi",
+    "description": "Get the current Atlanta air-quality index",
+    "module": "toaster.commands_impl",
+    "function": "aqi_command"
+  },
+  {
     "name": "gemini",
     "description": "Get a response from Gemini AI",
     "module": "toaster.commands_impl",

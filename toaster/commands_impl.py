@@ -46,6 +46,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$mlb_standings", value="Show all MLB division standings", inline=False)
     embed.add_field(name="$mlb_division <division>", value="Show standings for one division (nl-east, al-west, etc.)", inline=False)
     embed.add_field(name="$pollen", value="Get the current pollen count in Atlanta", inline=False)
+    embed.add_field(name="$aqi", value="Get the current Atlanta air-quality index", inline=False)
     embed.add_field(name="$gemini <message>", value="Get a response from Gemini AI", inline=False)
     embed.add_field(name="$weather", value="Get key weather messages for Atlanta from NWS", inline=False)
     await ctx.send(embed=embed)
@@ -219,6 +220,15 @@ async def pollen_command(ctx: commands.Context) -> None:
     await ctx.send(result_handler())
 
 
+async def aqi_command(ctx: commands.Context) -> None:
+    """Get the current Atlanta air-quality index and pollutant readings."""
+    try:
+        from toaster.modules.air_quality import get_atlanta_aqi_report
+        await ctx.send(get_atlanta_aqi_report())
+    except Exception:
+        await ctx.send("Atlanta AQI is currently unavailable.")
+
+
 async def gemini_command(ctx: commands.Context, *, message: str) -> None:
     """
     Get a response from Gemini AI.
@@ -263,6 +273,7 @@ __all__ = [
     "mlb_all_standings_command",
     "mlb_division_standings_command",
     "pollen_command",
+    "aqi_command",
     "gemini_command",
     "weather_command"
 ]
