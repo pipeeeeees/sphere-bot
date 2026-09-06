@@ -42,13 +42,34 @@ def get_watch_list() -> list[dict]:
     return _load_watch_config()[0]
 
 
-def _load_state() -> Dict[str, str]:
+def _load_state() -> Dict[str, object]:
     try:
         with STATE_FILE.open("r", encoding="utf-8") as state_file:
             state = json.load(state_file)
         return state if isinstance(state, dict) else {}
     except (FileNotFoundError, OSError, json.JSONDecodeError):
         return {}
+
+
+def _get_video_state(state: Dict[str, object], state_key: str) -> tuple[Optional[str], set[str]]:
+    value = state.get(state_key)
+    if isinstance(value, dict):
+        latest_id = value.get("latest_id")
+        posted_ids = value.get("posted_ids", [])
+        return latest_id, {str(video_id) for video_id in posted_ids if video_id}
+    if isinstance(value, str):
+        return value, set()
+    return None, set()
+
+
+def _save_video_state(
+    state: Dict[str, object], state_key: str, latest_id: str, posted_ids: set[str]
+) -> None:
+    state[state_key] = {
+        "latest_id": latest_id,
+        "posted_ids": list(posted_ids)[-1000:],
+    }
+    _save_state(state)
 
 
 def get_stored_latest_videos() -> list[dict[str, str]]:
@@ -60,9 +81,7 @@ def get_stored_latest_videos() -> list[dict[str, str]]:
             continue
         handle = str(entry.get("username", "")).strip().lstrip("@")
         state_key = entry.get("name") or handle
-        video_id = state.get(state_key)
-        if isinstance(video_id, dict):
-            video_id = video_id.get("id")
+        video_id, _ = _get_video_state(state, state_key)
         if not handle or not video_id:
             continue
         videos.append({
@@ -153,22 +172,40 @@ async def _dispatch_videos(bot, pending_videos: asyncio.Queue, post_interval_sec
     next_post_at = 0.0
     event_loop = asyncio.get_running_loop()
     while True:
-        video = await pending_videos.get()
+        entry, video, state_key, state, pending_ids = await pending_videos.get()
+        pending_ids.discard((state_key, video["id"]))
         delay = next_post_at - event_loop.time()
         if delay > 0:
             await asyncio.sleep(delay)
         try:
-            entry, video = video
             channel_id = int(entry["channel_id"])
             channel = bot.get_channel(channel_id)
             if channel is None:
                 channel = await bot.fetch_channel(channel_id)
-            await channel.send(video["url"])
+            latest_id, posted_ids = _get_video_state(state, state_key)
+            if video["id"] in posted_ids or await _video_already_posted(channel, video["url"]):
+                posted_ids.add(video["id"])
+            else:
+                await channel.send(video["url"])
+                posted_ids.add(video["id"])
+            _save_video_state(state, state_key, latest_id or video["id"], posted_ids)
         except Exception:
             pass
         finally:
             pending_videos.task_done()
         next_post_at = event_loop.time() + post_interval_seconds
+
+
+async def _video_already_posted(channel, video_url: str, lookback: int = 100) -> bool:
+    """Return whether a video URL or ID appears in recent channel messages."""
+    video_id = video_url.split("v=", 1)[-1]
+    try:
+        async for message in channel.history(limit=lookback):
+            if video_url in message.content or video_id in message.content:
+                return True
+    except Exception:
+        return False
+    return False
 
 
 async def start_youtube_watcher(
@@ -189,6 +226,7 @@ async def start_youtube_watcher(
 
     state = _load_state()
     pending_videos = asyncio.Queue()
+    pending_ids = set()
     asyncio.create_task(_dispatch_videos(bot, pending_videos, post_interval_seconds))
 
     while True:
@@ -197,13 +235,14 @@ async def start_youtube_watcher(
                 handle = entry["username"].strip().lstrip("@")
                 state_key = entry.get("name") or handle
                 video = await asyncio.to_thread(get_latest_video, handle)
-                if video and state.get(state_key) is None:
-                    state[state_key] = video["id"]
-                    _save_state(state)
-                elif video and video["id"] != state.get(state_key):
-                    await pending_videos.put((entry, video))
-                    state[state_key] = video["id"]
-                    _save_state(state)
+                if not video:
+                    continue
+                latest_id, posted_ids = _get_video_state(state, state_key)
+                _save_video_state(state, state_key, video["id"], posted_ids)
+                pending_key = (state_key, video["id"])
+                if video["id"] not in posted_ids and pending_key not in pending_ids:
+                    pending_ids.add(pending_key)
+                    await pending_videos.put((entry, video, state_key, state, pending_ids))
             except Exception:
                 continue
         await asyncio.sleep(poll_interval_seconds)
