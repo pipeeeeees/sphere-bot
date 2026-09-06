@@ -55,9 +55,5 @@ def get_atlanta_aqi_report() -> str:
         observed_label = "the latest reading"
 
     return (
-        f"Air quality for Atlanta at {observed_label}: **US AQI {round(aqi)} ({_aqi_category(aqi)})**\n"
-        f"PM2.5: {_format_measurement(current.get('pm2_5'), units.get('pm2_5', 'ug/m3'))}\n"
-        f"PM10: {_format_measurement(current.get('pm10'), units.get('pm10', 'ug/m3'))}\n"
-        f"Ozone: {_format_measurement(current.get('ozone'), units.get('ozone', 'ug/m3'))}\n"
-        "Source: https://open-meteo.com/"
+        f"Air quality for Atlanta at {observed_label}: **US AQI {round(aqi)} ({_aqi_category(aqi)})**"
     )
