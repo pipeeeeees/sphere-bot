@@ -947,9 +947,25 @@ def is_real_life_plan(message_lower: str) -> bool:
     has_venue = any(place in message_lower for place in REAL_LIFE_VENUES)
     return has_activity or has_venue
 
+
+def explicitly_addresses_toast(message: discord.Message) -> bool:
+    """Return whether a message explicitly names or mentions Toast."""
+    if re.search(r"\btoast\b", message.content or "", flags=re.IGNORECASE):
+        return True
+    bot_user = bot.user
+    if bot_user is None:
+        return False
+    return any(getattr(mention, "id", None) == bot_user.id for mention in message.mentions)
+
+
 async def should_respond_to_message(message: discord.Message) -> bool:
     message_lower = message.content.lower().strip()
     now = time.time()
+
+    # Channel responses require an explicit name or mention; replies alone do
+    # not address Toast.
+    if not explicitly_addresses_toast(message):
+        return False
 
     # Hard veto — never butt into real life plans
     if is_real_life_plan(message_lower):
@@ -958,15 +974,13 @@ async def should_respond_to_message(message: discord.Message) -> bool:
     # --- Rate limiting: don't respond if bot spoke very recently ---
     recent_in_channel = [t for t in recent_bot_posts if t["channel"] == message.channel.id and now - t["time"] < 30]
     if len(recent_in_channel) >= 2:
-        # Still allow direct mentions to break through
-        if "toast" not in message_lower:
+        # Still allow explicit names or mentions to break through
+        if not explicitly_addresses_toast(message):
             return False
 
     heuristics = {
         # Original
-        "mentions_bot": "toast" in message_lower,
-        #"is_question": message_lower.endswith("?"),
-        "is_reply_to_bot": False,
+        "mentions_bot": explicitly_addresses_toast(message),
 
         # Better question detection
         #"implicit_question": message_lower.startswith(QUESTION_STARTERS),
@@ -988,14 +1002,6 @@ async def should_respond_to_message(message: discord.Message) -> bool:
         "tossup_question": message_lower.count(" or ") >= 1 and message_lower.endswith("?"),
     }
 
-    # Check reply-to-bot (your original logic)
-    if message.reference:
-        try:
-            replied_to = await message.channel.fetch_message(message.reference.message_id)
-            heuristics["is_reply_to_bot"] = replied_to.author == bot.user
-        except:
-            pass
-
     if any(heuristics.values()):
         recent_bot_posts.append({"channel": message.channel.id, "time": now})
         return True
@@ -1009,6 +1015,9 @@ async def handle_random_channel_response(message: discord.Message) -> None:
         return
 
     if is_channel_muted(message.channel.id):
+        return
+
+    if not explicitly_addresses_toast(message):
         return
     
     # Check if channel is blacklisted
