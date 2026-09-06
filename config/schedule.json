@@ -1,17 +1,5 @@
 [
   {
-    "name": "thursday_afternoon",
-    "message": "🎉 It's Thursday! Have a great day!",
-    "channel_id": 1489085355599724684,
-    "type": "weekly",
-    "time": "16:51",
-    "weekdays": [
-      4
-    ],
-    "timezone": "America/New_York",
-    "enabled": true
-  },
-  {
     "name": "new_year",
     "message": "🎆 Happy New Year! Let's make it a great one!",
     "channel_id": 1538751595091861628,
@@ -91,85 +79,6 @@
     ],
     "timezone": "America/New_York",
     "enabled": true
-  },
-  {
-    "name": "atlanta_evening_report",
-    "message": "$gemini What's the latest news in Atlanta today? Format it for us in discord with bullet points",
-    "channel_id": 1539087911721500742,
-    "type": "weekly",
-    "time": "22:00",
-    "weekdays": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-    ],
-    "timezone": "America/New_York",
-    "enabled": true
-  },
-  {
-    "name": "baseball_weekly_report",
-    "message": "$gemini What's the latest news in the MLB this week?",
-    "channel_id": 1539082416629489734,
-    "type": "weekly",
-    "time": "10:00",
-    "weekdays": [
-      1,
-      5
-    ],
-    "timezone": "America/New_York",
-    "enabled": true
-  },
-  {
-    "name": "tech_weekly_report",
-    "message": "$gemini What's the latest news in the tech industry this week?",
-    "channel_id": 1539093111576334407,
-    "type": "weekly",
-    "time": "10:00",
-    "weekdays": [
-      3
-    ],
-    "timezone": "America/New_York",
-    "enabled": true
-  },
-  {
-    "name": "nfl_weekly_report",
-    "message": "$gemini What's the latest news in the NFL this week?",
-    "channel_id": 1539093803649073272,
-    "type": "weekly",
-    "time": "10:00",
-    "weekdays": [
-      2
-    ],
-    "timezone": "America/New_York",
-    "enabled": true
-  },
-  {
-    "name": "cfb_weekly_report",
-    "message": "$gemini What's the latest news in college football this week?",
-    "channel_id": 1539093669448257586,
-    "type": "weekly",
-    "time": "10:00",
-    "weekdays": [
-      5
-    ],
-    "timezone": "America/New_York",
-    "enabled": true
-  },
-  {
-    "name": "nba_weekly_report",
-    "message": "$gemini What's the latest news in the NBA this week?",
-    "channel_id": 924430124366045214,
-    "type": "weekly",
-    "time": "10:00",
-    "weekdays": [
-      4
-    ],
-    "timezone": "America/New_York",
-    "enabled": false
   },
   {
     "name": "nws_daily_report",
