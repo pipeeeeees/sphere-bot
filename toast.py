@@ -53,6 +53,7 @@ from toaster.state import set_start_time
 conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history string
 TRAE_YOUNG_PHOTO_CHANNEL_ID = 1479540478591635478
 TRAE_YOUNG_ALERT = "ANOTHER TRAE YOUNG POST ‼️‼️‼️"
+AURA_GIF_SEARCH_URL = "https://tenor.com/search/aura-gifs"
 
 
 @bot.command(name='latest_tweets')
@@ -136,6 +137,37 @@ async def check_trae_young_photo(message: discord.Message) -> None:
             await message.channel.send(TRAE_YOUNG_ALERT)
     except Exception as error:
         print(f"Trae Young photo check failed: {error}")
+
+def _get_random_aura_gif() -> str:
+    """Return a random GIF URL from Tenor's Aura search results."""
+    response = requests.get(
+        AURA_GIF_SEARCH_URL,
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=15,
+    )
+    response.raise_for_status()
+    gif_urls = list(dict.fromkeys(re.findall(
+        r"https://media\.tenor\.com/[^\"\s]+\.gif",
+        response.text,
+        flags=re.IGNORECASE,
+    )))
+    if not gif_urls:
+        raise RuntimeError("No Aura GIFs found on Tenor")
+    return random.choice(gif_urls)
+
+
+async def check_malbon_aura(message: discord.Message) -> bool:
+    """Post a random Aura GIF when anyone says only uppercase AURA."""
+    if re.findall(r"[A-Za-z]+", message.content or "") != ["AURA"]:
+        return False
+
+    try:
+        gif_url = await asyncio.to_thread(_get_random_aura_gif)
+        await message.channel.send(gif_url)
+        return True
+    except Exception as error:
+        print(f"Aura GIF lookup failed: {error}")
+        return False
 
 # Persistent person memory storage
 PERSON_MEMORY_FILE = "config/person_memory.json"
@@ -1392,6 +1424,9 @@ async def on_message(message: discord.Message) -> None:
         return
 
     await check_trae_young_photo(message)
+
+    if await check_malbon_aura(message):
+        return
 
     if await check_rayford_tweet(message):
         return
