@@ -217,6 +217,7 @@ class ScheduleRegistry:
             mlb_division_standings_command,
             pollen_command,
             aqi_command,
+            trivia_mlb_command,
             gemini_command,
             reboot_command,
         )
@@ -243,6 +244,8 @@ class ScheduleRegistry:
                 await pollen_command(ctx)
             elif cmd == 'aqi':
                 await aqi_command(ctx)
+            elif cmd == 'trivia_mlb':
+                await trivia_mlb_command(ctx)
             elif cmd == 'gemini' and args:
                 await gemini_command(ctx, message=' '.join(args))
             elif cmd == 'reboot':

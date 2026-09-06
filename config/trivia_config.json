@@ -1,0 +1,13 @@
+{
+  "name": "mlb_trivia",
+  "enabled": true,
+  "topic": "MLB trivia within the last 10 years, with heavy emphasis on the last couple years",
+  "channel_id": 1542372246902022144,
+  "history_size": 50,
+  "schedule": {
+    "type": "weekly",
+    "time": "11:30",
+    "weekdays": [1, 3, 5],
+    "timezone": "America/New_York"
+  }
+}

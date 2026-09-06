@@ -24,6 +24,7 @@ from toaster.youtube_watcher import (
     get_stored_latest_videos,
     start_youtube_watcher,
 )
+from toaster.trivia import get_trivia_schedule
 from toaster.modules.tweet_puller import get_fixvx_equivalent, get_latest_tweet_link
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
@@ -1211,6 +1212,27 @@ def load_schedules_from_config() -> None:
             schedule_name = schedule_config.get('name', 'unknown')
             loaded_schedules.append((schedule_name, False, str(e)))
             print(f"✗ Failed to load schedule {schedule_name}: {e}")
+
+    try:
+        trivia_schedule = get_trivia_schedule()
+        if trivia_schedule and not schedule_registry.get_schedule(trivia_schedule["name"]):
+            schedule_registry.register(
+                name=trivia_schedule["name"],
+                message=trivia_schedule["message"],
+                channel_id=int(trivia_schedule["channel_id"]),
+                schedule_type=trivia_schedule["type"],
+                time_str=trivia_schedule["time"],
+                weekdays=trivia_schedule.get("weekdays"),
+                date=trivia_schedule.get("date"),
+                enabled=trivia_schedule["enabled"],
+                timezone=trivia_schedule.get("timezone"),
+            )
+            loaded_schedules.append((trivia_schedule["name"], True, None))
+            print(f"✓ Loaded trivia schedule: {trivia_schedule['name']}")
+    except Exception as e:
+        trivia_name = "trivia_mlb"
+        loaded_schedules.append((trivia_name, False, str(e)))
+        print(f"✗ Failed to load trivia schedule: {e}")
 
 
 def register_commands_with_bot() -> None:

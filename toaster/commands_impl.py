@@ -47,6 +47,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$mlb_division <division>", value="Show standings for one division (nl-east, al-west, etc.)", inline=False)
     embed.add_field(name="$pollen", value="Get the current pollen count in Atlanta", inline=False)
     embed.add_field(name="$aqi", value="Get the current Atlanta air-quality index", inline=False)
+    embed.add_field(name="$trivia_mlb", value="Post configured MLB trivia", inline=False)
     embed.add_field(name="$gemini <message>", value="Get a response from Gemini AI", inline=False)
     embed.add_field(name="$weather", value="Get key weather messages for Atlanta from NWS", inline=False)
     await ctx.send(embed=embed)
@@ -229,6 +230,12 @@ async def aqi_command(ctx: commands.Context) -> None:
         await ctx.send("Atlanta AQI is currently unavailable.")
 
 
+async def trivia_mlb_command(ctx: commands.Context) -> None:
+    """Generate and post configured trivia."""
+    from toaster.trivia import trivia_mlb_command as generate_trivia_command
+    await generate_trivia_command(ctx)
+
+
 async def gemini_command(ctx: commands.Context, *, message: str) -> None:
     """
     Get a response from Gemini AI.
@@ -274,6 +281,7 @@ __all__ = [
     "mlb_division_standings_command",
     "pollen_command",
     "aqi_command",
+    "trivia_mlb_command",
     "gemini_command",
     "weather_command"
 ]

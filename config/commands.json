@@ -66,6 +66,12 @@
     "function": "aqi_command"
   },
   {
+    "name": "trivia_mlb",
+    "description": "Post configured MLB trivia",
+    "module": "toaster.commands_impl",
+    "function": "trivia_mlb_command"
+  },
+  {
     "name": "gemini",
     "description": "Get a response from Gemini AI",
     "module": "toaster.commands_impl",
