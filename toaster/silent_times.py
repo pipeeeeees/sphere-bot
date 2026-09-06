@@ -66,18 +66,17 @@ def _window_matches(window: dict, current: datetime) -> bool:
     return current_time < end and _day_matches(window.get("days"), previous_weekday)
 
 
-def silent_prefix(now: Optional[datetime] = None) -> str:
-    """Return the configured silent prefix when the current time is covered."""
+def is_silent_time(now: Optional[datetime] = None) -> bool:
+    """Return whether the configured silent window is currently active."""
     config = _load_config()
     if not config.get("enabled", True):
-        return ""
-    prefix = str(config.get("prefix", "@silent")).strip()
-    if not prefix or ZoneInfo is None:
-        return ""
+        return False
+    if ZoneInfo is None:
+        return False
 
     windows = config.get("windows", [])
     if not isinstance(windows, list):
-        return ""
+        return False
 
     for window in windows:
         if not isinstance(window, dict):
@@ -86,13 +85,18 @@ def silent_prefix(now: Optional[datetime] = None) -> str:
             timezone = window.get("timezone", config.get("default_timezone", "UTC"))
             current = (now or datetime.now(ZoneInfo(timezone))).astimezone(ZoneInfo(timezone))
             if _window_matches(window, current):
-                return prefix
+                return True
         except Exception:
             continue
-    return ""
+    return False
+
+
+def silent_prefix(now: Optional[datetime] = None) -> str:
+    """Return the legacy prefix value when a silent window is active."""
+    config = _load_config()
+    return str(config.get("prefix", "@silent")).strip() if is_silent_time(now) else ""
 
 
 def format_silent_post(content: str, now: Optional[datetime] = None) -> str:
-    """Prefix content for Discord when the configured silent window is active."""
-    prefix = silent_prefix(now)
-    return f"{prefix} {content}" if prefix else content
+    """Return content unchanged; Discord silence is controlled by the send flag."""
+    return content
