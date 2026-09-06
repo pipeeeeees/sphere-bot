@@ -5,7 +5,25 @@
     {
       "name": "channel5_youtube",
       "username": "Channel5YouTube",
-      "channel_id": 1539108566009643048,
+      "channel_id": 1542372246902022144,
+      "enabled": true
+    },
+    {
+      "name": "fireship",
+      "username": "Fireship",
+      "channel_id": 1542372246902022144,
+      "enabled": true
+    },
+    {
+      "name": "FrontPageTech",
+      "username": "FrontPageTech",
+      "channel_id": 1542372246902022144,
+      "enabled": true
+    },
+    {
+      "name": "theneedledrop",
+      "username": "theneedledrop",
+      "channel_id": 1542372246902022144,
       "enabled": true
     }
   ]
