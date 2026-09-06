@@ -1,0 +1,12 @@
+{
+  "poll_interval_seconds": 3600,
+  "post_interval_seconds": 120,
+  "watches": [
+    {
+      "name": "channel5_youtube",
+      "username": "Channel5YouTube",
+      "channel_id": 1539108566009643048,
+      "enabled": true
+    }
+  ]
+}

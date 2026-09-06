@@ -19,6 +19,7 @@ import requests
 
 from toaster import CommandRegistry, ScheduleRegistry, load_token, get_gemini_response_with_key, get_grok_response_with_key
 from toaster.tweet_watcher import check_latest_tweets, start_tweet_watcher, get_watch_list
+from toaster.youtube_watcher import start_youtube_watcher
 from toaster.modules.tweet_puller import get_fixvx_equivalent, get_latest_tweet_link
 from toaster.config import load_config, load_channel_blacklist
 from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
@@ -1236,6 +1237,12 @@ async def on_ready() -> None:
         print('✓ Started tweet watcher')
     except Exception:
         print('✗ Failed to start tweet watcher')
+
+    try:
+        asyncio.create_task(start_youtube_watcher(bot))
+        print('✓ Started YouTube watcher')
+    except Exception:
+        print('✗ Failed to start YouTube watcher')
 
     asyncio.create_task(monitor_pending_bets(bot))
     
