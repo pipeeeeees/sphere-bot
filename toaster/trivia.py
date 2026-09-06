@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -58,19 +59,37 @@ def _save_history(history: list[str], limit: int) -> None:
         pass
 
 
+def _clean_question(response: str) -> str:
+    """Remove Gemini's optional conversational framing and answer section."""
+    question = re.split(r"\bAnswer\s*:\s*", response, maxsplit=1, flags=re.IGNORECASE)[0]
+    lines = [line.strip() for line in question.splitlines() if line.strip()]
+    if not lines:
+        return ""
+
+    # If Gemini adds an intro on its own line, keep the first line containing
+    # the actual question and everything following it.
+    question_line = next((index for index, line in enumerate(lines) if "?" in line), 0)
+    question = " ".join(lines[question_line:]).strip()
+    question = re.sub(r"^(?:Sure|Sure thing|I can do that)[!,\s:.-]*", "", question, flags=re.IGNORECASE)
+    return question.strip()
+
+
 def _generate_trivia(config: dict, history: list[str]) -> str:
     topic = config.get("topic", "MLB trivia")
     recent_history = "\n".join(f"- {item}" for item in history[-50:]) or "(none)"
     prompt = (
         f"Create one challenging trivia question about {topic}.\n"
-        "Return only the question, followed by the answer on the next line prefixed with 'Answer:'. "
+        "Return only the question. Do not provide the answer, an answer label, an introduction, or any other text. "
         "Do not use multiple choice. Do not repeat or closely paraphrase any recent question below.\n"
         f"Recent questions to avoid:\n{recent_history}"
     )
     response, error = get_gemini_response_with_key("", prompt)
     if not response:
         raise RuntimeError(error or "Gemini returned no trivia question")
-    return response.strip()
+    question = _clean_question(response.strip())
+    if not question:
+        raise RuntimeError("Gemini returned no usable trivia question")
+    return question
 
 
 async def generate_and_store_trivia() -> str:
