@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 from toaster.config import load_config
 from toaster.modules.tweet_puller import get_latest_tweet_links, get_fixvx_equivalent
+from toaster.silent_times import format_silent_post
 import requests
 
 
@@ -510,7 +511,7 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             filter_reason = "Error during AI classification"
 
     if can_post:
-        await channel.send(alt)
+        await channel.send(format_silent_post(alt))
     elif filter_reason:
         await _send_filter_feedback(bot, alt, filter_reason)
 

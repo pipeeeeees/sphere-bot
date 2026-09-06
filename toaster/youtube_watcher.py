@@ -9,6 +9,8 @@ from xml.etree import ElementTree
 
 import requests
 
+from toaster.silent_times import format_silent_post
+
 
 CONFIG_FILE = Path("config/youtube_watch.json")
 POLL_INTERVAL_SECONDS = 3600
@@ -186,7 +188,7 @@ async def _dispatch_videos(bot, pending_videos: asyncio.Queue, post_interval_sec
             if video["id"] in posted_ids or await _video_already_posted(channel, video["url"]):
                 posted_ids.add(video["id"])
             else:
-                await channel.send(video["url"])
+                await channel.send(format_silent_post(video["url"]))
                 posted_ids.add(video["id"])
             _save_video_state(state, state_key, latest_id or video["id"], posted_ids)
         except Exception:
