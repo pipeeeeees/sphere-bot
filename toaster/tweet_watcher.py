@@ -10,6 +10,7 @@ import json
 import re
 from pathlib import Path
 from datetime import datetime, time, timezone
+from statistics import NormalDist
 from typing import Dict, Optional
 
 from toaster.config import load_config
@@ -465,23 +466,29 @@ def _vpm_state_key(state_key: str) -> str:
     return f"{state_key}:vpm"
 
 
-def _load_vpm_state(state: Dict[str, object], state_key: str) -> tuple[Optional[float], int]:
+def _load_vpm_state(
+    state: Dict[str, object], state_key: str
+) -> tuple[Optional[float], int, float]:
     raw = state.get(_vpm_state_key(state_key))
     if not isinstance(raw, dict):
-        return None, 0
+        return None, 0, 0.0
     try:
         mean = float(raw.get("mean")) if raw.get("mean") is not None else None
         count = int(raw.get("count", 0)) if raw.get("count") is not None else 0
+        m2 = float(raw.get("m2", 0.0)) if raw.get("m2") is not None else 0.0
     except (TypeError, ValueError):
-        return None, 0
-    return mean, max(0, count)
+        return None, 0, 0.0
+    return mean, max(0, count), max(0.0, m2)
 
 
-async def _save_vpm_state(bot, state: Dict[str, object], state_key: str, mean: float, count: int) -> None:
+async def _save_vpm_state(
+    bot, state: Dict[str, object], state_key: str, mean: float, count: int, m2: float
+) -> None:
     try:
         state[_vpm_state_key(state_key)] = {
             "mean": float(mean),
             "count": int(count),
+            "m2": float(m2),
         }
         _save_state(state)
     except Exception as exc:
@@ -499,6 +506,37 @@ async def _send_vpm_error(bot, detail: str) -> None:
             await feedback_channel.send(f"⚠️ **VPM Error**\n**Details:** {detail}")
     except Exception:
         pass
+
+
+def _vpm_percentile(value: object) -> Optional[float]:
+    """Return a valid inclusive VPM percentile, rejecting legacy booleans."""
+    if isinstance(value, bool):
+        return None
+    try:
+        percentile = float(value)
+    except (TypeError, ValueError):
+        return None
+    return percentile if 0.0 <= percentile <= 1.0 else None
+
+
+def _vpm_threshold(percentile: float, mean: float, count: int, m2: float) -> float:
+    """Estimate the VPM cutoff at a percentile using a normal distribution."""
+    if percentile <= 0.0:
+        return float("-inf")
+    if percentile >= 1.0:
+        return float("inf")
+    variance = m2 / (count - 1) if count > 1 else 0.0
+    standard_deviation = variance ** 0.5
+    return mean + NormalDist().inv_cdf(percentile) * standard_deviation
+
+
+def _update_vpm_stats(mean: float, count: int, m2: float, value: float) -> tuple[float, int, float]:
+    """Add one VPM value using Welford's numerically stable update."""
+    new_count = count + 1
+    delta = value - mean
+    new_mean = mean + (delta / new_count)
+    new_m2 = m2 + (delta * (value - new_mean))
+    return new_mean, new_count, max(0.0, new_m2)
 
 
 def _get_seen_status_ids(state: Dict[str, object], state_key: str) -> set[str]:
@@ -622,26 +660,35 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             can_post = False
             filter_reason = "Missing required photo"
 
-    if entry.get("post_if_better_than_average") and can_post:
+    vpm_percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
+    if entry.get("post_if_better_than_average") is not None and vpm_percentile is None and can_post:
+        can_post = False
+        filter_reason = "Invalid VPM percentile; expected a number from 0.0 to 1.0"
+
+    if vpm_percentile is not None and can_post:
         try:
             tweet_vpm = await asyncio.to_thread(_calculate_views_per_minute, alt)
             if tweet_vpm is None:
                 raise ValueError("VPM calculation returned no result")
-            rolling_mean, rolling_count = _load_vpm_state(state, state_key)
+            rolling_mean, rolling_count, rolling_m2 = _load_vpm_state(state, state_key)
             if rolling_mean is None or rolling_count <= 0:
-                await _save_vpm_state(bot, state, state_key, tweet_vpm, 1)
-                can_post = True
-            elif tweet_vpm > rolling_mean:
-                new_count = rolling_count + 1
-                rolling_mean = ((rolling_mean * rolling_count) + tweet_vpm) / new_count
-                await _save_vpm_state(bot, state, state_key, rolling_mean, new_count)
+                new_mean, new_count, new_m2 = tweet_vpm, 1, 0.0
                 can_post = True
             else:
-                can_post = False
-                filter_reason = (
-                    f"Less than popular VPM (tweet VPM: {tweet_vpm:.2f}, "
-                    f"rolling average: {rolling_mean:.2f})"
+                threshold = _vpm_threshold(
+                    vpm_percentile, rolling_mean, rolling_count, rolling_m2
                 )
+                can_post = tweet_vpm > threshold
+                if not can_post:
+                    filter_reason = (
+                        f"Less than popular VPM (tweet VPM: {tweet_vpm:.2f}, "
+                        f"{vpm_percentile:.2f} percentile threshold: {threshold:.2f}, "
+                        f"rolling average: {rolling_mean:.2f})"
+                    )
+                new_mean, new_count, new_m2 = _update_vpm_stats(
+                    rolling_mean, rolling_count, rolling_m2, tweet_vpm
+                )
+            await _save_vpm_state(bot, state, state_key, new_mean, new_count, new_m2)
         except Exception as exc:
             await _send_vpm_error(bot, f"Error calculating or updating VPM for {state_key}: {exc}")
             can_post = False

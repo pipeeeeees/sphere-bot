@@ -16,6 +16,7 @@
     "username": "MLB",
     "channel_id": 1539082416629489734,
     "enabled": false,
+    "post_if_better_than_average": 0.6,
     "require_video": true
   }
   ,
@@ -31,6 +32,7 @@
      "username": "On3",
      "channel_id": 1539093669448257586,
      "enabled": true,
+     "post_if_better_than_average": 0.5,
      "require_ai_classification": true
    },
    {
@@ -52,7 +54,7 @@
     "username": "NFL",
     "channel_id": 1539093803649073272,
     "enabled": true,
-    "post_if_better_than_average": true
+    "post_if_better_than_average": 0.5
   },
   {
     "name": "falcons",
@@ -92,31 +94,36 @@
      "name": "mac rumors",
      "username": "MacRumors",
      "channel_id": 1541183362083987548,
-     "enabled": true
+     "enabled": true,
+     "post_if_better_than_average": 0.5
    },
    {
      "name": "wsj markets",
      "username": "WSJmarkets",
      "channel_id": 1541183079484362804,
-     "enabled": false
+     "enabled": false,
+     "post_if_better_than_average": 0.5
     },
     {
       "name": "KobeissiLetter",
       "username": "KobeissiLetter",
       "channel_id": 1541183079484362804,
-      "enabled": true
+      "enabled": true,
+      "post_if_better_than_average": 0.5
     },
     {
       "name": "ESPNCFB",
       "username": "ESPNCFB",
       "channel_id": 1539093669448257586,
-      "enabled": true
+      "enabled": true,
+      "post_if_better_than_average": 0.5
     },
     {
       "name": "AP",
       "username": "AP",
       "channel_id": 1539093111576334407,
-      "enabled": true
+      "enabled": true,
+      "post_if_better_than_average": 0.5
     },
     {
       "name": "BradNitzWSB",
