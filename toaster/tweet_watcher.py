@@ -9,7 +9,7 @@ import asyncio
 import json
 import re
 from pathlib import Path
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from typing import Dict, Optional
 
 from toaster.config import load_config
@@ -70,6 +70,45 @@ def _get_fxtwitter_view_count(url: str, timeout: int = 10) -> Optional[int]:
         return int(views) if views is not None else None
     except (TypeError, ValueError, requests.RequestException, AttributeError):
         return None
+
+
+def _get_fxtwitter_created_at(url: str, timeout: int = 10) -> Optional[datetime]:
+    """Return the tweet creation time from the fxtwitter status API."""
+    status_id = _extract_status_id(url)
+    if not status_id:
+        return None
+    try:
+        response = requests.get(
+            f"https://api.fxtwitter.com/status/{status_id}",
+            headers={"User-Agent": "news-headlines-fetcher/1.0 (+https://example.com)"},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        created_at = response.json().get("tweet", {}).get("created_at")
+        if not created_at:
+            return None
+        parsed = str(created_at).replace("Z", "+00:00")
+        try:
+            dt = datetime.fromisoformat(parsed)
+        except ValueError:
+            dt = datetime.strptime(parsed, "%Y-%m-%d %H:%M:%S%z")
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (TypeError, ValueError, requests.RequestException, AttributeError):
+        return None
+
+
+def _calculate_views_per_minute(url: str, timeout: int = 10) -> Optional[float]:
+    """Calculate views divided by minutes since the tweet first appeared."""
+    view_count = _get_fxtwitter_view_count(url, timeout=timeout)
+    created_at = _get_fxtwitter_created_at(url, timeout=timeout)
+    if view_count is None or created_at is None:
+        return None
+    age_minutes = (datetime.now(timezone.utc) - created_at).total_seconds() / 60.0
+    if age_minutes <= 0:
+        age_minutes = 1.0
+    return view_count / age_minutes
 
 
 def _fxtwitter_has_media_type(url: str, media_type: str, timeout: int = 10) -> bool:
@@ -175,7 +214,12 @@ def _is_college_football_related(tweet_text: str, timeout: int = 15) -> bool:
         return False
     
     text_lower = tweet_text.lower()
-    
+
+    def contains_keyword(value: str, keyword: str) -> bool:
+        if not keyword:
+            return False
+        return re.search(rf"(?<![a-z0-9]){re.escape(keyword)}(?![a-z0-9])", value) is not None
+
     # Layer 1: Quick keyword filters to reject obvious non-football sports
     # These are terms that indicate basketball, baseball, hockey, etc.
     non_football_keywords = [
@@ -196,10 +240,41 @@ def _is_college_football_related(tweet_text: str, timeout: int = 15) -> bool:
     
     # Check if any non-football keyword appears in the tweet
     for keyword in non_football_keywords:
-        if keyword in text_lower:
+        if contains_keyword(text_lower, keyword):
             return False
-    
-    # Layer 2: Use Gemini for final classification
+
+    # Layer 2: Accept obvious college-football context before the AI fallback.
+    # Some real CFB posts are framed as quotes or game recaps without the exact
+    # phrase "college football" in them, and the Gemini step is intentionally
+    # conservative when it is unsure.
+    obvious_college_football_signals = [
+        "college football", "ncaa football", "cfb", "fbs", "fcs", "hail mary",
+        "touchdown", "quarterback", "qb", "offense", "defense", "field stormed",
+        "stormed the field", "bowl game", "college football playoff", "transfer portal",
+        "recruiting", "big ten", "sec", "acc", "big 12", "pac-12", "game day",
+        "coach", "head coach", "offensive coordinator", "defensive coordinator",
+        "running back", "wide receiver", "linebacker", "safety", "playoff",
+        "conference title", "job security", "team needs", "commitment", "player development",
+        "espn fpi", "fpi", "week 1", "week one", "updated espn fpi", "college football season"
+    ]
+    if any(contains_keyword(text_lower, signal) for signal in obvious_college_football_signals):
+        return True
+
+    football_programs = [
+        "alabama", "arkansas", "auburn", "clemson", "florida", "florida state",
+        "georgia", "kansas", "lsu", "michigan", "miami", "nc state", "notre dame",
+        "ohio state", "oklahoma", "oregon", "penn state", "scarlet knights", "smu",
+        "texas", "tennessee", "usc", "utah", "washington", "wisconsin"
+    ]
+    football_roles = [
+        "qb", "quarterback", "recruit", "recruiting", "head coach", "assistant coach",
+        "offensive coordinator", "defensive coordinator", "playmaker", "portal",
+        "job security", "commitment", "signed", "depth chart"
+    ]
+    if any(contains_keyword(text_lower, program) for program in football_programs) and any(contains_keyword(text_lower, role) for role in football_roles):
+        return True
+
+    # Layer 3: Use Gemini for final classification
     try:
         from toaster.llm_agents.gemini import get_gemini_response_with_key
         
@@ -427,6 +502,28 @@ async def _send_filter_feedback(bot, tweet_url: str, reason: str) -> None:
         pass
 
 
+async def _send_views_per_minute_report(bot, tweet_url: str) -> None:
+    """Send a tweet's view-per-minute summary to the feedback channel."""
+    try:
+        metrics = await asyncio.to_thread(_calculate_views_per_minute, tweet_url)
+        if metrics is None:
+            return
+        feedback_channel = bot.get_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel is None:
+            feedback_channel = await bot.fetch_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel:
+            view_count = _get_fxtwitter_view_count(tweet_url)
+            created_at = _get_fxtwitter_created_at(tweet_url)
+            if view_count is None or created_at is None:
+                return
+            age_minutes = max((datetime.now(timezone.utc) - created_at).total_seconds() / 60.0, 1.0)
+            await feedback_channel.send(
+                f"📊 **Views per minute**\n**URL:** {tweet_url}\n**Views:** {view_count}\n**Age:** {age_minutes:.1f} minutes\n**Views/min:** {metrics:.2f}"
+            )
+    except Exception:
+        pass
+
+
 async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
     """Post one queued tweet, applying the watch entry's filters."""
     if is_tweet_watch_quiet_hours():
@@ -445,6 +542,7 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
 
     provider = entry.get("provider", "fxtwitter")
     alt = get_fixvx_equivalent(link, provider=provider) or link
+    await _send_views_per_minute_report(bot, alt)
     if await _tweet_already_posted(channel, alt, lookback=10):
         await _send_filter_feedback(bot, alt, "Already posted in channel")
         return

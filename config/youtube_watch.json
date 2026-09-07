@@ -61,6 +61,12 @@
         "username": "betterwatchtv",
         "channel_id": 1546010000806387724,
         "enabled": true
+    },
+    {
+        "name": "CaptainSteeeve",
+        "username": "CaptainSteeeve",
+        "channel_id": 1539093111576334407,
+        "enabled": true
     }
   ]
 }
