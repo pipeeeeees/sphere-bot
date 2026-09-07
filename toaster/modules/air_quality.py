@@ -55,5 +55,5 @@ def get_atlanta_aqi_report() -> str:
         observed_label = "the latest reading"
 
     return (
-        f"Air quality for Atlanta at {observed_label}: **US AQI {round(aqi)} ({_aqi_category(aqi)})**"
+        f"Air quality in Atlanta is currently **US AQI {round(aqi)} ({_aqi_category(aqi)})**"
     )
