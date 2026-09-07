@@ -188,7 +188,9 @@ async def _dispatch_videos(bot, pending_videos: asyncio.Queue, post_interval_sec
             if video["id"] in posted_ids or await _video_already_posted(channel, video["url"]):
                 posted_ids.add(video["id"])
             else:
-                await channel.send(video["url"], silent=is_silent_time())
+                slot = entry.get("silent_time")
+                silent = is_silent_time(slot=slot) if slot is not None else False
+                await channel.send(video["url"], silent=silent)
                 posted_ids.add(video["id"])
             _save_video_state(state, state_key, latest_id or video["id"], posted_ids)
         except Exception:

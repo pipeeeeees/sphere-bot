@@ -511,7 +511,9 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             filter_reason = "Error during AI classification"
 
     if can_post:
-        await channel.send(alt, silent=is_silent_time())
+        slot = entry.get("silent_time")
+        silent = is_silent_time(slot=slot) if slot is not None else False
+        await channel.send(alt, silent=silent)
     elif filter_reason:
         await _send_filter_feedback(bot, alt, filter_reason)
 

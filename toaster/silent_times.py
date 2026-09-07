@@ -66,15 +66,40 @@ def _window_matches(window: dict, current: datetime) -> bool:
     return current_time < end and _day_matches(window.get("days"), previous_weekday)
 
 
-def is_silent_time(now: Optional[datetime] = None) -> bool:
-    """Return whether the configured silent window is currently active."""
+def _coerce_slot(value: object) -> Optional[int]:
+    try:
+        slot = int(value)
+    except (TypeError, ValueError):
+        return None
+    return slot if slot > 0 else None
+
+
+def _get_active_windows(config: dict, slot: Optional[int] = None) -> tuple[list, str]:
+    if slot is not None:
+        slots = config.get("configs", {})
+        if isinstance(slots, dict):
+            selected = slots.get(str(slot))
+            if isinstance(selected, dict):
+                return selected.get("windows", []), selected.get("timezone", config.get("default_timezone", "UTC"))
+    legacy_windows = config.get("windows", [])
+    if isinstance(legacy_windows, list) and not isinstance(config.get("configs"), dict):
+        return legacy_windows, config.get("default_timezone", "UTC")
+    return [], config.get("default_timezone", "UTC")
+
+
+def is_silent_time(now: Optional[datetime] = None, slot: Optional[int] = None) -> bool:
+    """Return whether a configured silent window is currently active for the given slot."""
     config = _load_config()
     if not config.get("enabled", True):
         return False
     if ZoneInfo is None:
         return False
 
-    windows = config.get("windows", [])
+    target_slot = _coerce_slot(slot)
+    if target_slot is None:
+        return False
+
+    windows, timezone = _get_active_windows(config, target_slot)
     if not isinstance(windows, list):
         return False
 
@@ -82,7 +107,6 @@ def is_silent_time(now: Optional[datetime] = None) -> bool:
         if not isinstance(window, dict):
             continue
         try:
-            timezone = window.get("timezone", config.get("default_timezone", "UTC"))
             current = (now or datetime.now(ZoneInfo(timezone))).astimezone(ZoneInfo(timezone))
             if _window_matches(window, current):
                 return True

@@ -68,7 +68,8 @@
     "username": "AtlantaFalcons",
     "channel_id": 1539093803649073272,
     "enabled": true,
-    "require_video": true
+    "require_video": true,
+    "silent_time": 1
   },
   {
     "name": "gafollowers",
