@@ -128,7 +128,10 @@ def _get_fxtwitter_created_at(url: str, timeout: int = 10) -> Optional[datetime]
             try:
                 dt = datetime.strptime(parsed, "%Y-%m-%d %H:%M:%S%z")
             except ValueError:
-                return None
+                try:
+                    dt = datetime.strptime(parsed, "%a %b %d %H:%M:%S %z %Y")
+                except ValueError:
+                    return None
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc)
