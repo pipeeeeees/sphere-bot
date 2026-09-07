@@ -54,6 +54,29 @@ def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
         return False
 
 
+def _coerce_metric_to_int(value: object) -> Optional[int]:
+    """Normalize a metric value like 1.2M, 320K, or 12345 into an integer."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    text = str(value).strip().replace(",", "")
+    if not text:
+        return None
+    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([KMB])?", text, flags=re.IGNORECASE)
+    if not match:
+        try:
+            return int(float(text))
+        except ValueError:
+            return None
+    number = float(match.group(1))
+    suffix = (match.group(2) or "").upper()
+    multiplier = {"K": 1000, "M": 1000000, "B": 1000000000}.get(suffix, 1)
+    return int(number * multiplier)
+
+
 def _get_fxtwitter_view_count(url: str, timeout: int = 10) -> Optional[int]:
     """Return the view count for a tweet from the fxtwitter status API."""
     status_id = _extract_status_id(url)
@@ -66,8 +89,12 @@ def _get_fxtwitter_view_count(url: str, timeout: int = 10) -> Optional[int]:
             timeout=timeout,
         )
         response.raise_for_status()
-        views = response.json().get("tweet", {}).get("views")
-        return int(views) if views is not None else None
+        payload = response.json() if isinstance(response.json(), dict) else {}
+        tweet = payload.get("tweet") if isinstance(payload.get("tweet"), dict) else {}
+        views = tweet.get("views")
+        if views is None:
+            views = payload.get("views")
+        return _coerce_metric_to_int(views)
     except (TypeError, ValueError, requests.RequestException, AttributeError):
         return None
 
@@ -84,14 +111,24 @@ def _get_fxtwitter_created_at(url: str, timeout: int = 10) -> Optional[datetime]
             timeout=timeout,
         )
         response.raise_for_status()
-        created_at = response.json().get("tweet", {}).get("created_at")
-        if not created_at:
+        payload = response.json() if isinstance(response.json(), dict) else {}
+        tweet = payload.get("tweet") if isinstance(payload.get("tweet"), dict) else {}
+        created_at = tweet.get("created_at") or payload.get("created_at") or tweet.get("created_at_epoch")
+        if created_at is None:
             return None
+        if isinstance(created_at, (int, float)):
+            dt = datetime.fromtimestamp(float(created_at), tz=timezone.utc)
+            return dt
+        if isinstance(created_at, datetime):
+            return created_at.astimezone(timezone.utc)
         parsed = str(created_at).replace("Z", "+00:00")
         try:
             dt = datetime.fromisoformat(parsed)
         except ValueError:
-            dt = datetime.strptime(parsed, "%Y-%m-%d %H:%M:%S%z")
+            try:
+                dt = datetime.strptime(parsed, "%Y-%m-%d %H:%M:%S%z")
+            except ValueError:
+                return None
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc)
