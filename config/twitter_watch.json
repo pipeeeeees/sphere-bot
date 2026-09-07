@@ -52,7 +52,6 @@
     "username": "NFL",
     "channel_id": 1539093803649073272,
     "enabled": true,
-    "require_video": true,
     "post_if_better_than_average": true
   },
   {
