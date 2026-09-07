@@ -421,6 +421,46 @@ def _save_state(state: Dict[str, object]) -> None:
         pass
 
 
+def _vpm_state_key(state_key: str) -> str:
+    return f"{state_key}:vpm"
+
+
+def _load_vpm_state(state: Dict[str, object], state_key: str) -> tuple[Optional[float], int]:
+    raw = state.get(_vpm_state_key(state_key))
+    if not isinstance(raw, dict):
+        return None, 0
+    try:
+        mean = float(raw.get("mean")) if raw.get("mean") is not None else None
+        count = int(raw.get("count", 0)) if raw.get("count") is not None else 0
+    except (TypeError, ValueError):
+        return None, 0
+    return mean, max(0, count)
+
+
+async def _save_vpm_state(bot, state: Dict[str, object], state_key: str, mean: float, count: int) -> None:
+    try:
+        state[_vpm_state_key(state_key)] = {
+            "mean": float(mean),
+            "count": int(count),
+        }
+        _save_state(state)
+    except Exception as exc:
+        await _send_vpm_error(bot, f"Error storing rolling VPM average for {state_key}: {exc}")
+        raise
+
+
+async def _send_vpm_error(bot, detail: str) -> None:
+    """Post VPM calculation or state errors to the feedback channel."""
+    try:
+        feedback_channel = bot.get_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel is None:
+            feedback_channel = await bot.fetch_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel:
+            await feedback_channel.send(f"⚠️ **VPM Error**\n**Details:** {detail}")
+    except Exception:
+        pass
+
+
 def _get_seen_status_ids(state: Dict[str, object], state_key: str) -> set[str]:
     """Read seen IDs, including the legacy single-ID state format."""
     value = state.get(state_key)
@@ -502,28 +542,6 @@ async def _send_filter_feedback(bot, tweet_url: str, reason: str) -> None:
         pass
 
 
-async def _send_views_per_minute_report(bot, tweet_url: str) -> None:
-    """Send a tweet's view-per-minute summary to the feedback channel."""
-    try:
-        metrics = await asyncio.to_thread(_calculate_views_per_minute, tweet_url)
-        if metrics is None:
-            return
-        feedback_channel = bot.get_channel(FEEDBACK_CHANNEL_ID)
-        if feedback_channel is None:
-            feedback_channel = await bot.fetch_channel(FEEDBACK_CHANNEL_ID)
-        if feedback_channel:
-            view_count = _get_fxtwitter_view_count(tweet_url)
-            created_at = _get_fxtwitter_created_at(tweet_url)
-            if view_count is None or created_at is None:
-                return
-            age_minutes = max((datetime.now(timezone.utc) - created_at).total_seconds() / 60.0, 1.0)
-            await feedback_channel.send(
-                f"📊 **Views per minute**\n**URL:** {tweet_url}\n**Views:** {view_count}\n**Age:** {age_minutes:.1f} minutes\n**Views/min:** {metrics:.2f}"
-            )
-    except Exception:
-        pass
-
-
 async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
     """Post one queued tweet, applying the watch entry's filters."""
     if is_tweet_watch_quiet_hours():
@@ -542,11 +560,12 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
 
     provider = entry.get("provider", "fxtwitter")
     alt = get_fixvx_equivalent(link, provider=provider) or link
-    await _send_views_per_minute_report(bot, alt)
     if await _tweet_already_posted(channel, alt, lookback=10):
         await _send_filter_feedback(bot, alt, "Already posted in channel")
         return
 
+    state = _load_state()
+    state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
     can_post = True
     filter_reason = None
     if entry.get("require_video"):
@@ -563,13 +582,41 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             can_post = False
             filter_reason = "Missing required photo"
 
+    if entry.get("post_if_better_than_average") and can_post:
+        try:
+            tweet_vpm = await asyncio.to_thread(_calculate_views_per_minute, alt)
+            if tweet_vpm is None:
+                raise ValueError("VPM calculation returned no result")
+            rolling_mean, rolling_count = _load_vpm_state(state, state_key)
+            if rolling_mean is None or rolling_count <= 0:
+                await _save_vpm_state(bot, state, state_key, tweet_vpm, 1)
+                can_post = True
+            elif tweet_vpm > rolling_mean:
+                new_count = rolling_count + 1
+                rolling_mean = ((rolling_mean * rolling_count) + tweet_vpm) / new_count
+                await _save_vpm_state(bot, state, state_key, rolling_mean, new_count)
+                can_post = True
+            else:
+                can_post = False
+                filter_reason = (
+                    f"Less than popular VPM (tweet VPM: {tweet_vpm:.2f}, "
+                    f"rolling average: {rolling_mean:.2f})"
+                )
+        except Exception as exc:
+            await _send_vpm_error(bot, f"Error calculating or updating VPM for {state_key}: {exc}")
+            can_post = False
+            filter_reason = "Error calculating VPM for rolling average"
+
     min_views = entry.get("min_views")
     if min_views is not None and can_post:
         try:
             view_count = await asyncio.to_thread(_get_fxtwitter_view_count, alt)
             if view_count is None or view_count < int(min_views):
                 can_post = False
-                filter_reason = f"Insufficient views (got {view_count or 0}, need {min_views})"
+                filter_reason = (
+                    f"Insufficient views (got {view_count or 0}, need {min_views}) "
+                    f"| VPM: {await asyncio.to_thread(_calculate_views_per_minute, alt) or 0:.2f}"
+                )
         except (TypeError, ValueError):
             can_post = False
             filter_reason = "Error checking view count"

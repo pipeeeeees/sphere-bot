@@ -53,15 +53,7 @@
     "channel_id": 1539093803649073272,
     "enabled": true,
     "require_video": true,
-    "min_views": 20000
-  },
-  {
-    "name": "nfl_photo_tweets",
-    "username": "NFL",
-    "channel_id": 1539093803649073272,
-    "enabled": true,
-    "require_photo": true,
-    "min_views": 300000
+    "post_if_better_than_average": true
   },
   {
     "name": "falcons",
