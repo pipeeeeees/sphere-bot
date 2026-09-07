@@ -89,7 +89,7 @@ def _generate_trivia(config: dict, history: list[str]) -> str:
     question = _clean_question(response.strip())
     if not question:
         raise RuntimeError("Gemini returned no usable trivia question")
-    return question
+    return f"Trivia time: {question}"
 
 
 async def generate_and_store_trivia() -> str:
@@ -98,8 +98,9 @@ async def generate_and_store_trivia() -> str:
     limit = max(1, int(config.get("history_size", DEFAULT_HISTORY_SIZE)))
     for _ in range(3):
         trivia = await asyncio.to_thread(_generate_trivia, config, history)
-        if trivia not in history:
-            history.append(trivia)
+        question_text = trivia.replace("Trivia time: ", "", 1)
+        if question_text not in history:
+            history.append(question_text)
             _save_history(history, limit)
             return trivia
     raise RuntimeError("Gemini repeated a recent trivia question")
