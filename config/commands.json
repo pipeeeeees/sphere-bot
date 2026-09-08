@@ -24,6 +24,12 @@
     "function": "uptime_command"
   },
   {
+    "name": "thresholds",
+    "description": "Show tweet VPM counts, rolling averages, and posting thresholds",
+    "module": "toaster.commands_impl",
+    "function": "thresholds_command"
+  },
+  {
     "name": "toast",
     "description": "Toggle channel whitelist for Toast to speak in",
     "module": "toaster.commands_impl",

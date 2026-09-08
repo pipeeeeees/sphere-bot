@@ -18,6 +18,7 @@ from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
 from toaster import get_gemini_response_with_key
 from toaster.config import load_config
+from toaster.tweet_watcher import get_vpm_threshold_report
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -42,6 +43,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$commands", value="Show this help message", inline=False)
     embed.add_field(name="$ping", value="Check bot latency", inline=False)
     embed.add_field(name="$uptime", value="Display bot uptime", inline=False)
+    embed.add_field(name="$thresholds", value="Show tweet VPM counts, averages, and posting thresholds", inline=False)
     embed.add_field(name="$toast", value="Toggle channel blacklist for Toast to speak in", inline=False)
     embed.add_field(name="$reboot", value="Restart the bot process", inline=False)
     embed.add_field(name="$pull", value="Run git pull and print results", inline=False)
@@ -88,6 +90,13 @@ async def uptime_command(ctx: commands.Context) -> None:
     uptime_str += f"{seconds}s"
     
     await ctx.send(f"⏰ Bot has been online for: {uptime_str}")
+
+
+async def thresholds_command(ctx: commands.Context) -> None:
+    """Show VPM counts, rolling averages, and posting thresholds for tweet watches."""
+    report = get_vpm_threshold_report()
+    for start in range(0, len(report), 1900):
+        await ctx.send(report[start:start + 1900])
 
 
 async def toast_command(ctx: commands.Context) -> None:

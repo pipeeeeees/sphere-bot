@@ -534,6 +534,40 @@ def _vpm_threshold(percentile: float, mean: float, count: int, m2: float) -> flo
     return mean + NormalDist().inv_cdf(percentile) * standard_deviation
 
 
+def get_vpm_threshold_report() -> str:
+    """Return current VPM counts, averages, and posting thresholds by watch."""
+    state = _load_state()
+    lines = ["📊 **VPM Thresholds**", "Counted values are successfully calculated VPMs per watch."]
+    report_entries = [entry for entry in _load_watch_list() if entry.get("enabled", True)]
+    if not report_entries:
+        return "📊 **VPM Thresholds**\nNo enabled tweet watches configured."
+
+    for entry in report_entries:
+        state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
+        mean, count, m2 = _load_vpm_state(state, state_key)
+        percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
+        if mean is None or count <= 0:
+            average_text = "N/A"
+            threshold_text = "N/A"
+        else:
+            average_text = f"{mean:.2f}"
+            if percentile is None:
+                threshold_text = "N/A (not configured)"
+            else:
+                threshold_text = f"{_vpm_threshold(percentile, mean, count, m2):.2f}"
+
+        channel_id = entry.get("channel_id", "unknown")
+        watch_name = entry.get("name") or entry.get("username") or "unnamed watch"
+        percentile_text = f"{percentile:.2f}" if percentile is not None else "N/A"
+        lines.append(
+            f"\n**{watch_name}** | Channel `{channel_id}`\n"
+            f"Tweets counted: **{count}**\n"
+            f"Rolling average VPM: **{average_text}**\n"
+            f"Posting threshold ({percentile_text} percentile): **{threshold_text}**"
+        )
+    return "\n".join(lines)
+
+
 def _update_vpm_stats(mean: float, count: int, m2: float, value: float) -> tuple[float, int, float]:
     """Add one VPM value using Welford's numerically stable update."""
     new_count = count + 1
@@ -663,8 +697,66 @@ async def _send_error_feedback(
 
 async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
     """Post one queued tweet, applying the watch entry's filters."""
+    provider = entry.get("provider", "fxtwitter")
+    alt = get_fixvx_equivalent(link, provider=provider) or link
+    state = _load_state()
+    state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
+    can_post = True
+    filter_reason = None
+    vpm_report = None
+
+    vpm_percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
+    if entry.get("post_if_better_than_average") is not None and vpm_percentile is None:
+        can_post = False
+        filter_reason = "Invalid VPM percentile; expected a number from 0.0 to 1.0"
+    try:
+        tweet_vpm = await asyncio.to_thread(_calculate_views_per_minute, alt)
+        if tweet_vpm is None:
+            raise ValueError("VPM calculation returned no result")
+        rolling_mean, rolling_count, rolling_m2 = _load_vpm_state(state, state_key)
+        threshold = None
+        threshold_label = (
+            f"{vpm_percentile:.2f} percentile threshold"
+            if vpm_percentile is not None
+            else "Posting threshold"
+        )
+        if rolling_mean is None or rolling_count <= 0:
+            new_mean, new_count, new_m2 = tweet_vpm, 1, 0.0
+            vpm_report = (
+                f"**Tweet VPM:** {tweet_vpm:.2f}\n"
+                f"**{threshold_label}:** N/A (initial sample)\n"
+                f"**Rolling average:** N/A (initial sample)"
+            )
+        else:
+            threshold = (
+                _vpm_threshold(vpm_percentile, rolling_mean, rolling_count, rolling_m2)
+                if vpm_percentile is not None
+                else None
+            )
+            threshold_text = f"{threshold:.2f}" if threshold is not None else "N/A (not configured)"
+            vpm_report = (
+                f"**Tweet VPM:** {tweet_vpm:.2f}\n"
+                f"**{threshold_label}:** {threshold_text}\n"
+                f"**Rolling average:** {rolling_mean:.2f}"
+            )
+            if threshold is not None and tweet_vpm <= threshold:
+                can_post = False
+                filter_reason = (
+                    f"Less than popular VPM (tweet VPM: {tweet_vpm:.2f}, "
+                    f"{vpm_percentile:.2f} percentile threshold: {threshold:.2f}, "
+                    f"rolling average: {rolling_mean:.2f})"
+                )
+            new_mean, new_count, new_m2 = _update_vpm_stats(
+                rolling_mean, rolling_count, rolling_m2, tweet_vpm
+            )
+        await _save_vpm_state(bot, state, state_key, new_mean, new_count, new_m2)
+    except Exception as exc:
+        await _send_vpm_error(bot, f"Error calculating or updating VPM for {state_key}: {exc}")
+        can_post = False
+        filter_reason = "Error calculating VPM for rolling average"
+
     if is_tweet_watch_quiet_hours():
-        await _send_filter_feedback(bot, link, "Quiet hours active")
+        await _send_filter_feedback(bot, alt, "Quiet hours active")
         return
 
     channel_id = int(entry.get("channel_id"))
@@ -685,18 +777,11 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
         )
         return
 
-    provider = entry.get("provider", "fxtwitter")
-    alt = get_fixvx_equivalent(link, provider=provider) or link
     if await _tweet_already_posted(channel, alt, lookback=10, bot=bot, entry=entry):
         await _send_filter_feedback(bot, alt, "Already posted in channel")
         return
 
-    state = _load_state()
-    state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
-    can_post = True
-    filter_reason = None
-    vpm_report = None
-    if entry.get("require_video"):
+    if entry.get("require_video") and can_post:
         try:
             can_post = await asyncio.to_thread(_fixvx_has_video, alt)
         except Exception as exc:
@@ -723,50 +808,6 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             await _send_error_feedback(bot, "checking required photo or video", exc, entry, alt)
             can_post = False
             filter_reason = "Error checking required photo or video"
-
-    vpm_percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
-    if entry.get("post_if_better_than_average") is not None and vpm_percentile is None and can_post:
-        can_post = False
-        filter_reason = "Invalid VPM percentile; expected a number from 0.0 to 1.0"
-
-    if vpm_percentile is not None and can_post:
-        try:
-            tweet_vpm = await asyncio.to_thread(_calculate_views_per_minute, alt)
-            if tweet_vpm is None:
-                raise ValueError("VPM calculation returned no result")
-            rolling_mean, rolling_count, rolling_m2 = _load_vpm_state(state, state_key)
-            if rolling_mean is None or rolling_count <= 0:
-                new_mean, new_count, new_m2 = tweet_vpm, 1, 0.0
-                can_post = True
-                vpm_report = (
-                    f"**Tweet VPM:** {tweet_vpm:.2f}\n"
-                    f"**{vpm_percentile:.2f} percentile threshold:** N/A (initial sample)\n"
-                    f"**Rolling average:** N/A (initial sample)"
-                )
-            else:
-                threshold = _vpm_threshold(
-                    vpm_percentile, rolling_mean, rolling_count, rolling_m2
-                )
-                vpm_report = (
-                    f"**Tweet VPM:** {tweet_vpm:.2f}\n"
-                    f"**{vpm_percentile:.2f} percentile threshold:** {threshold:.2f}\n"
-                    f"**Rolling average:** {rolling_mean:.2f}"
-                )
-                can_post = tweet_vpm > threshold
-                if not can_post:
-                    filter_reason = (
-                        f"Less than popular VPM (tweet VPM: {tweet_vpm:.2f}, "
-                        f"{vpm_percentile:.2f} percentile threshold: {threshold:.2f}, "
-                        f"rolling average: {rolling_mean:.2f})"
-                    )
-                new_mean, new_count, new_m2 = _update_vpm_stats(
-                    rolling_mean, rolling_count, rolling_m2, tweet_vpm
-                )
-            await _save_vpm_state(bot, state, state_key, new_mean, new_count, new_m2)
-        except Exception as exc:
-            await _send_vpm_error(bot, f"Error calculating or updating VPM for {state_key}: {exc}")
-            can_post = False
-            filter_reason = "Error calculating VPM for rolling average"
 
     min_views = entry.get("min_views")
     if min_views is not None and can_post:
