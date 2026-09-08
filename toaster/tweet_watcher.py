@@ -364,8 +364,9 @@ If unsure, respond "no" (be conservative)."""
         return False
 
 
-CONFIG_FILE = Path("config") / "twitter_watch.json"
-STATE_FILE = Path("config") / "twitter_watch_state.json"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_FILE = REPOSITORY_ROOT / "config" / "twitter_watch.json"
+STATE_FILE = REPOSITORY_ROOT / "config" / "twitter_watch_state.json"
 DEFAULT_WEEKDAY_QUIET_START = time(0, 0)
 DEFAULT_WEEKDAY_QUIET_END = time(6, 0)
 
@@ -453,13 +454,14 @@ async def check_latest_tweets():
     return successful, len(enabled_entries)
 
 
-def _save_state(state: Dict[str, object]) -> None:
+def _save_state(state: Dict[str, object]) -> bool:
     try:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         with STATE_FILE.open("w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
+        return True
     except Exception:
-        pass
+        return False
 
 
 def _vpm_state_key(state_key: str) -> str:
@@ -490,7 +492,8 @@ async def _save_vpm_state(
             "count": int(count),
             "m2": float(m2),
         }
-        _save_state(state)
+        if not _save_state(state):
+            raise OSError(f"Could not write VPM state to {STATE_FILE}")
     except Exception as exc:
         await _send_vpm_error(bot, f"Error storing rolling VPM average for {state_key}: {exc}")
         raise
