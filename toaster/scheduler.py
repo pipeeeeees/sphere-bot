@@ -199,8 +199,8 @@ class ScheduleRegistry:
             self.channel = channel
             self.bot = bot
 
-        async def send(self, message: str):
-            return await self.channel.send(message)
+        async def send(self, message: Optional[str] = None, **kwargs):
+            return await self.channel.send(message, **kwargs)
 
     async def _execute_scheduled_command(self, command_text: str, channel, bot, schedule: Optional[Dict[str, Any]] = None):
         """Execute command-like scheduled message using commands_impl functions.
@@ -217,6 +217,7 @@ class ScheduleRegistry:
             mlb_division_standings_command,
             pollen_command,
             aqi_command,
+            atl_temps_command,
             trivia_mlb_command,
             gemini_command,
             reboot_command,
@@ -244,6 +245,8 @@ class ScheduleRegistry:
                 await pollen_command(ctx)
             elif cmd == 'aqi':
                 await aqi_command(ctx)
+            elif cmd == 'atl_temps':
+                await atl_temps_command(ctx)
             elif cmd == 'trivia_mlb':
                 await trivia_mlb_command(ctx)
             elif cmd == 'gemini' and args:

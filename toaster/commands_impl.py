@@ -6,11 +6,13 @@ Each function must be async and accept a discord.ext.commands.Context parameter.
 
 import discord
 from discord.ext import commands
+import asyncio
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
@@ -230,6 +232,29 @@ async def aqi_command(ctx: commands.Context) -> None:
         await ctx.send("Atlanta AQI is currently unavailable.")
 
 
+async def atl_temps_command(ctx: commands.Context) -> None:
+    """Generate and upload Atlanta's seven-day high/low temperature plot."""
+    from toaster.modules.atlanta_temperature_plot import (
+        create_temperature_plot,
+        get_atlanta_forecast,
+    )
+
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            temp_path = Path(temp_file.name)
+        forecast = await asyncio.to_thread(get_atlanta_forecast)
+        await asyncio.to_thread(create_temperature_plot, forecast, temp_path)
+        await ctx.send(
+            file=discord.File(str(temp_path), filename="atlanta_7_day_temperatures.png")
+        )
+    except Exception:
+        await ctx.send("Atlanta temperatures are currently unavailable.")
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
 async def trivia_mlb_command(ctx: commands.Context) -> None:
     """Generate and post configured trivia."""
     from toaster.trivia import trivia_mlb_command as generate_trivia_command
@@ -281,6 +306,7 @@ __all__ = [
     "mlb_division_standings_command",
     "pollen_command",
     "aqi_command",
+    "atl_temps_command",
     "trivia_mlb_command",
     "gemini_command",
     "weather_command"
