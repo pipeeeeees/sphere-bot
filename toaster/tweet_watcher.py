@@ -663,6 +663,13 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             can_post = False
             filter_reason = "Missing required photo"
 
+    if entry.get("require_photo_or_video") and can_post:
+        has_photo = await asyncio.to_thread(_fxtwitter_has_media_type, alt, "photo")
+        has_video = await asyncio.to_thread(_fixvx_has_video, alt)
+        if not has_photo and not has_video:
+            can_post = False
+            filter_reason = "Missing required photo or video"
+
     vpm_percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
     if entry.get("post_if_better_than_average") is not None and vpm_percentile is None and can_post:
         can_post = False

@@ -25,7 +25,8 @@
     "username": "MotorTrend",
     "channel_id": 1539088363334926478,
     "enabled": true,
-    "post_if_better_than_average": 0.8
+    "post_if_better_than_average": 0.7,
+    "require_photo_or_video": true
   }
    ,
    {
@@ -137,7 +138,8 @@
       "username": "Motor1com",
       "channel_id": 1539088363334926478,
       "enabled": true,
-      "post_if_better_than_average": 0.6
+      "post_if_better_than_average": 0.6,
+      "require_photo_or_video": true
     }
   ]
 }
