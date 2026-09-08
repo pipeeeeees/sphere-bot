@@ -78,6 +78,12 @@
     "function": "trivia_mlb_command"
   },
   {
+    "name": "trivia_cfb",
+    "description": "Post configured college-football trivia",
+    "module": "toaster.commands_impl",
+    "function": "trivia_cfb_command"
+  },
+  {
     "name": "gemini",
     "description": "Get a response from Gemini AI",
     "module": "toaster.commands_impl",

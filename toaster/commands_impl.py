@@ -261,6 +261,12 @@ async def trivia_mlb_command(ctx: commands.Context) -> None:
     await generate_trivia_command(ctx)
 
 
+async def trivia_cfb_command(ctx: commands.Context) -> None:
+    """Generate and post configured college-football trivia."""
+    from toaster.trivia import trivia_cfb_command as generate_trivia_command
+    await generate_trivia_command(ctx)
+
+
 async def gemini_command(ctx: commands.Context, *, message: str) -> None:
     """
     Get a response from Gemini AI.
@@ -308,6 +314,7 @@ __all__ = [
     "aqi_command",
     "atl_temps_command",
     "trivia_mlb_command",
+    "trivia_cfb_command",
     "gemini_command",
     "weather_command"
 ]

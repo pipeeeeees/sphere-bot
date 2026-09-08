@@ -23,14 +23,13 @@ def load_trivia_config() -> dict:
         return {}
 
 
-def get_trivia_schedule() -> Optional[dict]:
-    config = load_trivia_config()
+def _get_schedule(config: dict, default_name: str, command: str) -> Optional[dict]:
     schedule = config.get("schedule")
     if not config.get("enabled", True) or not isinstance(schedule, dict):
         return None
     return {
-        "name": config.get("name", "trivia_mlb"),
-        "message": "$trivia_mlb",
+        "name": config.get("name", default_name),
+        "message": command,
         "channel_id": config.get("channel_id"),
         "type": schedule.get("type", "weekly"),
         "time": schedule.get("time", "11:30"),
@@ -41,20 +40,45 @@ def get_trivia_schedule() -> Optional[dict]:
     }
 
 
-def _load_history() -> list[str]:
+def _get_trivia_configs() -> list[dict]:
+    config = load_trivia_config()
+    entries = config.get("trivia")
+    if isinstance(entries, list):
+        return [entry for entry in entries if isinstance(entry, dict)]
+    return [config] if config else []
+
+
+def get_trivia_schedules() -> list[dict]:
+    schedules = []
+    for config in _get_trivia_configs():
+        name = str(config.get("name", "trivia"))
+        command = "$trivia_cfb" if name == "college_trivia" else "$trivia_mlb"
+        schedule = _get_schedule(config, name, command)
+        if schedule:
+            schedules.append(schedule)
+    return schedules
+
+
+def get_trivia_schedule() -> Optional[dict]:
+    """Backward-compatible accessor for the first configured trivia schedule."""
+    schedules = get_trivia_schedules()
+    return schedules[0] if schedules else None
+
+
+def _load_history(history_file: Path = HISTORY_FILE) -> list[str]:
     try:
-        with HISTORY_FILE.open("r", encoding="utf-8") as history_file:
-            history = json.load(history_file)
+        with history_file.open("r", encoding="utf-8") as file:
+            history = json.load(file)
         return [str(item) for item in history] if isinstance(history, list) else []
     except (FileNotFoundError, OSError, json.JSONDecodeError):
         return []
 
 
-def _save_history(history: list[str], limit: int) -> None:
+def _save_history(history: list[str], limit: int, history_file: Path = HISTORY_FILE) -> None:
     try:
-        HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with HISTORY_FILE.open("w", encoding="utf-8") as history_file:
-            json.dump(history[-limit:], history_file, indent=2)
+        history_file.parent.mkdir(parents=True, exist_ok=True)
+        with history_file.open("w", encoding="utf-8") as file:
+            json.dump(history[-limit:], file, indent=2)
     except OSError:
         pass
 
@@ -70,7 +94,12 @@ def _clean_question(response: str) -> str:
     # the actual question and everything following it.
     question_line = next((index for index, line in enumerate(lines) if "?" in line), 0)
     question = " ".join(lines[question_line:]).strip()
-    question = re.sub(r"^(?:Sure|Sure thing|I can do that)[!,\s:.-]*", "", question, flags=re.IGNORECASE)
+    question = re.sub(
+        r"^(?:Sure|Sure thing|I can do that)[!,\s:.-]*(?:Here is a trivia question:)?\s*",
+        "",
+        question,
+        flags=re.IGNORECASE,
+    )
     return question.strip()
 
 
@@ -92,18 +121,41 @@ def _generate_trivia(config: dict, history: list[str]) -> str:
     return f"Trivia time: {question}"
 
 
-async def generate_and_store_trivia() -> str:
-    config = load_trivia_config()
-    history = _load_history()
+async def _generate_and_store(config: dict, history_file: Path) -> str:
+    history = _load_history(history_file)
     limit = max(1, int(config.get("history_size", DEFAULT_HISTORY_SIZE)))
     for _ in range(3):
         trivia = await asyncio.to_thread(_generate_trivia, config, history)
         question_text = trivia.replace("Trivia time: ", "", 1)
         if question_text not in history:
             history.append(question_text)
-            _save_history(history, limit)
+            if history_file == HISTORY_FILE:
+                _save_history(history, limit)
+            else:
+                _save_history(history, limit, history_file)
             return trivia
     raise RuntimeError("Gemini repeated a recent trivia question")
+
+
+def _get_trivia_config(name: str) -> dict:
+    config = load_trivia_config()
+    if not isinstance(config.get("trivia"), list) and name == "mlb_trivia":
+        return config
+    return next(
+        (config for config in _get_trivia_configs() if config.get("name") == name),
+        {},
+    )
+
+
+async def generate_and_store_trivia() -> str:
+    return await _generate_and_store(_get_trivia_config("mlb_trivia"), HISTORY_FILE)
+
+
+async def generate_and_store_college_trivia() -> str:
+    return await _generate_and_store(
+        _get_trivia_config("college_trivia"),
+        Path("config/college_trivia_history.json"),
+    )
 
 
 async def trivia_mlb_command(ctx) -> None:
@@ -112,3 +164,11 @@ async def trivia_mlb_command(ctx) -> None:
         await ctx.send(await generate_and_store_trivia())
     except Exception:
         await ctx.send("Trivia is currently unavailable. Please try again later.")
+
+
+async def trivia_cfb_command(ctx) -> None:
+    """Generate and post one configured college-football question."""
+    try:
+        await ctx.send(await generate_and_store_college_trivia())
+    except Exception:
+        await ctx.send("College football trivia is currently unavailable. Please try again later.")

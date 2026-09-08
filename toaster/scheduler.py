@@ -219,6 +219,7 @@ class ScheduleRegistry:
             aqi_command,
             atl_temps_command,
             trivia_mlb_command,
+            trivia_cfb_command,
             gemini_command,
             reboot_command,
         )
@@ -249,6 +250,8 @@ class ScheduleRegistry:
                 await atl_temps_command(ctx)
             elif cmd == 'trivia_mlb':
                 await trivia_mlb_command(ctx)
+            elif cmd == 'trivia_cfb':
+                await trivia_cfb_command(ctx)
             elif cmd == 'gemini' and args:
                 await gemini_command(ctx, message=' '.join(args))
             elif cmd == 'reboot':

@@ -1,13 +1,30 @@
 {
-  "name": "mlb_trivia",
-  "enabled": true,
-  "topic": "MLB trivia with heavier emphasis on the last couple years",
-  "channel_id": 1542372246902022144,
-  "history_size": 50,
-  "schedule": {
-    "type": "weekly",
-    "time": "11:30",
-    "weekdays": [1, 2, 3, 4, 5, 6, 7],
-    "timezone": "America/New_York"
-  }
+  "trivia": [
+    {
+      "name": "mlb_trivia",
+      "enabled": true,
+      "topic": "MLB trivia with heavier emphasis on the last couple years",
+      "channel_id": 1539082416629489734,
+      "history_size": 100,
+      "schedule": {
+        "type": "weekly",
+        "time": "11:30",
+        "weekdays": [1, 2, 3, 4, 5, 6, 7],
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "name": "college_trivia",
+      "enabled": true,
+      "topic": "college football trivia centered on the current season and the previous two seasons, including current teams and players, recent games and developments, plus niche, fun, unusual, and special college football records held by teams",
+      "channel_id": 1539093669448257586,
+      "history_size": 100,
+      "schedule": {
+        "type": "weekly",
+        "time": "11:35",
+        "weekdays": [1, 2, 3, 4, 5, 6, 7],
+        "timezone": "America/New_York"
+      }
+    }
+  ]
 }
