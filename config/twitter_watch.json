@@ -23,8 +23,9 @@
   {
     "name": "motor_trend",
     "username": "MotorTrend",
-    "channel_id": 1539108566009643048,
-    "enabled": false
+    "channel_id": 1539088363334926478,
+    "enabled": true,
+    "post_if_better_than_average": 0.8
   }
    ,
    {
@@ -101,7 +102,7 @@
      "name": "wsj markets",
      "username": "WSJmarkets",
      "channel_id": 1541183079484362804,
-     "enabled": false,
+     "enabled": true,
      "post_if_better_than_average": 0.5
     },
     {
@@ -130,6 +131,13 @@
       "username": "BradNitzWSB",
       "channel_id": 1539087911721500742,
       "enabled": true
+    },
+    {
+      "name": "Motor1com",
+      "username": "Motor1com",
+      "channel_id": 1539088363334926478,
+      "enabled": true,
+      "post_if_better_than_average": 0.6
     }
   ]
 }
