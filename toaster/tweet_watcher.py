@@ -695,6 +695,7 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
     state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
     can_post = True
     filter_reason = None
+    vpm_report = None
     if entry.get("require_video"):
         try:
             can_post = await asyncio.to_thread(_fixvx_has_video, alt)
@@ -737,9 +738,19 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             if rolling_mean is None or rolling_count <= 0:
                 new_mean, new_count, new_m2 = tweet_vpm, 1, 0.0
                 can_post = True
+                vpm_report = (
+                    f"**Tweet VPM:** {tweet_vpm:.2f}\n"
+                    f"**{vpm_percentile:.2f} percentile threshold:** N/A (initial sample)\n"
+                    f"**Rolling average:** N/A (initial sample)"
+                )
             else:
                 threshold = _vpm_threshold(
                     vpm_percentile, rolling_mean, rolling_count, rolling_m2
+                )
+                vpm_report = (
+                    f"**Tweet VPM:** {tweet_vpm:.2f}\n"
+                    f"**{vpm_percentile:.2f} percentile threshold:** {threshold:.2f}\n"
+                    f"**Rolling average:** {rolling_mean:.2f}"
                 )
                 can_post = tweet_vpm > threshold
                 if not can_post:
@@ -813,6 +824,11 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
         slot = entry.get("silent_time")
         silent = is_silent_time(slot=slot) if slot is not None else False
         await channel.send(alt, silent=silent)
+        if vpm_report:
+            await _send_feedback_message(
+                bot,
+                f"📈 **Posted Tweet VPM Stats**\n{vpm_report}\n**URL:** {alt}",
+            )
     elif filter_reason:
         await _send_filter_feedback(bot, alt, filter_reason)
 
