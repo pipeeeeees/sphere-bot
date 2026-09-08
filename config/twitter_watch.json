@@ -32,7 +32,7 @@
      "username": "On3",
      "channel_id": 1539093669448257586,
      "enabled": true,
-     "post_if_better_than_average": 0.5,
+     "post_if_better_than_average": 0.3,
      "require_ai_classification": true
    },
    {
@@ -61,8 +61,8 @@
     "username": "AtlantaFalcons",
     "channel_id": 1539093803649073272,
     "enabled": true,
-    "require_video": true,
-    "silent_time": 1
+    "silent_time": 1,
+    "post_if_better_than_average": 0.3
   },
   {
     "name": "gafollowers",
@@ -116,14 +116,14 @@
       "username": "ESPNCFB",
       "channel_id": 1539093669448257586,
       "enabled": true,
-      "post_if_better_than_average": 0.5
+      "post_if_better_than_average": 0.2
     },
     {
       "name": "AP",
       "username": "AP",
       "channel_id": 1539093111576334407,
       "enabled": true,
-      "post_if_better_than_average": 0.5
+      "post_if_better_than_average": 0.4
     },
     {
       "name": "BradNitzWSB",
