@@ -19,7 +19,8 @@ from toaster.silent_times import is_silent_time
 import requests
 
 
-# Feedback channel for filtered tweets
+# This channel intentionally receives both filter feedback and runtime errors so
+# future Copilot sessions can diagnose the watcher from one Discord history.
 FEEDBACK_CHANNEL_ID = 1539108566009643048
 
 
@@ -570,7 +571,13 @@ def _extract_status_id(link: str):
     return None
 
 
-async def _tweet_already_posted(channel, tweet_url: str, lookback: int = 10) -> bool:
+async def _tweet_already_posted(
+    channel,
+    tweet_url: str,
+    lookback: int = 10,
+    bot=None,
+    entry: Optional[Dict[str, object]] = None,
+) -> bool:
     """Check if the tweet URL has already been posted in the channel's recent history.
     
     Args:
@@ -596,7 +603,9 @@ async def _tweet_already_posted(channel, tweet_url: str, lookback: int = 10) -> 
                 status_id = _extract_status_id(tweet_url)
                 if status_id and f"/status/{status_id}" in message.content:
                     return True
-    except Exception:
+    except Exception as exc:
+        if bot is not None:
+            await _send_error_feedback(bot, "checking recent channel history", exc, entry, tweet_url)
         # If we can't fetch history, assume it's safe to post
         pass
     
@@ -611,16 +620,45 @@ async def _send_filter_feedback(bot, tweet_url: str, reason: str) -> None:
         tweet_url: The URL of the tweet that was filtered
         reason: The reason why the tweet was filtered
     """
+    await _send_feedback_message(
+        bot,
+        f"🚫 **Filtered Tweet**\n**Reason:** {reason}\n**URL:** {tweet_url}",
+    )
+
+
+async def _send_feedback_message(bot, content: str) -> None:
+    """Send watcher feedback or diagnostics to the dedicated feedback channel."""
     try:
         feedback_channel = bot.get_channel(FEEDBACK_CHANNEL_ID)
         if feedback_channel is None:
             feedback_channel = await bot.fetch_channel(FEEDBACK_CHANNEL_ID)
-        
+
         if feedback_channel:
-            await feedback_channel.send(f"🚫 **Filtered Tweet**\n**Reason:** {reason}\n**URL:** {tweet_url}")
+            await feedback_channel.send(content)
     except Exception:
-        # Silently fail if we can't send the feedback
+        # Reporting must never raise another error or interrupt tweet processing.
         pass
+
+
+async def _send_error_feedback(
+    bot,
+    operation: str,
+    detail: object,
+    entry: Optional[Dict[str, object]] = None,
+    tweet_url: Optional[str] = None,
+) -> None:
+    """Post actionable watcher errors with enough context for diagnosis."""
+    watch_name = (entry or {}).get("name") or (entry or {}).get("username") or "unknown watch"
+    error_type = type(detail).__name__
+    message = (
+        f"⚠️ **Tweet Watcher Error**\n"
+        f"**Operation:** {operation}\n"
+        f"**Watch:** {watch_name}\n"
+        f"**Error:** `{error_type}: {detail}`"
+    )
+    if tweet_url:
+        message += f"\n**URL:** {tweet_url}"
+    await _send_feedback_message(bot, message)
 
 
 async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
@@ -634,14 +672,22 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
     if channel is None:
         try:
             channel = await bot.fetch_channel(channel_id)
-        except Exception:
+        except Exception as exc:
+            await _send_error_feedback(bot, "fetching destination channel", exc, entry, link)
             channel = None
     if channel is None:
+        await _send_error_feedback(
+            bot,
+            "finding destination channel",
+            f"Channel {channel_id} was not found",
+            entry,
+            link,
+        )
         return
 
     provider = entry.get("provider", "fxtwitter")
     alt = get_fixvx_equivalent(link, provider=provider) or link
-    if await _tweet_already_posted(channel, alt, lookback=10):
+    if await _tweet_already_posted(channel, alt, lookback=10, bot=bot, entry=entry):
         await _send_filter_feedback(bot, alt, "Already posted in channel")
         return
 
@@ -652,8 +698,10 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
     if entry.get("require_video"):
         try:
             can_post = await asyncio.to_thread(_fixvx_has_video, alt)
-        except Exception:
+        except Exception as exc:
+            await _send_error_feedback(bot, "checking required video", exc, entry, alt)
             can_post = False
+            filter_reason = "Error checking required video"
         if not can_post:
             filter_reason = "Missing required video"
 
@@ -664,11 +712,16 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             filter_reason = "Missing required photo"
 
     if entry.get("require_photo_or_video") and can_post:
-        has_photo = await asyncio.to_thread(_fxtwitter_has_media_type, alt, "photo")
-        has_video = await asyncio.to_thread(_fixvx_has_video, alt)
-        if not has_photo and not has_video:
+        try:
+            has_photo = await asyncio.to_thread(_fxtwitter_has_media_type, alt, "photo")
+            has_video = await asyncio.to_thread(_fixvx_has_video, alt)
+            if not has_photo and not has_video:
+                can_post = False
+                filter_reason = "Missing required photo or video"
+        except Exception as exc:
+            await _send_error_feedback(bot, "checking required photo or video", exc, entry, alt)
             can_post = False
-            filter_reason = "Missing required photo or video"
+            filter_reason = "Error checking required photo or video"
 
     vpm_percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
     if entry.get("post_if_better_than_average") is not None and vpm_percentile is None and can_post:
@@ -714,7 +767,8 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
                     f"Insufficient views (got {view_count or 0}, need {min_views}) "
                     f"| VPM: {await asyncio.to_thread(_calculate_views_per_minute, alt) or 0:.2f}"
                 )
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            await _send_error_feedback(bot, "checking minimum views", exc, entry, alt)
             can_post = False
             filter_reason = "Error checking view count"
 
@@ -728,12 +782,14 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
                     if await asyncio.to_thread(_fixvx_has_word, alt, word):
                         found = True
                         break
-                except Exception:
+                except Exception as exc:
+                    await _send_error_feedback(bot, "checking required word", exc, entry, alt)
                     continue
             if not found:
                 can_post = False
                 filter_reason = f"Missing required words: {', '.join(words)}"
-        except Exception:
+        except Exception as exc:
+            await _send_error_feedback(bot, "checking required words", exc, entry, alt)
             can_post = False
             filter_reason = "Error checking for required words"
 
@@ -748,7 +804,8 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             else:
                 can_post = False
                 filter_reason = "Could not extract tweet text"
-        except Exception:
+        except Exception as exc:
+            await _send_error_feedback(bot, "classifying tweet with AI", exc, entry, alt)
             can_post = False
             filter_reason = "Error during AI classification"
 
@@ -771,8 +828,8 @@ async def _dispatch_tweets(bot, pending_tweets: asyncio.Queue) -> None:
             await asyncio.sleep(delay)
         try:
             await _post_tweet(bot, entry, link)
-        except Exception:
-            pass
+        except Exception as exc:
+            await _send_error_feedback(bot, "dispatching queued tweet", exc, entry, link)
         finally:
             pending_tweets.task_done()
         next_post_at = event_loop.time() + 120
@@ -836,7 +893,8 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
 
                     _record_seen_status_id(state, state_key, seen_ids, status_id)
 
-            except Exception:
+            except Exception as exc:
+                await _send_error_feedback(bot, "polling tweet watch", exc, entry)
                 continue
 
         await asyncio.sleep(poll_interval_seconds)
