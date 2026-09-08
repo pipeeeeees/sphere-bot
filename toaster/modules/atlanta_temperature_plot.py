@@ -151,7 +151,7 @@ def create_temperature_plot(forecast: dict[str, Any], output_path: Path = DEFAUL
     )
     axis.scatter(positions, highs, color="#ff6b6b", s=42, zorder=3)
     axis.scatter(positions, lows, color="#60a5fa", s=42, zorder=3)
-    axis.set_title("Toast's Atlanta 7-Day Temperature Forecast", color="#f8fafc")
+    axis.set_title("🍞 Toast's Atlanta 7-Day Temperature Forecast", color="#f8fafc")
     #axis.set_xlabel("Day", color="#e5e7eb")
     axis.set_ylabel("Temperature (°F)", color="#e5e7eb")
     axis.set_xticks(positions, labels)
