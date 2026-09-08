@@ -27,7 +27,7 @@ from toaster.youtube_watcher import (
 from toaster.trivia import get_trivia_schedule
 from toaster.modules.tweet_puller import get_fixvx_equivalent, get_latest_tweet_link
 from toaster.config import load_config, load_channel_blacklist
-from toaster.llm_agents.gemini import collect_message_attachments, infer_if_reply_is_at_toast, load_gemini_key
+from toaster.llm_agents.gemini import collect_message_attachments, load_gemini_key
 from toaster.kalshi_game import (
     DEFAULT_STARTING_BALANCE,
     clear_user_bets,
@@ -1127,30 +1127,10 @@ async def handle_random_channel_response(message: discord.Message) -> None:
         context = f"{memory_context}\n\n{context}" if context else memory_context
     history = context
 
-    # Ask LLM if this message is interesting using Gemini inference helper.
-    api_key = load_gemini_key("config")
-    api_key = None # turn off relevant inference for now. its annoying
-    if api_key:
-        try:
-            if not await infer_if_reply_is_at_toast(history, message.content, api_key):
-                return
-        except Exception as e:
-            error_msg = f"Error inferring reply-worthy message: {e}"
-            config = load_config("config")
-            bot_config = config.get("bot_config", {})
-            owner_id = bot_config.get("owner_user_id")
-            if owner_id:
-                try:
-                    owner = await bot.fetch_user(owner_id)
-                    await owner.send(f"⚠️ Gemini inference failed for channel {message.channel.id} in {message.guild.name}:")
-                    await owner.send("**Error Details:**\n```\n" + error_msg + "\n```")
-                except Exception as dm_err:
-                    print(f"Failed to notify owner about inference error: {dm_err}")
-            if not await should_respond_to_message(message):
-                return
-    else:
-        if not await should_respond_to_message(message):
-            return
+    # Explicitly addressed messages are the only ones eligible for a response.
+    # In particular, replying to another Discord message is not an address.
+    if not await should_respond_to_message(message):
+        return
     try:
         async for msg in message.channel.history(limit=15, before=message):
             history_messages.insert(0, msg)  # Insert at beginning to maintain order
