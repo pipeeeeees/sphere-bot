@@ -51,6 +51,33 @@ def get_atlanta_forecast() -> dict[str, Any]:
     return {"dates": dates, "highs": highs, "lows": lows}
 
 
+def _smooth_series(values: list[float], samples_per_segment: int = 24) -> tuple[list[float], list[float]]:
+    """Return smooth cubic points while keeping the original values as anchors."""
+    smooth_x = []
+    smooth_y = []
+    last_index = len(values) - 1
+    for index in range(last_index):
+        point_before = values[max(0, index - 1)]
+        point_start = values[index]
+        point_end = values[index + 1]
+        point_after = values[min(last_index, index + 2)]
+        control_one = point_start + (point_end - point_before) / 6.0
+        control_two = point_end - (point_after - point_start) / 6.0
+        for sample in range(samples_per_segment):
+            progress = sample / samples_per_segment
+            inverse = 1.0 - progress
+            smooth_x.append(index + progress)
+            smooth_y.append(
+                (inverse ** 3 * point_start)
+                + (3.0 * inverse ** 2 * progress * control_one)
+                + (3.0 * inverse * progress ** 2 * control_two)
+                + (progress ** 3 * point_end)
+            )
+    smooth_x.append(float(last_index))
+    smooth_y.append(values[-1])
+    return smooth_x, smooth_y
+
+
 def create_temperature_plot(forecast: dict[str, Any], output_path: Path = DEFAULT_OUTPUT) -> Path:
     """Create and save a high/low temperature plot as a PNG."""
     dates = [date.fromisoformat(value) for value in forecast["dates"]]
@@ -68,21 +95,27 @@ def create_temperature_plot(forecast: dict[str, Any], output_path: Path = DEFAUL
     axis.set_facecolor("#1f2937")
     axis.set_ylim(temperature_min, temperature_max)
     maximum_opacity = 0.45
+
+    def curved_opacity(distance: float, span: float) -> float:
+        progress = max(0.0, min(1.0, distance / span))
+        eased_progress = progress * progress * (3.0 - (2.0 * progress))
+        return maximum_opacity * eased_progress
+
     gradient_rows = []
     for row in range(256):
         temperature = gradient_min + (row / 255) * (gradient_max - gradient_min)
         if temperature < temperature_transition:
             color = "#3b82f6"
-            opacity = maximum_opacity * (
-                (temperature_transition - temperature) / temperature_transition
-            )
+            opacity = curved_opacity(temperature_transition - temperature, temperature_transition)
         else:
             color = "#ef4444"
-            opacity = maximum_opacity * (
-                (temperature - temperature_transition)
-                / (gradient_max - temperature_transition)
+            opacity = curved_opacity(
+                temperature - temperature_transition,
+                gradient_max - temperature_transition,
             )
         gradient_rows.append([to_rgba(color, opacity)])
+    high_curve_x, high_curve_y = _smooth_series(highs)
+    low_curve_x, low_curve_y = _smooth_series(lows)
     axis.imshow(
         gradient_rows,
         origin="lower",
@@ -101,23 +134,23 @@ def create_temperature_plot(forecast: dict[str, Any], output_path: Path = DEFAUL
                 zorder=1,
             )
     axis.plot(
-        positions,
-        highs,
+        high_curve_x,
+        high_curve_y,
         color="#ff6b6b",
-        marker="o",
         linewidth=2.5,
         label="Daily high",
         zorder=2,
     )
     axis.plot(
-        positions,
-        lows,
+        low_curve_x,
+        low_curve_y,
         color="#60a5fa",
-        marker="o",
         linewidth=2.5,
         label="Daily low",
         zorder=2,
     )
+    axis.scatter(positions, highs, color="#ff6b6b", s=42, zorder=3)
+    axis.scatter(positions, lows, color="#60a5fa", s=42, zorder=3)
     axis.set_title("Atlanta 7-Day Temperature Forecast", color="#f8fafc")
     axis.set_xlabel("Day", color="#e5e7eb")
     axis.set_ylabel("Temperature (°F)", color="#e5e7eb")
