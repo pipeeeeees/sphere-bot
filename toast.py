@@ -9,6 +9,7 @@ import asyncio
 import importlib
 import json
 import re
+import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Union
@@ -54,6 +55,54 @@ conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history stri
 TRAE_YOUNG_PHOTO_CHANNEL_ID = 1479540478591635478
 TRAE_YOUNG_ALERT = "ANOTHER TRAE YOUNG POST ‼️‼️‼️"
 AURA_GIF_SEARCH_URL = "https://tenor.com/search/aura-gifs"
+FEEDBACK_CHANNEL_ID = 1539108566009643048
+_loop_error_reporting_installed = False
+
+
+# This channel is the bot-wide diagnostic trail so future Copilot sessions can
+# inspect failures across commands, events, and background tasks in one place.
+async def report_bot_error(
+    operation: str,
+    error: object,
+    context: str = "",
+) -> None:
+    """Post a bot-wide error to the shared feedback and diagnosis channel."""
+    try:
+        feedback_channel = bot.get_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel is None:
+            feedback_channel = await bot.fetch_channel(FEEDBACK_CHANNEL_ID)
+        if feedback_channel:
+            message = (
+                f"⚠️ **Bot Error**\n"
+                f"**Operation:** {operation}\n"
+                f"**Error:** `{type(error).__name__}: {error}`"
+            )
+            if context:
+                message += f"\n**Context:** {context}"
+            await feedback_channel.send(message[:2000])
+    except Exception:
+        # Error reporting must never create a second failure or interrupt the bot.
+        pass
+
+
+def _install_loop_error_reporting() -> None:
+    """Route unhandled asyncio task errors to the shared diagnostic channel."""
+    global _loop_error_reporting_installed
+    if _loop_error_reporting_installed:
+        return
+
+    loop = asyncio.get_running_loop()
+    default_handler = loop.get_exception_handler()
+
+    def handle_loop_error(current_loop, context):
+        error = context.get("exception") or RuntimeError(context.get("message", "Unknown asyncio error"))
+        operation = context.get("future") or context.get("task") or "asyncio background task"
+        current_loop.create_task(report_bot_error("unhandled background task", error, str(operation)))
+        if default_handler:
+            default_handler(current_loop, context)
+
+    loop.set_exception_handler(handle_loop_error)
+    _loop_error_reporting_installed = True
 
 
 @bot.command(name='latest_tweets')
@@ -1315,6 +1364,7 @@ def register_commands_with_bot() -> None:
 @bot.event
 async def on_ready() -> None:
     """Handle bot ready event."""
+    _install_loop_error_reporting()
     set_start_time(datetime.now())
     
     print(f'\n✓ Logged in as {bot.user}')
@@ -1333,7 +1383,8 @@ async def on_ready() -> None:
         tweet_watch_successful, tweet_watch_total = await check_latest_tweets()
         asyncio.create_task(start_tweet_watcher(bot))
         print('✓ Started tweet watcher')
-    except Exception:
+    except Exception as exc:
+        await report_bot_error("starting tweet watcher", exc)
         print('✗ Failed to start tweet watcher')
 
     youtube_watch_successful, youtube_watch_total = 0, 0
@@ -1341,7 +1392,8 @@ async def on_ready() -> None:
         youtube_watch_successful, youtube_watch_total = await check_latest_youtube()
         asyncio.create_task(start_youtube_watcher(bot))
         print('✓ Started YouTube watcher')
-    except Exception:
+    except Exception as exc:
+        await report_bot_error("starting YouTube watcher", exc)
         print('✗ Failed to start YouTube watcher')
 
     asyncio.create_task(monitor_pending_bets(bot))
@@ -1377,8 +1429,18 @@ async def on_ready() -> None:
 
 
 @bot.event
+async def on_error(event_method: str, *args, **kwargs) -> None:
+    """Report uncaught Discord event-handler errors to the shared channel."""
+    error = sys.exc_info()[1] or RuntimeError("Unknown Discord event error")
+    context = f"Event: {event_method}"
+    await report_bot_error("Discord event handler", error, context)
+
+
+@bot.event
 async def on_command_error(ctx: commands.Context, error: commands.CommandError) -> None:
     """Handle command errors."""
+    context = f"Command: ${getattr(ctx.command, 'name', 'unknown')}"
+    await report_bot_error("command handler", error, context)
     if isinstance(error, commands.CommandNotFound):
         await ctx.send(f"❌ Command not found. Type `$commands` for available commands.")
     else:
