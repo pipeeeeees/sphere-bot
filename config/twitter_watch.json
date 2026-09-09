@@ -187,6 +187,14 @@
       "username": "Apple",
       "channel_id": 1541183362083987548,
       "enabled": true
+    },
+    {
+      "name": "ATL_SCOOP",
+      "username": "ATL_SCOOP",
+      "channel_id": 1539087911721500742,
+      "enabled": true,
+      "silent_time": 1,
+      "post_if_better_than_average": 0.2
     }
   ]
 }
