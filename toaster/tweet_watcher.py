@@ -867,8 +867,16 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             filter_reason = "Error during AI classification"
 
     if can_post:
+        # Silence is intentionally the final decision before the destination send.
         slot = entry.get("silent_time")
-        silent = is_silent_time(slot=slot) if slot is not None else False
+        try:
+            silent = is_silent_time(slot=slot) if slot is not None else False
+        except Exception as exc:
+            await _send_error_feedback(bot, "checking final silent-time setting", exc, entry, alt)
+            can_post = False
+            filter_reason = "Error checking silent-time setting"
+
+    if can_post:
         await channel.send(alt, silent=silent)
         if vpm_report:
             await _send_feedback_message(

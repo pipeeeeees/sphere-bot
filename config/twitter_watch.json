@@ -8,7 +8,8 @@
     "name": "braves_tweets",
     "username": "Braves",
     "channel_id": 1539082416629489734,
-    "enabled": true
+    "enabled": true,
+    "silent_time": 1
   }
   ,
   {
@@ -16,6 +17,7 @@
     "username": "MLB",
     "channel_id": 1539082416629489734,
     "enabled": false,
+    "silent_time": 1,
     "post_if_better_than_average": 0.6,
     "require_video": true
   }
@@ -25,6 +27,7 @@
     "username": "MotorTrend",
     "channel_id": 1539088363334926478,
     "enabled": true,
+    "silent_time": 1,
     "post_if_better_than_average": 0.7,
     "require_photo_or_video": true
   }
@@ -34,6 +37,7 @@
      "username": "On3",
      "channel_id": 1539093669448257586,
      "enabled": true,
+    "silent_time": 1,
      "post_if_better_than_average": 0.3,
      "require_ai_classification": true
    },
@@ -41,13 +45,15 @@
     "name": "realDonaldTrump",
     "username": "realDonaldTrump",
     "channel_id": 1539087596569764042,
-    "enabled": true
+    "enabled": true,
+    "silent_time": 1
    },
    {
     "name": "rockstar games",
     "username": "RockstarGames",
     "channel_id": 1539106607261159524,
     "enabled": true,
+    "silent_time": 1,
     "require_word": "Grand Theft Auto VI"
    }
    ,
@@ -56,6 +62,7 @@
     "username": "NFL",
     "channel_id": 1539093803649073272,
     "enabled": true,
+    "silent_time": 1,
     "post_if_better_than_average": 0.5
   },
   {
@@ -70,19 +77,22 @@
     "name": "gafollowers",
     "username": "GAFollowers",
     "channel_id": 1539087911721500742,
-    "enabled": true
+    "enabled": true,
+    "silent_time": 1
   },
   {
     "name": "gta6",
     "username": "GTAVI_Countdown",
     "channel_id": 1539106607261159524,
-    "enabled": true
+    "enabled": true,
+    "silent_time": 1
   },
   {
     "name": "fortnite",
     "username": "Fortnite",
     "channel_id": 1539090032709603358,
     "enabled": true,
+    "silent_time": 1,
     "require_video": true
   },
   {
@@ -90,6 +100,7 @@
      "username": "NWS",
      "channel_id": 1539087911721500742,
      "enabled": true,
+    "silent_time": 1,
      "require_word": "Georgia"
    },
    {
@@ -97,6 +108,7 @@
      "username": "MacRumors",
      "channel_id": 1541183362083987548,
      "enabled": true,
+    "silent_time": 1,
      "post_if_better_than_average": 0.5
    },
    {
@@ -104,6 +116,7 @@
      "username": "WSJmarkets",
      "channel_id": 1541183079484362804,
      "enabled": true,
+    "silent_time": 1,
      "post_if_better_than_average": 0.5
     },
     {
@@ -111,6 +124,7 @@
       "username": "KobeissiLetter",
       "channel_id": 1541183079484362804,
       "enabled": true,
+      "silent_time": 1,
       "post_if_better_than_average": 0.5
     },
     {
@@ -118,6 +132,7 @@
       "username": "ESPNCFB",
       "channel_id": 1539093669448257586,
       "enabled": true,
+      "silent_time": 1,
       "post_if_better_than_average": 0.2
     },
     {
@@ -125,19 +140,22 @@
       "username": "AP",
       "channel_id": 1539093111576334407,
       "enabled": true,
+      "silent_time": 1,
       "post_if_better_than_average": 0.4
     },
     {
       "name": "BradNitzWSB",
       "username": "BradNitzWSB",
       "channel_id": 1539087911721500742,
-      "enabled": true
+      "enabled": true,
+      "silent_time": 1
     },
     {
       "name": "Motor1com",
       "username": "Motor1com",
       "channel_id": 1539088363334926478,
       "enabled": true,
+      "silent_time": 1,
       "post_if_better_than_average": 0.6,
       "require_photo_or_video": true
     },
@@ -145,13 +163,15 @@
       "name": "birdhaddog",
       "username": "birdhaddog",
       "channel_id": 1539095134648410194,
-      "enabled": true
+      "enabled": true,
+      "silent_time": 1
     },
     {
       "name": "TalkinBaseball_",
       "username": "TalkinBaseball_",
       "channel_id": 1539082416629489734,
       "enabled": true,
+      "silent_time": 1,
       "post_if_better_than_average": 0.8,
       "require_photo_or_video": true
     }
