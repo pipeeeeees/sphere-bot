@@ -181,6 +181,12 @@
       "username": "nathanfielder",
       "channel_id": 1546010000806387724,
       "enabled": true
+    },
+    {
+      "name": "Apple",
+      "username": "Apple",
+      "channel_id": 1541183362083987548,
+      "enabled": true
     }
   ]
 }
