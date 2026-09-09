@@ -175,6 +175,12 @@
       "silent_time": 1,
       "post_if_better_than_average": 0.8,
       "require_photo_or_video": true
+    },
+    {
+      "name": "nathanfielder",
+      "username": "nathanfielder",
+      "channel_id": 1546010000806387724,
+      "enabled": true
     }
   ]
 }
