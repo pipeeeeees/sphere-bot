@@ -488,12 +488,13 @@ async def _save_vpm_state(
     bot, state: Dict[str, object], state_key: str, mean: float, count: int, m2: float
 ) -> None:
     try:
-        state[_vpm_state_key(state_key)] = {
+        latest_state = _load_state()
+        latest_state[_vpm_state_key(state_key)] = {
             "mean": float(mean),
             "count": int(count),
             "m2": float(m2),
         }
-        if not _save_state(state):
+        if not _save_state(latest_state):
             raise OSError(f"Could not write VPM state to {STATE_FILE}")
     except Exception as exc:
         await _send_vpm_error(bot, f"Error storing rolling VPM average for {state_key}: {exc}")
@@ -538,7 +539,7 @@ def get_vpm_threshold_report() -> str:
     """Return current VPM counts, averages, and posting thresholds by watch."""
     state = _load_state()
     lines = ["📊 **VPM Thresholds**", "Counted values are successfully calculated VPMs per watch."]
-    report_entries = [entry for entry in _load_watch_list() if entry.get("enabled", True)]
+    report_entries = _load_watch_list()
     if not report_entries:
         return "📊 **VPM Thresholds**\nNo enabled tweet watches configured."
 
@@ -559,8 +560,9 @@ def get_vpm_threshold_report() -> str:
         channel_id = entry.get("channel_id", "unknown")
         watch_name = entry.get("name") or entry.get("username") or "unnamed watch"
         percentile_text = f"{percentile:.2f}" if percentile is not None else "N/A"
+        enabled_text = "enabled" if entry.get("enabled", True) else "disabled"
         lines.append(
-            f"\n**{watch_name}** | Channel `{channel_id}`\n"
+            f"\n**{watch_name}** | Channel `{channel_id}` ({enabled_text})\n"
             f"Tweets counted: **{count}**\n"
             f"Rolling average VPM: **{average_text}**\n"
             f"Posting threshold ({percentile_text} percentile): **{threshold_text}**"
@@ -592,8 +594,11 @@ def _record_seen_status_id(
 ) -> None:
     """Record a status ID while bounding persisted history."""
     seen_ids.add(status_id)
-    state[state_key] = list(seen_ids)[-1000:]
-    _save_state(state)
+    latest_state = _load_state()
+    latest_seen_ids = _get_seen_status_ids(latest_state, state_key)
+    latest_seen_ids.update(seen_ids)
+    latest_state[state_key] = list(latest_seen_ids)[-1000:]
+    _save_state(latest_state)
 
 
 def _extract_status_id(link: str):
@@ -937,8 +942,9 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                         if status_id
                     }
                     if current_ids:
-                        state[state_key] = list(current_ids)
-                        _save_state(state)
+                        latest_state = _load_state()
+                        latest_state[state_key] = list(current_ids)
+                        _save_state(latest_state)
                     continue
 
                 for link in links:
