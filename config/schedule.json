@@ -78,7 +78,7 @@
       7
     ],
     "timezone": "America/New_York",
-    "enabled": true
+    "enabled": false
   },
   {
     "name": "nws_daily_report",
