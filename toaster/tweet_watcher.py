@@ -768,6 +768,13 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
                 if vpm_percentile is not None
                 else None
             )
+            variance = rolling_m2 / (rolling_count - 1) if rolling_count > 1 else 0.0
+            standard_deviation = variance ** 0.5
+            tweet_percentile = (
+                NormalDist().cdf((tweet_vpm - rolling_mean) / standard_deviation)
+                if standard_deviation > 0
+                else 0.50
+            )
             threshold_text = f"{threshold:.2f}" if threshold is not None else "N/A (not configured)"
             vpm_report = (
                 f"**Tweet VPM:** {tweet_vpm:.2f}\n"
@@ -778,6 +785,7 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
                 can_post = False
                 filter_reason = (
                     f"Less than popular VPM (tweet VPM: {tweet_vpm:.2f}, "
+                    f"tweet percentile: {tweet_percentile:.2f}, "
                     f"{vpm_percentile:.2f} percentile threshold: {threshold:.2f}, "
                     f"rolling average: {rolling_mean:.2f})"
                 )
