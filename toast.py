@@ -1516,7 +1516,11 @@ async def on_message(message: discord.Message) -> None:
     try:
         author_name = getattr(message.author, 'display_name', None) or getattr(message.author, 'name', None) or ''
         if author_name and author_name.strip().lower() == 'mal-bon':
-            if re.search(r"\btranslate\b|\btranslation\b", message.content, flags=re.IGNORECASE):
+            if re.search(
+                r"\btranslate\b|\btranslation\b|\bwhat is this in english\b|\bsay this in english\b",
+                message.content,
+                flags=re.IGNORECASE,
+            ):
                 try:
                     response = (
                         MALBON_TRANSLATION_GIF_URL
