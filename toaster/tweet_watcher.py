@@ -22,6 +22,7 @@ import requests
 # This channel intentionally receives both filter feedback and runtime errors so
 # future Copilot sessions can diagnose the watcher from one Discord history.
 FEEDBACK_CHANNEL_ID = 1539108566009643048
+PULL_STATUS_CHANNEL_ID = 1548179172755767377
 
 
 def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
@@ -679,6 +680,19 @@ async def _send_feedback_message(bot, content: str) -> None:
         pass
 
 
+async def _send_pull_status(bot, content: str) -> None:
+    """Report the start and completion of each account-polling cycle."""
+    try:
+        status_channel = bot.get_channel(PULL_STATUS_CHANNEL_ID)
+        if status_channel is None:
+            status_channel = await bot.fetch_channel(PULL_STATUS_CHANNEL_ID)
+        if status_channel:
+            await status_channel.send(content)
+    except Exception:
+        # Status reporting must never interrupt tweet polling.
+        pass
+
+
 async def _send_error_feedback(
     bot,
     operation: str,
@@ -932,6 +946,10 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
             entry for entry in watch_list
             if entry.get("enabled", True) and entry.get("username")
         ]
+        await _send_pull_status(
+            bot,
+            f"🔄 **Tweet Pull Started**\n**Accounts to pull:** {len(active_entries)}",
+        )
         fetch_results = await asyncio.gather(
             *[
                 asyncio.to_thread(get_latest_tweet_links, entry["username"], 5)
@@ -942,6 +960,12 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
 
         # Fetch all accounts before processing any of them so one slow account
         # cannot prevent the rest of the latest-five batch from being examined.
+        successful_pulls = sum(
+            isinstance(result, list)
+            and any(_extract_status_id(link) for link in result)
+            for result in fetch_results
+        )
+        new_tweets = 0
         for entry, result in zip(active_entries, fetch_results):
             try:
                 username = entry.get("username")
@@ -977,9 +1001,16 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                     # repeated feed results must never recalculate VPM.
                     _record_seen_status_id(state, state_key, seen_ids, status_id)
                     await pending_tweets.put((entry, link))
+                    new_tweets += 1
 
             except Exception as exc:
                 await _send_error_feedback(bot, "polling tweet watch", exc, entry)
                 continue
 
+        await _send_pull_status(
+            bot,
+            f"✅ **Tweet Pull Finished**\n"
+            f"**Accounts successfully pulled and checked:** {successful_pulls}/{len(active_entries)}\n"
+            f"**New tweets in this pull:** {new_tweets}",
+        )
         await asyncio.sleep(poll_interval_seconds)
