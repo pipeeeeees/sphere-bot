@@ -17,7 +17,7 @@
     "name": "mlb_tweets",
     "username": "MLB",
     "channel_id": 1539082416629489734,
-    "enabled": false,
+    "enabled": true,
     "silent_time": 1,
     "post_if_better_than_average": 0.6,
     "require_video": true
