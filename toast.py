@@ -55,6 +55,7 @@ conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history stri
 TRAE_YOUNG_PHOTO_CHANNEL_ID = 1479540478591635478
 TRAE_YOUNG_ALERT = "ANOTHER TRAE YOUNG POST ‼️‼️‼️"
 AURA_GIF_SEARCH_URL = "https://tenor.com/search/aura-gifs"
+MALBON_TRANSLATION_GIF_URL = "https://giphy.com/gifs/nah-krabby-patty-i-dont-really-feel-like-it-Tj3caCKapekEAr5N2M"
 FEEDBACK_CHANNEL_ID = 1539108566009643048
 _loop_error_reporting_installed = False
 
@@ -1517,7 +1518,12 @@ async def on_message(message: discord.Message) -> None:
         if author_name and author_name.strip().lower() == 'mal-bon':
             if re.search(r"\btranslate\b|\btranslation\b", message.content, flags=re.IGNORECASE):
                 try:
-                    await message.channel.send("Nah. I don't feel like it")
+                    response = (
+                        MALBON_TRANSLATION_GIF_URL
+                        if random.random() < 0.75
+                        else "Nah. I don't feel like it"
+                    )
+                    await message.channel.send(response)
                 except Exception:
                     pass
                 return
