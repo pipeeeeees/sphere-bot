@@ -55,6 +55,7 @@ conversation_history = {}  # Dict[str, str] - user_id/channel_id -> history stri
 TRAE_YOUNG_PHOTO_CHANNEL_ID = 1479540478591635478
 TRAE_YOUNG_ALERT = "ANOTHER TRAE YOUNG POST ‼️‼️‼️"
 AURA_GIF_SEARCH_URL = "https://tenor.com/search/aura-gifs"
+SYBAU_GIF_SEARCH_URL = "https://giphy.com/search/SYBAU"
 MALBON_TRANSLATION_GIF_URL = "https://giphy.com/gifs/nah-krabby-patty-i-dont-really-feel-like-it-Tj3caCKapekEAr5N2M"
 FEEDBACK_CHANNEL_ID = 1539108566009643048
 _loop_error_reporting_installed = False
@@ -203,6 +204,24 @@ def _get_random_aura_gif() -> str:
     )))
     if not gif_urls:
         raise RuntimeError("No Aura GIFs found on Tenor")
+    return random.choice(gif_urls)
+
+
+def _get_random_sybau_gif() -> str:
+    """Return a random direct GIF URL from Giphy's SYBAU search results."""
+    response = requests.get(
+        SYBAU_GIF_SEARCH_URL,
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=15,
+    )
+    response.raise_for_status()
+    gif_urls = list(dict.fromkeys(re.findall(
+        r"https?://(?:media\d*|i)\.giphy\.com/media/[^\"'\\\s]+/giphy\.gif(?:\?[^\"'\\\s]+)?",
+        response.text,
+        flags=re.IGNORECASE,
+    )))
+    if not gif_urls:
+        raise RuntimeError("No SYBAU GIFs found on Giphy")
     return random.choice(gif_urls)
 
 
@@ -1470,6 +1489,22 @@ async def on_message(message: discord.Message) -> None:
     # Skip if message is from bot
     if message.author == bot.user:
         return
+
+    # This mal-bon response takes priority over all generic quiet/mute handling.
+    try:
+        author_name = getattr(message.author, 'display_name', None) or getattr(message.author, 'name', None) or ''
+        if author_name and author_name.strip().lower() == 'mal-bon':
+            if re.search(r"\bquiet\s+toast\b|\btoast\s+be\s+quiet\b", message.content, flags=re.IGNORECASE):
+                try:
+                    await message.channel.send(await asyncio.to_thread(_get_random_sybau_gif))
+                except Exception:
+                    try:
+                        await message.channel.send(SYBAU_GIF_SEARCH_URL)
+                    except Exception:
+                        pass
+                return
+    except Exception:
+        pass
 
     await check_trae_young_photo(message)
 
