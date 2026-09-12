@@ -236,6 +236,7 @@ schedule_registry = ScheduleRegistry()
 # Track loaded commands and schedules for boot notification
 loaded_commands = []  # List of (name, success, error_msg)
 loaded_schedules = []  # List of (name, success, error_msg)
+tweet_watcher_task = None
 
 
 # AI Provider Configuration
@@ -1378,11 +1379,15 @@ async def on_ready() -> None:
         print()
 
     # Start tweet watcher (polls configured accounts and posts new tweets)
+    global tweet_watcher_task
     tweet_watch_successful, tweet_watch_total = 0, 0
     try:
         tweet_watch_successful, tweet_watch_total = await check_latest_tweets()
-        asyncio.create_task(start_tweet_watcher(bot))
-        print('✓ Started tweet watcher')
+        if tweet_watcher_task is None or tweet_watcher_task.done():
+            tweet_watcher_task = asyncio.create_task(start_tweet_watcher(bot))
+            print('✓ Started tweet watcher')
+        else:
+            print('✓ Tweet watcher already running')
     except Exception as exc:
         await report_bot_error("starting tweet watcher", exc)
         print('✗ Failed to start tweet watcher')

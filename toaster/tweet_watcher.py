@@ -919,7 +919,6 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
     if not watch_list:
         return
 
-    state = _load_state()
     pending_tweets = asyncio.Queue()
     asyncio.create_task(_dispatch_tweets(bot, pending_tweets))
     username_counts = {}
@@ -929,19 +928,33 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
             username_counts[username] = username_counts.get(username, 0) + 1
 
     while True:
-        for entry in watch_list:
+        active_entries = [
+            entry for entry in watch_list
+            if entry.get("enabled", True) and entry.get("username")
+        ]
+        fetch_results = await asyncio.gather(
+            *[
+                asyncio.to_thread(get_latest_tweet_links, entry["username"], 5)
+                for entry in active_entries
+            ],
+            return_exceptions=True,
+        )
+
+        # Fetch all accounts before processing any of them so one slow account
+        # cannot prevent the rest of the latest-five batch from being examined.
+        for entry, result in zip(active_entries, fetch_results):
             try:
-                if not entry.get("enabled", True):
-                    continue
                 username = entry.get("username")
-                channel_id = int(entry.get("channel_id"))
                 if not username:
                     continue
+                if isinstance(result, Exception):
+                    raise result
                 state_key = username
                 if username_counts.get(username, 0) > 1:
                     state_key = entry.get("name") or username
 
-                links = await asyncio.to_thread(get_latest_tweet_links, username, 5)
+                links = result
+                state = _load_state()
                 seen_ids = _get_seen_status_ids(state, state_key)
                 if state_key not in state:
                     # First time seeing an account — establish a baseline without posting.
@@ -960,9 +973,10 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                     if not status_id or status_id in seen_ids:
                         continue
 
-                    await pending_tweets.put((entry, link))
-
+                    # Mark every new tweet as considered before posting/filtering;
+                    # repeated feed results must never recalculate VPM.
                     _record_seen_status_id(state, state_key, seen_ids, status_id)
+                    await pending_tweets.put((entry, link))
 
             except Exception as exc:
                 await _send_error_feedback(bot, "polling tweet watch", exc, entry)
