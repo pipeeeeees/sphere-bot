@@ -23,6 +23,7 @@ import requests
 # future Copilot sessions can diagnose the watcher from one Discord history.
 FEEDBACK_CHANNEL_ID = 1539108566009643048
 PULL_STATUS_CHANNEL_ID = 1548179172755767377
+TWEET_POST_GRACE_PERIOD_SECONDS = 5
 
 
 def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
@@ -693,6 +694,21 @@ async def _send_pull_status(bot, content: str) -> None:
         pass
 
 
+async def _send_candidate_summary(bot, cycle_stats: Dict[str, object]) -> None:
+    """Publish one completed candidacy summary for a pull cycle."""
+    if cycle_stats["reported"]:
+        return
+    cycle_stats["reported"] = True
+    await _send_pull_status(
+        bot,
+        f"📋 **Tweet Candidacy Finished**\n"
+        f"**Posted:** {cycle_stats['posted']}\n"
+        f"**Filtered:** {cycle_stats['filtered']}\n"
+        f"**Errors:** {cycle_stats['errors']}\n"
+        f"**New tweets evaluated:** {cycle_stats['total']}",
+    )
+
+
 async def _send_error_feedback(
     bot,
     operation: str,
@@ -714,7 +730,7 @@ async def _send_error_feedback(
     await _send_feedback_message(bot, message)
 
 
-async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
+async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
     """Post one queued tweet, applying the watch entry's filters."""
     provider = entry.get("provider", "fxtwitter")
     alt = get_fixvx_equivalent(link, provider=provider) or link
@@ -776,7 +792,7 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
 
     if is_tweet_watch_quiet_hours():
         await _send_filter_feedback(bot, alt, "Quiet hours active")
-        return
+        return "filtered"
 
     channel_id = int(entry.get("channel_id"))
     channel = bot.get_channel(channel_id)
@@ -794,11 +810,11 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
             entry,
             link,
         )
-        return
+        return "filtered"
 
     if await _tweet_already_posted(channel, alt, lookback=10, bot=bot, entry=entry):
         await _send_filter_feedback(bot, alt, "Already posted in channel")
-        return
+        return "filtered"
 
     if entry.get("require_video") and can_post:
         try:
@@ -897,26 +913,33 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> None:
                 bot,
                 f"📈 **Posted Tweet VPM Stats**\n{vpm_report}\n**URL:** {alt}",
             )
+        return "posted"
     elif filter_reason:
         await _send_filter_feedback(bot, alt, filter_reason)
+    return "filtered"
 
 
 async def _dispatch_tweets(bot, pending_tweets: asyncio.Queue) -> None:
-    """Drain queued tweets one at a time, spacing posts by two minutes."""
+    """Drain queued tweets one at a time, spacing posts by five seconds."""
     next_post_at = 0.0
     event_loop = asyncio.get_running_loop()
     while True:
-        entry, link = await pending_tweets.get()
+        entry, link, cycle_stats = await pending_tweets.get()
         delay = next_post_at - event_loop.time()
         if delay > 0:
             await asyncio.sleep(delay)
         try:
-            await _post_tweet(bot, entry, link)
+            result = await _post_tweet(bot, entry, link)
+            cycle_stats[result] += 1
         except Exception as exc:
+            cycle_stats["errors"] += 1
             await _send_error_feedback(bot, "dispatching queued tweet", exc, entry, link)
         finally:
+            cycle_stats["completed"] += 1
+            if cycle_stats["closed"] and cycle_stats["completed"] == cycle_stats["total"]:
+                await _send_candidate_summary(bot, cycle_stats)
             pending_tweets.task_done()
-        next_post_at = event_loop.time() + 120
+        next_post_at = event_loop.time() + TWEET_POST_GRACE_PERIOD_SECONDS
 
 
 async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
@@ -924,7 +947,7 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
 
     - On first observation of an account (no stored state) do NOT post; just store.
     - When an unseen status appears in the latest five, queue it and update state.
-    - Queued tweets are posted one at a time, with two minutes between posts.
+    - Queued tweets are posted one at a time, with five seconds between posts.
     - Before posting, check recent channel history to avoid duplicate posts.
     - Send feedback for filtered tweets to the feedback channel.
     """
@@ -966,6 +989,15 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
             for result in fetch_results
         )
         new_tweets = 0
+        cycle_stats = {
+            "total": 0,
+            "posted": 0,
+            "filtered": 0,
+            "errors": 0,
+            "completed": 0,
+            "closed": False,
+            "reported": False,
+        }
         for entry, result in zip(active_entries, fetch_results):
             try:
                 username = entry.get("username")
@@ -1000,17 +1032,23 @@ async def start_tweet_watcher(bot, poll_interval_seconds: int = 300):
                     # Mark every new tweet as considered before posting/filtering;
                     # repeated feed results must never recalculate VPM.
                     _record_seen_status_id(state, state_key, seen_ids, status_id)
-                    await pending_tweets.put((entry, link))
+                    cycle_stats["total"] += 1
+                    await pending_tweets.put((entry, link, cycle_stats))
                     new_tweets += 1
 
             except Exception as exc:
                 await _send_error_feedback(bot, "polling tweet watch", exc, entry)
                 continue
 
+        cycle_stats["closed"] = True
         await _send_pull_status(
             bot,
             f"✅ **Tweet Pull Finished**\n"
             f"**Accounts successfully pulled and checked:** {successful_pulls}/{len(active_entries)}\n"
             f"**New tweets in this pull:** {new_tweets}",
         )
+        if new_tweets == 0:
+            await _send_candidate_summary(bot, cycle_stats)
+        elif cycle_stats["completed"] == cycle_stats["total"]:
+            await _send_candidate_summary(bot, cycle_stats)
         await asyncio.sleep(poll_interval_seconds)
