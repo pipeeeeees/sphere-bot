@@ -138,7 +138,7 @@ def create_temperature_plot(forecast: dict[str, Any], output_path: Path = DEFAUL
         high_curve_y,
         color="#ff6b6b",
         linewidth=2.5,
-        label="Daily high",
+        label="Daily High",
         zorder=2,
     )
     axis.plot(
@@ -146,7 +146,7 @@ def create_temperature_plot(forecast: dict[str, Any], output_path: Path = DEFAUL
         low_curve_y,
         color="#60a5fa",
         linewidth=2.5,
-        label="Daily low",
+        label="Daily Low",
         zorder=2,
     )
     axis.scatter(positions, highs, color="#ff6b6b", s=42, zorder=3)
