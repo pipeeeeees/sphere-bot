@@ -135,7 +135,7 @@
       "channel_id": 1539093669448257586,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.7
+      "post_if_better_than_average": 0.8
     },
     {
       "name": "AP",
@@ -143,7 +143,7 @@
       "channel_id": 1539093111576334407,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.6
+      "post_if_better_than_average": 0.7
     },
     {
       "name": "BradNitzWSB",
@@ -196,6 +196,14 @@
       "enabled": true,
       "silent_time": 1,
       "post_if_better_than_average": 0.2
+    },
+    {
+      "name": "nocontextcfb",
+      "username": "nocontextcfb",
+      "channel_id": 1539093669448257586,
+      "enabled": true,
+      "silent_time": 1,
+      "post_if_better_than_average": 0.85
     }
   ]
 }
