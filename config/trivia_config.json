@@ -2,7 +2,7 @@
   "trivia": [
     {
       "name": "mlb_trivia",
-      "enabled": true,
+      "enabled": false,
       "topic": "MLB trivia with heavier emphasis on the last couple years",
       "channel_id": 1539082416629489734,
       "history_size": 100,
@@ -15,7 +15,7 @@
     },
     {
       "name": "college_trivia",
-      "enabled": true,
+      "enabled": false,
       "topic": "college football trivia centered on the current season and the previous two seasons, including current teams and players, recent games and developments, plus niche, fun, unusual, and special college football records held by teams",
       "channel_id": 1539093669448257586,
       "history_size": 100,
