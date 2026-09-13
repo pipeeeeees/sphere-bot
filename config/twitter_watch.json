@@ -80,7 +80,7 @@
     "channel_id": 1539087911721500742,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.6
+    "post_if_better_than_average": 0.8
   },
   {
     "name": "gta6",
