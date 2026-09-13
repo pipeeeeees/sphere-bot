@@ -515,6 +515,31 @@ async def _send_vpm_error(bot, detail: str) -> None:
         pass
 
 
+def reset_vpm_state(watch_identifier: str) -> Optional[str]:
+    """Reset one watch's VPM statistics and return its configured name."""
+    identifier = str(watch_identifier or "").strip().lower()
+    if not identifier:
+        return None
+
+    entry = next(
+        (
+            entry for entry in _load_watch_list()
+            if str(entry.get("name") or "").strip().lower() == identifier
+            or str(entry.get("username") or "").strip().lower() == identifier
+        ),
+        None,
+    )
+    if entry is None:
+        return None
+
+    state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
+    state = _load_state()
+    state.pop(_vpm_state_key(state_key), None)
+    if not _save_state(state):
+        raise OSError(f"Could not write VPM state to {STATE_FILE}")
+    return state_key
+
+
 def _vpm_percentile(value: object) -> Optional[float]:
     """Return a valid inclusive VPM percentile, rejecting legacy booleans."""
     if isinstance(value, bool):

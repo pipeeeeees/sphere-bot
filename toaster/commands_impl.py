@@ -18,7 +18,7 @@ from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
 from toaster import get_gemini_response_with_key
 from toaster.config import load_config
-from toaster.tweet_watcher import get_vpm_threshold_report
+from toaster.tweet_watcher import get_vpm_threshold_report, reset_vpm_state
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -44,6 +44,7 @@ async def help_command(ctx: commands.Context) -> None:
     embed.add_field(name="$ping", value="Check bot latency", inline=False)
     embed.add_field(name="$uptime", value="Display bot uptime", inline=False)
     embed.add_field(name="$thresholds", value="Show tweet VPM counts, averages, and posting thresholds", inline=False)
+    embed.add_field(name="$reset_vpm <watch>", value="Reset one watch's VPM statistics", inline=False)
     embed.add_field(name="$toast", value="Toggle channel blacklist for Toast to speak in", inline=False)
     embed.add_field(name="$reboot", value="Restart the bot process", inline=False)
     embed.add_field(name="$pull", value="Run git pull and print results", inline=False)
@@ -97,6 +98,19 @@ async def thresholds_command(ctx: commands.Context) -> None:
     report = get_vpm_threshold_report()
     for start in range(0, len(report), 1900):
         await ctx.send(report[start:start + 1900])
+
+
+async def reset_vpm_command(ctx: commands.Context, watch: str) -> None:
+    """Reset VPM statistics for a configured watch name or username."""
+    try:
+        reset_name = reset_vpm_state(watch)
+    except Exception as exc:
+        await ctx.send(f"⚠️ Could not reset VPM statistics: {exc}")
+        return
+    if reset_name is None:
+        await ctx.send(f"⚠️ No Twitter watch found for `{watch}`.")
+        return
+    await ctx.send(f"✅ Reset VPM statistics for `{reset_name}`. Seen tweets were preserved.")
 
 
 async def toast_command(ctx: commands.Context) -> None:
