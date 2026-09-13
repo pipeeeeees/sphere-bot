@@ -19,7 +19,7 @@
     "channel_id": 1539082416629489734,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.6,
+    "post_if_better_than_average": 0.9,
     "require_video": true
   }
   ,
@@ -39,7 +39,7 @@
      "channel_id": 1539093669448257586,
      "enabled": true,
     "silent_time": 1,
-     "post_if_better_than_average": 0.3,
+     "post_if_better_than_average": 0.6,
      "require_ai_classification": true
    },
    {
@@ -64,7 +64,7 @@
     "channel_id": 1539093803649073272,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.5
+    "post_if_better_than_average": 0.7
   },
   {
     "name": "falcons",
@@ -119,7 +119,7 @@
      "channel_id": 1541183079484362804,
      "enabled": true,
     "silent_time": 1,
-     "post_if_better_than_average": 0.5
+     "post_if_better_than_average": 0.8
     },
     {
       "name": "KobeissiLetter",
@@ -127,7 +127,7 @@
       "channel_id": 1541183079484362804,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.5
+      "post_if_better_than_average": 0.7
     },
     {
       "name": "ESPNCFB",
@@ -135,7 +135,7 @@
       "channel_id": 1539093669448257586,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.2
+      "post_if_better_than_average": 0.7
     },
     {
       "name": "AP",
@@ -143,7 +143,7 @@
       "channel_id": 1539093111576334407,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.4
+      "post_if_better_than_average": 0.6
     },
     {
       "name": "BradNitzWSB",
@@ -174,7 +174,7 @@
       "channel_id": 1539082416629489734,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.8,
+      "post_if_better_than_average": 0.92,
       "require_photo_or_video": true
     },
     {
