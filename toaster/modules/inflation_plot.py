@@ -1,4 +1,4 @@
-"""Generate a six-month U.S. inflation plot from public FRED data.
+"""Generate a five-year U.S. inflation-rate plot from public FRED data.
 
 The plotted values are year-over-year percentage changes in the CPI, core CPI,
 PCE, and core PCE price indexes.
@@ -26,7 +26,8 @@ SERIES = {
     "PCEPI": "PCE",
     "PCEPILFE": "Core PCE",
 }
-DEFAULT_OUTPUT = Path("inflation_6_months.png")
+DEFAULT_OUTPUT = Path("inflation_rates.png")
+LOOKBACK_MONTHS = 60
 
 
 def _months_before(day: date, months: int) -> date:
@@ -91,7 +92,7 @@ def create_inflation_plot(
     end_date: date,
     output_path: Path = DEFAULT_OUTPUT,
 ) -> Path:
-    """Create and save the six-month year-over-year inflation PNG."""
+    """Create and save the five-year year-over-year inflation PNG."""
     figure, axis = plt.subplots(figsize=(11, 6), facecolor="#111827")
     axis.set_facecolor("#1f2937")
     colors = {
@@ -100,6 +101,16 @@ def create_inflation_plot(
         "PCEPI": "#f87171",
         "PCEPILFE": "#c084fc",
     }
+
+    for year in range(start_date.year, end_date.year + 1):
+        if year % 2 == 0:
+            axis.axvspan(
+                max(start_date, date(year, 1, 1)),
+                min(end_date, date(year + 1, 1, 1)),
+                color="#475569",
+                alpha=0.22,
+                zorder=0,
+            )
 
     plotted = False
     for series_id, label in SERIES.items():
@@ -124,7 +135,7 @@ def create_inflation_plot(
         raise ValueError("FRED returned no inflation observations")
 
     axis.axhline(0, color="#cbd5e1", linewidth=1, alpha=0.5)
-    axis.set_title("U.S. Inflation: Year-over-Year Change, Last Six Months", color="#f8fafc")
+    axis.set_title("U.S. Inflation Rates: Year-over-Year Change", color="#f8fafc")
     axis.set_ylabel("12-month change (%)", color="#e5e7eb")
     axis.set_xlim(start_date, end_date)
     axis.xaxis.set_major_locator(mdates.MonthLocator())
@@ -158,7 +169,7 @@ def main() -> None:
     args = parser.parse_args()
 
     end_date = date.today()
-    start_date = _months_before(end_date, 6)
+    start_date = _months_before(end_date, LOOKBACK_MONTHS)
     rates = fetch_inflation_rates(start_date, end_date)
     output_path = create_inflation_plot(rates, start_date, end_date, args.output)
     print(f"Saved inflation plot to {output_path}")
