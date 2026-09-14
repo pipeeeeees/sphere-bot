@@ -164,3 +164,5 @@ config/grok_key.json
 config/toast_discord_bot_token.json
 /.vscode
 atlanta_7_day_temperatures.png
+interest_rates_6_months.png
+inflation_6_months.png
