@@ -13,12 +13,33 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
+from typing import Dict
 
 from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
 from toaster import get_gemini_response_with_key
 from toaster.config import load_config
 from toaster.tweet_watcher import get_vpm_threshold_report, reset_vpm_state
+
+
+# Shared with tweet_watcher's feedback channel so timing reports live alongside other bot diagnostics.
+TIMING_REPORT_CHANNEL_ID = 1539108566009643048
+
+
+async def _send_timing_report(ctx: commands.Context, label: str, timings: Dict[str, float]) -> None:
+    """Post a per-phase timing breakdown, useful for diagnosing slowness on constrained hardware."""
+    channel = ctx.bot.get_channel(TIMING_REPORT_CHANNEL_ID)
+    if channel is None:
+        try:
+            channel = await ctx.bot.fetch_channel(TIMING_REPORT_CHANNEL_ID)
+        except Exception:
+            return
+    lines = "\n".join(f"**{name}:** {seconds:.2f}s" for name, seconds in timings.items())
+    try:
+        await channel.send(f"\u23f1\ufe0f **Timing Report: {label}**\n{lines}")
+    except Exception:
+        pass
 
 
 async def hello_command(ctx: commands.Context) -> None:
@@ -313,12 +334,27 @@ async def inflation_plot_command(ctx: commands.Context, months: int) -> None:
     try:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
             temp_path = Path(temp_file.name)
+        start_time = time.perf_counter()
         end_date = date.today()
         start_date = await asyncio.to_thread(_months_before, end_date, months)
+        after_range = time.perf_counter()
         rates = await asyncio.to_thread(fetch_inflation_rates, start_date, end_date)
+        after_fetch = time.perf_counter()
         await asyncio.to_thread(create_inflation_plot, rates, start_date, end_date, temp_path)
+        after_render = time.perf_counter()
         await ctx.send(
             file=discord.File(str(temp_path), filename=f"inflation_rates_{months}mo.png")
+        )
+        after_upload = time.perf_counter()
+        await _send_timing_report(
+            ctx,
+            f"$inflation_plot {months}",
+            {
+                "Fetch FRED data": after_fetch - after_range,
+                "Render plot": after_render - after_fetch,
+                "Upload to Discord": after_upload - after_render,
+                "Total": after_upload - start_time,
+            },
         )
     except Exception:
         await ctx.send("Inflation data is currently unavailable.")
@@ -341,12 +377,27 @@ async def interest_rates_plot_command(ctx: commands.Context, months: int) -> Non
     try:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
             temp_path = Path(temp_file.name)
+        start_time = time.perf_counter()
         end_date = date.today()
         start_date = await asyncio.to_thread(_months_before, end_date, months)
+        after_range = time.perf_counter()
         rates = await asyncio.to_thread(fetch_interest_rates, start_date, end_date)
+        after_fetch = time.perf_counter()
         await asyncio.to_thread(create_interest_rates_plot, rates, start_date, end_date, temp_path)
+        after_render = time.perf_counter()
         await ctx.send(
             file=discord.File(str(temp_path), filename=f"interest_rates_{months}mo.png")
+        )
+        after_upload = time.perf_counter()
+        await _send_timing_report(
+            ctx,
+            f"$interest_rates_plot {months}",
+            {
+                "Fetch FRED data": after_fetch - after_range,
+                "Render plot": after_render - after_fetch,
+                "Upload to Discord": after_upload - after_render,
+                "Total": after_upload - start_time,
+            },
         )
     except Exception:
         await ctx.send("Interest-rate data is currently unavailable.")
