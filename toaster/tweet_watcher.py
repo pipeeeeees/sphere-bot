@@ -1,7 +1,8 @@
 """Background tweet watcher: polls configured X accounts and posts new tweets to channels.
 
 Config: `config/twitter_watch.json` — {quiet_hours, watches}, where each watch has
-{name, username, channel_id, enabled}
+{name, username, channel_id, enabled}. An optional `extra_channel_ids` list mirrors a
+passed-filter tweet to additional channels after the primary channel send succeeds.
 State persisted to: `config/twitter_watch_state.json` mapping username -> last_status_id
 """
 
@@ -941,6 +942,7 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
 
     if can_post:
         await channel.send(alt, silent=silent)
+        await _post_to_extra_channels(bot, entry, alt, silent)
         if vpm_report:
             await _send_feedback_message(
                 bot,
@@ -950,6 +952,29 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
     elif filter_reason:
         await _send_filter_feedback(bot, alt, filter_reason)
     return "filtered"
+
+
+async def _post_to_extra_channels(
+    bot, entry: Dict[str, object], alt: str, silent: bool
+) -> None:
+    """Mirror a passed-filter tweet to any additional channels configured for the watch."""
+    extra_channel_ids = entry.get("extra_channel_ids") or []
+    for raw_channel_id in extra_channel_ids:
+        try:
+            extra_channel_id = int(raw_channel_id)
+        except (TypeError, ValueError):
+            continue
+        extra_channel = bot.get_channel(extra_channel_id)
+        if extra_channel is None:
+            try:
+                extra_channel = await bot.fetch_channel(extra_channel_id)
+            except Exception as exc:
+                await _send_error_feedback(bot, "fetching extra destination channel", exc, entry, alt)
+                continue
+        try:
+            await extra_channel.send(alt, silent=silent)
+        except Exception as exc:
+            await _send_error_feedback(bot, "posting to extra destination channel", exc, entry, alt)
 
 
 async def _dispatch_tweets(bot, pending_tweets: asyncio.Queue) -> None:

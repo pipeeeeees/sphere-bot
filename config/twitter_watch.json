@@ -9,7 +9,6 @@
     "username": "Braves",
     "channel_id": 1539082416629489734,
     "enabled": true,
-    "silent_time": 1,
     "post_if_better_than_average": 0.1
   }
   ,
@@ -19,7 +18,7 @@
     "channel_id": 1539082416629489734,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.9,
+    "post_if_better_than_average": 0.95,
     "require_video": true
   }
   ,
@@ -29,7 +28,7 @@
     "channel_id": 1539088363334926478,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.7,
+    "post_if_better_than_average": 0.9,
     "require_photo_or_video": true
   }
    ,
@@ -87,14 +86,13 @@
     "username": "GTAVI_Countdown",
     "channel_id": 1539106607261159524,
     "enabled": true,
-    "silent_time": 1
+    "extra_channel_ids": [808864313065996340]
   },
   {
     "name": "fortnite",
     "username": "Fortnite",
     "channel_id": 1539090032709603358,
     "enabled": true,
-    "silent_time": 1,
     "require_video": true
   },
   {
@@ -174,7 +172,7 @@
       "channel_id": 1539082416629489734,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.92,
+      "post_if_better_than_average": 0.95,
       "require_photo_or_video": true
     },
     {
@@ -203,7 +201,7 @@
       "channel_id": 1539093669448257586,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.85
+      "post_if_better_than_average": 0.8
     }
   ]
 }
