@@ -176,10 +176,25 @@ async def reboot_command(ctx: commands.Context) -> None:
 
 async def pull_command(ctx: commands.Context) -> None:
     """
-    Perform a git pull in the bot repository and report output.
+    Sync the working copy to match origin exactly (fetch + hard reset).
+
+    This deployment never develops locally, so a merge-based `git pull` is
+    avoided: it can create local merge commits when histories diverge (e.g.
+    from a past conflict resolved on the server), which then diverge further
+    from origin on every future pull. Hard-resetting to origin/<branch>
+    discards any local drift and always lands exactly on what's on GitHub.
     """
     try:
-        process = subprocess.run(["git", "pull"], check=True, capture_output=True, text=True)
+        branch_result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            check=True, capture_output=True, text=True,
+        )
+        branch = branch_result.stdout.strip()
+        subprocess.run(["git", "fetch", "origin"], check=True, capture_output=True, text=True)
+        process = subprocess.run(
+            ["git", "reset", "--hard", f"origin/{branch}"],
+            check=True, capture_output=True, text=True,
+        )
         output = (process.stdout or "") + (process.stderr or "")
         if not output:
             output = "Git pull completed with no output."
