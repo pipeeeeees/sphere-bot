@@ -106,5 +106,17 @@
     "description": "Get key weather messages for Atlanta from NWS",
     "module": "toaster.commands_impl",
     "function": "weather_command"
+  },
+  {
+    "name": "inflation_plot",
+    "description": "Post the U.S. inflation year-over-year plot for a given lookback in months",
+    "module": "toaster.commands_impl",
+    "function": "inflation_plot_command"
+  },
+  {
+    "name": "interest_rates_plot",
+    "description": "Post the U.S. interest-rates plot for a given lookback in months",
+    "module": "toaster.commands_impl",
+    "function": "interest_rates_plot_command"
   }
 ]
