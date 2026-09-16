@@ -1330,7 +1330,8 @@ def load_schedules_from_config() -> None:
                 timezone=timezone,
                 months=schedule_config.get("months"),
                 every_other_day=schedule_config.get("every_other_day", False),
-                allow_reboot=schedule_config.get("allow_reboot", False)
+                allow_reboot=schedule_config.get("allow_reboot", False),
+                day=schedule_config.get("day")
             )
             
             loaded_schedules.append((name, True, None))

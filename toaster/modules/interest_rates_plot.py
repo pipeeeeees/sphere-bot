@@ -103,10 +103,12 @@ def create_interest_rates_plot(
         plt.close(figure)
         raise ValueError("FRED returned no interest-rate observations")
 
-    axis.set_title("U.S. Interest Rates: Last Six Months", color="#f8fafc")
+    lookback_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+    axis.set_title(f"U.S. Interest Rates: Last {lookback_months} Months", color="#f8fafc")
     axis.set_ylabel("Rate (%)", color="#e5e7eb")
     axis.set_xlim(start_date, end_date)
-    axis.xaxis.set_major_locator(mdates.MonthLocator())
+    tick_interval = 1 if lookback_months <= 12 else 3 if lookback_months <= 36 else 6
+    axis.xaxis.set_major_locator(mdates.MonthLocator(interval=tick_interval))
     axis.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     axis.tick_params(colors="#e5e7eb")
     axis.grid(axis="both", linestyle="--", color="#cbd5e1", alpha=0.2)

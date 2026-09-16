@@ -27,7 +27,7 @@ SERIES = {
     "PCEPILFE": "Core PCE",
 }
 DEFAULT_OUTPUT = Path("inflation_rates.png")
-LOOKBACK_MONTHS = 60
+LOOKBACK_MONTHS = 120
 
 
 def _months_before(day: date, months: int) -> date:
@@ -138,7 +138,7 @@ def create_inflation_plot(
     axis.set_title("U.S. Inflation Rates: Year-over-Year Change", color="#f8fafc")
     axis.set_ylabel("12-month change (%)", color="#e5e7eb")
     axis.set_xlim(start_date, end_date)
-    axis.xaxis.set_major_locator(mdates.MonthLocator())
+    axis.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
     axis.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     axis.tick_params(colors="#e5e7eb")
     axis.grid(axis="both", linestyle="--", color="#cbd5e1", alpha=0.2)

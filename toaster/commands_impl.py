@@ -299,6 +299,62 @@ async def trivia_mlb_command(ctx: commands.Context) -> None:
     await generate_trivia_command(ctx)
 
 
+async def inflation_plot_command(ctx: commands.Context, months: int) -> None:
+    """Generate and upload the U.S. inflation year-over-year plot for the given lookback."""
+    from datetime import date
+
+    from toaster.modules.inflation_plot import (
+        _months_before,
+        create_inflation_plot,
+        fetch_inflation_rates,
+    )
+
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            temp_path = Path(temp_file.name)
+        end_date = date.today()
+        start_date = await asyncio.to_thread(_months_before, end_date, months)
+        rates = await asyncio.to_thread(fetch_inflation_rates, start_date, end_date)
+        await asyncio.to_thread(create_inflation_plot, rates, start_date, end_date, temp_path)
+        await ctx.send(
+            file=discord.File(str(temp_path), filename=f"inflation_rates_{months}mo.png")
+        )
+    except Exception:
+        await ctx.send("Inflation data is currently unavailable.")
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
+async def interest_rates_plot_command(ctx: commands.Context, months: int) -> None:
+    """Generate and upload the U.S. interest-rates plot for the given lookback."""
+    from datetime import date
+
+    from toaster.modules.interest_rates_plot import (
+        _months_before,
+        create_interest_rates_plot,
+        fetch_interest_rates,
+    )
+
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            temp_path = Path(temp_file.name)
+        end_date = date.today()
+        start_date = await asyncio.to_thread(_months_before, end_date, months)
+        rates = await asyncio.to_thread(fetch_interest_rates, start_date, end_date)
+        await asyncio.to_thread(create_interest_rates_plot, rates, start_date, end_date, temp_path)
+        await ctx.send(
+            file=discord.File(str(temp_path), filename=f"interest_rates_{months}mo.png")
+        )
+    except Exception:
+        await ctx.send("Interest-rate data is currently unavailable.")
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
 async def trivia_cfb_command(ctx: commands.Context) -> None:
     """Generate and post configured college-football trivia."""
     from toaster.trivia import trivia_cfb_command as generate_trivia_command
@@ -354,5 +410,7 @@ __all__ = [
     "trivia_mlb_command",
     "trivia_cfb_command",
     "gemini_command",
-    "weather_command"
+    "weather_command",
+    "inflation_plot_command",
+    "interest_rates_plot_command"
 ]

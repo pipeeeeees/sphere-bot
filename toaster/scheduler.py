@@ -51,7 +51,8 @@ class ScheduleRegistry:
         timezone: Optional[str] = None,
         months: Optional[List[int]] = None,
         every_other_day: bool = False,
-        allow_reboot: bool = False
+        allow_reboot: bool = False,
+        day: Optional[int] = None
     ) -> None:
         """
         Register a new scheduled message.
@@ -60,13 +61,14 @@ class ScheduleRegistry:
             name: Unique name for the schedule
             message: Message content to send
             channel_id: Discord channel ID
-            schedule_type: "weekly", "date", or "annual"
+            schedule_type: "weekly", "date", "annual", or "monthly"
             time_str: Time in HH:MM format
             weekdays: List of weekdays [1-7] for weekly schedules
             date: YYYY-MM-DD for date-based schedules
             months: Optional list of months [1-12] when message can be sent
             every_other_day: If True, only send on alternating day-of-month in the months window
             allow_reboot: If True, allows this schedule to trigger the $reboot command
+            day: Day of month (1-31) for monthly schedules
             enabled: Whether the schedule is active
         """
         if self.get_schedule(name):
@@ -79,8 +81,8 @@ class ScheduleRegistry:
             raise ValueError(f"Invalid time format '{time_str}', use HH:MM")
         
         # Validate schedule type
-        if schedule_type not in ["weekly", "date", "annual"]:
-            raise ValueError("schedule_type must be 'weekly', 'date', or 'annual'")
+        if schedule_type not in ["weekly", "date", "annual", "monthly"]:
+            raise ValueError("schedule_type must be 'weekly', 'date', 'annual', or 'monthly'")
         
         # Validate months filter
         if months is not None:
@@ -107,8 +109,11 @@ class ScheduleRegistry:
                 raise ValueError(f"Invalid date format '{date}', use YYYY-MM-DD")
             # Normalize month/day for annual check
             date = annual_date.strftime("%m-%d")
+        elif schedule_type == "monthly":
+            if day is None or not (1 <= day <= 31):
+                raise ValueError("day must be between 1 and 31 for monthly schedules")
         else:
-            raise ValueError("schedule_type must be 'weekly', 'date', or 'annual'")
+            raise ValueError("schedule_type must be 'weekly', 'date', 'annual', or 'monthly'")
 
         # Validate timezone
         if timezone is not None:
@@ -130,6 +135,7 @@ class ScheduleRegistry:
             "months": months,
             "every_other_day": every_other_day,
             "allow_reboot": allow_reboot,
+            "day": day,
             "enabled": enabled,
             "timezone": timezone,
             "last_sent": None  # Track last sent time to avoid duplicates
@@ -222,6 +228,8 @@ class ScheduleRegistry:
             trivia_cfb_command,
             gemini_command,
             reboot_command,
+            inflation_plot_command,
+            interest_rates_plot_command,
         )
 
         content = command_text.strip()
@@ -254,6 +262,10 @@ class ScheduleRegistry:
                 await trivia_cfb_command(ctx)
             elif cmd == 'gemini' and args:
                 await gemini_command(ctx, message=' '.join(args))
+            elif cmd == 'inflation_plot' and args:
+                await inflation_plot_command(ctx, months=int(args[0]))
+            elif cmd == 'interest_rates_plot' and args:
+                await interest_rates_plot_command(ctx, months=int(args[0]))
             elif cmd == 'reboot':
                 # Only allow scheduled reboot when the schedule explicitly opts in
                 if schedule and schedule.get("allow_reboot"):
@@ -346,6 +358,12 @@ class ScheduleRegistry:
                 elif schedule["type"] == "annual":
                     current_month_day = schedule_now.strftime("%m-%d")
                     if current_month_day == schedule.get("date"):
+                        if current_time == schedule["time"]:
+                            should_send = True
+
+                # Check monthly (day-of-month) schedules
+                elif schedule["type"] == "monthly":
+                    if schedule_now.day == schedule.get("day"):
                         if current_time == schedule["time"]:
                             should_send = True
 

@@ -139,5 +139,65 @@
     "weekdays": [1, 2, 3, 4, 5, 6, 7],
     "timezone": "America/New_York",
     "enabled": true
+  },
+  {
+    "name": "inflation_plot_weekly_12mo",
+    "message": "$inflation_plot 12",
+    "channel_id": 1541183079484362804,
+    "type": "weekly",
+    "time": "09:00",
+    "weekdays": [3],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "inflation_plot_monthly_60mo",
+    "message": "$inflation_plot 60",
+    "channel_id": 1541183079484362804,
+    "type": "monthly",
+    "time": "09:01",
+    "day": 1,
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "inflation_plot_annual_120mo",
+    "message": "$inflation_plot 120",
+    "channel_id": 1541183079484362804,
+    "type": "annual",
+    "time": "09:02",
+    "date": "2027-01-01",
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "interest_rates_plot_weekly_12mo",
+    "message": "$interest_rates_plot 12",
+    "channel_id": 1541183079484362804,
+    "type": "weekly",
+    "time": "09:01",
+    "weekdays": [3],
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "interest_rates_plot_monthly_60mo",
+    "message": "$interest_rates_plot 60",
+    "channel_id": 1541183079484362804,
+    "type": "monthly",
+    "time": "09:02",
+    "day": 1,
+    "timezone": "America/New_York",
+    "enabled": true
+  },
+  {
+    "name": "interest_rates_plot_annual_120mo",
+    "message": "$interest_rates_plot 120",
+    "channel_id": 1541183079484362804,
+    "type": "annual",
+    "time": "09:03",
+    "date": "2027-01-01",
+    "timezone": "America/New_York",
+    "enabled": true
   }
 ]
