@@ -20,7 +20,7 @@ from toaster.modules.mlb import get_standings
 from toaster.modules.pollen import result_handler
 from toaster import get_gemini_response_with_key
 from toaster.config import load_config
-from toaster.tweet_watcher import get_vpm_threshold_report, reset_vpm_state
+from toaster.tweet_watcher import get_vpm_threshold_report, reset_vpm_state, reset_all_vpm_state
 
 
 # Shared with tweet_watcher's feedback channel so timing reports live alongside other bot diagnostics.
@@ -122,7 +122,22 @@ async def thresholds_command(ctx: commands.Context) -> None:
 
 
 async def reset_vpm_command(ctx: commands.Context, watch: str) -> None:
-    """Reset VPM statistics for a configured watch name or username."""
+    """Reset VPM statistics for a configured watch name/username, or `all` for every watch."""
+    if watch.strip().lower() == "all":
+        try:
+            reset_names = reset_all_vpm_state()
+        except Exception as exc:
+            await ctx.send(f"⚠️ Could not reset VPM statistics: {exc}")
+            return
+        if not reset_names:
+            await ctx.send("⚠️ No VPM statistics were found to reset.")
+            return
+        await ctx.send(
+            f"✅ Reset VPM statistics for {len(reset_names)} watch(es): "
+            f"{', '.join(f'`{name}`' for name in reset_names)}. Seen tweets were preserved."
+        )
+        return
+
     try:
         reset_name = reset_vpm_state(watch)
     except Exception as exc:

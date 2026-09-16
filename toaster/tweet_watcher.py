@@ -9,10 +9,11 @@ State persisted to: `config/twitter_watch_state.json` mapping username -> last_s
 import asyncio
 import json
 import re
+import statistics
 from pathlib import Path
 from datetime import datetime, time, timezone
 from statistics import NormalDist
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from toaster.config import load_config
 from toaster.modules.tweet_puller import get_latest_tweet_links, get_fixvx_equivalent
@@ -25,6 +26,7 @@ import requests
 FEEDBACK_CHANNEL_ID = 1539108566009643048
 PULL_STATUS_CHANNEL_ID = 1548179172755767377
 TWEET_POST_GRACE_PERIOD_SECONDS = 5
+VPM_WINDOW_SIZE = 30
 
 
 def _fixvx_has_video(url: str, timeout: int = 10) -> bool:
@@ -472,31 +474,32 @@ def _vpm_state_key(state_key: str) -> str:
     return f"{state_key}:vpm"
 
 
-def _load_vpm_state(
-    state: Dict[str, object], state_key: str
-) -> tuple[Optional[float], int, float]:
+def _load_vpm_values(state: Dict[str, object], state_key: str) -> List[float]:
+    """Return the rolling window of recent VPM values (most recent last)."""
     raw = state.get(_vpm_state_key(state_key))
-    if not isinstance(raw, dict):
-        return None, 0, 0.0
-    try:
-        mean = float(raw.get("mean")) if raw.get("mean") is not None else None
-        count = int(raw.get("count", 0)) if raw.get("count") is not None else 0
-        m2 = float(raw.get("m2", 0.0)) if raw.get("m2") is not None else 0.0
-    except (TypeError, ValueError):
-        return None, 0, 0.0
-    return mean, max(0, count), max(0.0, m2)
+    if isinstance(raw, dict):
+        raw_values = raw.get("values")
+    elif isinstance(raw, list):
+        raw_values = raw
+    else:
+        raw_values = None
+    if not isinstance(raw_values, list):
+        return []
+    values = []
+    for value in raw_values:
+        try:
+            values.append(float(value))
+        except (TypeError, ValueError):
+            continue
+    return values[-VPM_WINDOW_SIZE:]
 
 
-async def _save_vpm_state(
-    bot, state: Dict[str, object], state_key: str, mean: float, count: int, m2: float
+async def _save_vpm_values(
+    bot, state: Dict[str, object], state_key: str, values: List[float]
 ) -> None:
     try:
         latest_state = _load_state()
-        latest_state[_vpm_state_key(state_key)] = {
-            "mean": float(mean),
-            "count": int(count),
-            "m2": float(m2),
-        }
+        latest_state[_vpm_state_key(state_key)] = {"values": values[-VPM_WINDOW_SIZE:]}
         if not _save_state(latest_state):
             raise OSError(f"Could not write VPM state to {STATE_FILE}")
     except Exception as exc:
@@ -541,6 +544,19 @@ def reset_vpm_state(watch_identifier: str) -> Optional[str]:
     return state_key
 
 
+def reset_all_vpm_state() -> List[str]:
+    """Reset VPM statistics for every configured watch and return the names reset."""
+    state = _load_state()
+    reset_names = []
+    for entry in _load_watch_list():
+        state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
+        if state.pop(_vpm_state_key(state_key), None) is not None:
+            reset_names.append(state_key)
+    if not _save_state(state):
+        raise OSError(f"Could not write VPM state to {STATE_FILE}")
+    return reset_names
+
+
 def _vpm_percentile(value: object) -> Optional[float]:
     """Return a valid inclusive VPM percentile, rejecting legacy booleans."""
     if isinstance(value, bool):
@@ -552,13 +568,14 @@ def _vpm_percentile(value: object) -> Optional[float]:
     return percentile if 0.0 <= percentile <= 1.0 else None
 
 
-def _vpm_threshold(percentile: float, mean: float, count: int, m2: float) -> float:
+def _vpm_threshold(percentile: float, values: List[float]) -> float:
     """Estimate the VPM cutoff at a percentile using a normal distribution."""
     if percentile <= 0.0:
         return float("-inf")
     if percentile >= 1.0:
         return float("inf")
-    variance = m2 / (count - 1) if count > 1 else 0.0
+    mean = statistics.fmean(values)
+    variance = statistics.variance(values) if len(values) > 1 else 0.0
     standard_deviation = variance ** 0.5
     return mean + NormalDist().inv_cdf(percentile) * standard_deviation
 
@@ -566,24 +583,28 @@ def _vpm_threshold(percentile: float, mean: float, count: int, m2: float) -> flo
 def get_vpm_threshold_report() -> str:
     """Return current VPM counts, averages, and posting thresholds by watch."""
     state = _load_state()
-    lines = ["📊 **VPM Thresholds**", "Counted values are successfully calculated VPMs per watch."]
+    lines = [
+        "📊 **VPM Thresholds**",
+        f"Counted values are the most recent successfully calculated VPMs per watch "
+        f"(rolling window of the last {VPM_WINDOW_SIZE}).",
+    ]
     report_entries = _load_watch_list()
     if not report_entries:
         return "📊 **VPM Thresholds**\nNo enabled tweet watches configured."
 
     for entry in report_entries:
         state_key = str(entry.get("name") or entry.get("username") or "tweet_watch")
-        mean, count, m2 = _load_vpm_state(state, state_key)
+        values = _load_vpm_values(state, state_key)
         percentile = _vpm_percentile(entry.get("post_if_better_than_average"))
-        if mean is None or count <= 0:
+        if not values:
             average_text = "N/A"
             threshold_text = "N/A"
         else:
-            average_text = f"{mean:.2f}"
+            average_text = f"{statistics.fmean(values):.2f}"
             if percentile is None:
                 threshold_text = "N/A (not configured)"
             else:
-                threshold_text = f"{_vpm_threshold(percentile, mean, count, m2):.2f}"
+                threshold_text = f"{_vpm_threshold(percentile, values):.2f}"
 
         channel_id = entry.get("channel_id", "unknown")
         watch_name = entry.get("name") or entry.get("username") or "unnamed watch"
@@ -591,20 +612,11 @@ def get_vpm_threshold_report() -> str:
         enabled_text = "enabled" if entry.get("enabled", True) else "disabled"
         lines.append(
             f"\n**{watch_name}** | Channel `{channel_id}` ({enabled_text})\n"
-            f"Tweets counted: **{count}**\n"
+            f"Tweets counted: **{len(values)}/{VPM_WINDOW_SIZE}**\n"
             f"Rolling average VPM: **{average_text}**\n"
             f"Posting threshold ({percentile_text} percentile): **{threshold_text}**"
         )
     return "\n".join(lines)
-
-
-def _update_vpm_stats(mean: float, count: int, m2: float, value: float) -> tuple[float, int, float]:
-    """Add one VPM value using Welford's numerically stable update."""
-    new_count = count + 1
-    delta = value - mean
-    new_mean = mean + (delta / new_count)
-    new_m2 = m2 + (delta * (value - new_mean))
-    return new_mean, new_count, max(0.0, new_m2)
 
 
 def _get_seen_status_ids(state: Dict[str, object], state_key: str) -> set[str]:
@@ -774,27 +786,27 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
         tweet_vpm = await asyncio.to_thread(_calculate_views_per_minute, alt)
         if tweet_vpm is None:
             raise ValueError("VPM calculation returned no result")
-        rolling_mean, rolling_count, rolling_m2 = _load_vpm_state(state, state_key)
+        rolling_values = _load_vpm_values(state, state_key)
         threshold = None
         threshold_label = (
             f"{vpm_percentile:.2f} percentile threshold"
             if vpm_percentile is not None
             else "Posting threshold"
         )
-        if rolling_mean is None or rolling_count <= 0:
-            new_mean, new_count, new_m2 = tweet_vpm, 1, 0.0
+        if not rolling_values:
             vpm_report = (
                 f"**Tweet VPM:** {tweet_vpm:.2f}\n"
                 f"**{threshold_label}:** N/A (initial sample)\n"
                 f"**Rolling average:** N/A (initial sample)"
             )
         else:
+            rolling_mean = statistics.fmean(rolling_values)
             threshold = (
-                _vpm_threshold(vpm_percentile, rolling_mean, rolling_count, rolling_m2)
+                _vpm_threshold(vpm_percentile, rolling_values)
                 if vpm_percentile is not None
                 else None
             )
-            variance = rolling_m2 / (rolling_count - 1) if rolling_count > 1 else 0.0
+            variance = statistics.variance(rolling_values) if len(rolling_values) > 1 else 0.0
             standard_deviation = variance ** 0.5
             tweet_percentile = (
                 NormalDist().cdf((tweet_vpm - rolling_mean) / standard_deviation)
@@ -815,10 +827,8 @@ async def _post_tweet(bot, entry: Dict[str, object], link: str) -> str:
                     f"{vpm_percentile:.2f} percentile threshold: {threshold:.2f}, "
                     f"rolling average: {rolling_mean:.2f})"
                 )
-            new_mean, new_count, new_m2 = _update_vpm_stats(
-                rolling_mean, rolling_count, rolling_m2, tweet_vpm
-            )
-        await _save_vpm_state(bot, state, state_key, new_mean, new_count, new_m2)
+        new_values = (rolling_values + [tweet_vpm])[-VPM_WINDOW_SIZE:]
+        await _save_vpm_values(bot, state, state_key, new_values)
     except Exception as exc:
         await _send_vpm_error(bot, f"Error calculating or updating VPM for {state_key}: {exc}")
         can_post = False

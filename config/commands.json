@@ -31,7 +31,7 @@
   },
   {
     "name": "reset_vpm",
-    "description": "Reset VPM statistics for one Twitter watch",
+    "description": "Reset VPM statistics for one Twitter watch, or 'all' for every watch",
     "module": "toaster.commands_impl",
     "function": "reset_vpm_command"
   },

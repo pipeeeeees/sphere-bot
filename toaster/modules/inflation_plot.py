@@ -152,7 +152,13 @@ def create_inflation_plot(
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(output_path, format="png", dpi=150, facecolor=figure.get_facecolor())
+    figure.savefig(
+        output_path,
+        format="png",
+        dpi=150,
+        facecolor=figure.get_facecolor(),
+        pil_kwargs={"compress_level": 1},
+    )
     plt.close(figure)
     return output_path
 
