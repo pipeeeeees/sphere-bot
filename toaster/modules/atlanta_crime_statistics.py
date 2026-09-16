@@ -87,16 +87,20 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Print Atlanta crime statistics from a start date through today."
     )
-    parser.add_argument("start_date", help="Start occurrence date, YYYY-MM-DD")
+    parser.add_argument(
+        "start_date",
+        nargs="?",
+        help="Start occurrence date, YYYY-MM-DD; defaults to 2025-01-01",
+    )
     parser.add_argument(
         "end_date",
         nargs="?",
-        help="Optional ending occurrence date, YYYY-MM-DD; defaults to today",
+        help="Optional ending occurrence date, YYYY-MM-DD; defaults to 2025-12-31",
     )
     args = parser.parse_args()
 
-    start_date = _parse_date(args.start_date)
-    end_date = _parse_date(args.end_date) if args.end_date else date.today()
+    end_date = _parse_date(args.end_date) if args.end_date else date(2025, 12, 31)
+    start_date = _parse_date(args.start_date) if args.start_date else date(2025, 1, 1)
     print(get_atlanta_crime_statistics(start_date, end_date))
 
 
