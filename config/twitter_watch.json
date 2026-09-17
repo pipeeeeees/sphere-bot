@@ -104,6 +104,12 @@
      "require_word": ["Georgia", "Atlanta", "Savannah", "Blue Ridge", "Athens"]
    },
    {
+      "name": "nws atlanta",
+      "username": "NWSAtlanta",
+      "channel_id": 1539087911721500742,
+      "enabled": true
+   },
+   {
      "name": "mac rumors",
      "username": "MacRumors",
      "channel_id": 1541183362083987548,
