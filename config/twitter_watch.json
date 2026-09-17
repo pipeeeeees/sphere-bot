@@ -147,8 +147,7 @@
       "name": "BradNitzWSB",
       "username": "BradNitzWSB",
       "channel_id": 1539087911721500742,
-      "enabled": true,
-      "silent_time": 1
+      "enabled": true
     },
     {
       "name": "Motor1com",
