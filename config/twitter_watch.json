@@ -37,7 +37,7 @@
      "username": "On3",
      "channel_id": 1539093669448257586,
      "enabled": true,
-    "silent_time": 1,
+     "silent_time": 1,
      "post_if_better_than_average": 0.6,
      "require_ai_classification": true
    },
@@ -53,8 +53,8 @@
     "username": "RockstarGames",
     "channel_id": 1539106607261159524,
     "enabled": true,
-    "silent_time": 1,
-    "require_word": "Grand Theft Auto VI"
+    "require_word": "Grand Theft Auto VI",
+    "extra_channel_ids": [808864313065996340]
    }
    ,
   {
@@ -63,7 +63,7 @@
     "channel_id": 1539093803649073272,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.95
+    "post_if_better_than_average": 0.9
   },
   {
     "name": "falcons",
@@ -100,7 +100,6 @@
      "username": "NWS",
      "channel_id": 1539087911721500742,
      "enabled": true,
-    "silent_time": 1,
      "require_word": "Georgia"
    },
    {
@@ -109,7 +108,7 @@
      "channel_id": 1541183362083987548,
      "enabled": true,
     "silent_time": 1,
-     "post_if_better_than_average": 0.5
+     "post_if_better_than_average": 0.75
    },
    {
      "name": "wsj markets",
@@ -162,8 +161,7 @@
       "name": "birdhaddog",
       "username": "birdhaddog",
       "channel_id": 1539095134648410194,
-      "enabled": true,
-      "silent_time": 1
+      "enabled": true
     },
     {
       "name": "TalkinBaseball_",
@@ -200,7 +198,7 @@
       "channel_id": 1539093669448257586,
       "enabled": true,
       "silent_time": 1,
-      "post_if_better_than_average": 0.8
+      "post_if_better_than_average": 0.7
     }
   ]
 }
