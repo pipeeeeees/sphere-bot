@@ -79,7 +79,8 @@
     "channel_id": 1539087911721500742,
     "enabled": true,
     "silent_time": 1,
-    "post_if_better_than_average": 0.8
+    "post_if_better_than_average": 0.8,
+    "require_photo_or_video": true
   },
   {
     "name": "gta6",
@@ -100,7 +101,7 @@
      "username": "NWS",
      "channel_id": 1539087911721500742,
      "enabled": true,
-     "require_word": "Georgia"
+     "require_word": ["Georgia", "Atlanta", "Savannah", "Blue Ridge", "Athens"]
    },
    {
      "name": "mac rumors",
