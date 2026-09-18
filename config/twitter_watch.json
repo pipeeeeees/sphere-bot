@@ -215,6 +215,27 @@
       "silent_time": 1,
       "post_if_better_than_average": 0.1,
       "require_photo_or_video": true
+    },
+    {
+      "name": "NUCLRGOLF",
+      "username": "NUCLRGOLF",
+      "channel_id": 1550312216643772456,
+      "enabled": true,
+      "post_if_better_than_average": 0.5
+    },
+    {
+      "name": "Mike_kim714",
+      "username": "Mike_kim714",
+      "channel_id": 1550312216643772456,
+      "enabled": true,
+      "post_if_better_than_average": 0.5
+    },
+    {
+      "name": "RMTracker",
+      "username": "RMTracker",
+      "channel_id": 1550312216643772456,
+      "enabled": true,
+      "post_if_better_than_average": 0.8
     }
   ]
 }
