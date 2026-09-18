@@ -236,6 +236,30 @@
       "channel_id": 1550312216643772456,
       "enabled": true,
       "post_if_better_than_average": 0.8
+    },
+    {
+      "name": "F1",
+      "username": "F1",
+      "channel_id": 1550312401654653018,
+      "enabled": true,
+      "silent_time": 1,
+      "post_if_better_than_average": 0.8
+    },
+    {
+      "name": "evrythngformu1a",
+      "username": "evrythngformu1a",
+      "channel_id": 1550312401654653018,
+      "enabled": true,
+      "silent_time": 1,
+      "post_if_better_than_average": 0.8
+    },
+    {
+      "name": "ESPNF1",
+      "username": "ESPNF1",
+      "channel_id": 1550312401654653018,
+      "enabled": true,
+      "silent_time": 1,
+      "post_if_better_than_average": 0.8
     }
   ]
 }
