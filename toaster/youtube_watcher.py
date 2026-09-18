@@ -169,6 +169,15 @@ def get_latest_video(handle: str, timeout: int = 15) -> Optional[Dict[str, str]]
     return None
 
 
+def _matches_required_title_words(title: str, require_word: object) -> bool:
+    """Return whether a title contains at least one configured required phrase."""
+    if not require_word:
+        return True
+    words = require_word if isinstance(require_word, list) else [require_word]
+    title_lower = title.casefold()
+    return any(str(word).casefold() in title_lower for word in words if word)
+
+
 async def _dispatch_videos(bot, pending_videos: asyncio.Queue, post_interval_seconds: int) -> None:
     """Post queued videos one at a time, spacing posts by two minutes."""
     next_post_at = 0.0
@@ -240,6 +249,8 @@ async def start_youtube_watcher(
                 state_key = entry.get("name") or handle
                 video = await asyncio.to_thread(get_latest_video, handle)
                 if not video:
+                    continue
+                if not _matches_required_title_words(video["title"], entry.get("require_word")):
                     continue
                 latest_id, posted_ids = _get_video_state(state, state_key)
                 _save_video_state(state, state_key, video["id"], posted_ids)
