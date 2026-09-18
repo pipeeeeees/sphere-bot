@@ -81,6 +81,18 @@
       "channel_id": 1539082416629489734,
       "require_word": "Braves",
       "enabled": true
+    },
+    {
+      "name": "techlinked",
+      "username": "techlinked",
+      "channel_id": 1541183362083987548,
+      "enabled": true
+    },
+    {
+      "name": "DougDeMuro",
+      "username": "DougDeMuro",
+      "channel_id": 1539088363334926478,
+      "enabled": true
     }
   ]
 }

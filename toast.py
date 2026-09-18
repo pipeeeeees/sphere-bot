@@ -24,6 +24,7 @@ from toaster.youtube_watcher import (
     check_latest_youtube,
     get_stored_latest_videos,
     start_youtube_watcher,
+    start_youtube_shorts_watcher,
 )
 from toaster.trivia import get_trivia_schedules
 from toaster.modules.tweet_puller import get_fixvx_equivalent, get_latest_tweet_link
@@ -1417,6 +1418,7 @@ async def on_ready() -> None:
     try:
         youtube_watch_successful, youtube_watch_total = await check_latest_youtube()
         asyncio.create_task(start_youtube_watcher(bot))
+        asyncio.create_task(start_youtube_shorts_watcher(bot))
         print('✓ Started YouTube watcher')
     except Exception as exc:
         await report_bot_error("starting YouTube watcher", exc)
